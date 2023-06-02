@@ -8,6 +8,7 @@
 
 #include <sstream>
 #include <string_view>
+#include <vector>
 
 class Shell {
   public:
@@ -27,7 +28,15 @@ class Shell {
         std::string_view getHelp;
     };
 
-    Shell(std::ostream &oStream, Config config) : _output(oStream), _config(config) {}
+    struct Command {
+        enum class [[nodiscard]] Status{noError, Error};
+        using Callback = Status (*)(Shell &shell, std::string input);
+
+        std::string_view code;
+        Callback call;
+    };
+
+    Shell(std::ostream &oStream, const Config &config, const std::vector<Command> &cmdTable);
 
     void printWelcome();
     void printVersion();
@@ -38,11 +47,14 @@ class Shell {
     void consume(int input);
     void consume(std::string input);
 
+    const Signs &signs;
+
   private:
-    Config _config;
-    std::stringstream _input;
     std::ostream &_output;
+    const Config &_config;
+    std::stringstream _input;
     void setupNewLine();
     void processString(std::string input);
     std::string _command;
+    const std::vector<Command> &_commandTable;
 };

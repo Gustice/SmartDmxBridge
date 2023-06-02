@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 #include <shell.hpp>
 
+static std::vector<Shell::Command> emptyCmdTable;
+
 TEST(ShellTestSuite, Construction) {
     std::stringstream buffer;
     Shell::Config cfg{
@@ -8,13 +10,13 @@ TEST(ShellTestSuite, Construction) {
         .version{"V 1.0"},
         .help{"?? Help Page ??"},
     };
-    Shell sut(buffer, cfg);
+    Shell sut(buffer, cfg, emptyCmdTable);
 }
 
 // TestFixture:
 class ShellIOTest : public ::testing::Test {
   public:
-    ShellIOTest() : _config{"SUT", "V 1.0", "HelpPage"}, _shell(_buffer, _config) {}
+    ShellIOTest() : _config{"SUT", "V 1.0", "HelpPage"}, _shell(_buffer, _config, emptyCmdTable) {}
 
   protected:
     void SetUp() override {}
@@ -65,7 +67,8 @@ TEST_F(ShellIOTest, CheckEventMessage) {
 // TestFixture:
 class ShellAsciiProcessingTest : public ::testing::Test {
   public:
-    ShellAsciiProcessingTest() : _config{"SUT", "V 1.0", "HelpPage"}, _shell(_buffer, _config) {}
+    ShellAsciiProcessingTest()
+        : _config{"SUT", "V 1.0", "HelpPage"}, _shell(_buffer, _config, emptyCmdTable) {}
 
   protected:
     void SetUp() override {}

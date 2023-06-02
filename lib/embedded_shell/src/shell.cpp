@@ -1,13 +1,26 @@
 #include "shell.hpp"
 #include <cstring>
 
-constexpr Shell::Signs shellSigns{.prompt{"> "},
-    .response{" <"},
-    .event{":"},
-    .error{"!"},
-    .newLine{'\n'},
-    .backspace{'\b'},
-                                  .getHelp{"?"}};
+constexpr Shell::Signs shellSigns{.prompt = "> ",
+                                  .response = " <",
+                                  .event = ":",
+                                  .error = "!",
+                                  .newLine = '\n',
+                                  .backspace = '\b',
+                                  .getHelp = "?"};
+
+bool StringStartsWithFollowedByBlank(std::string str, std::string_view code) {
+    if (str.find(code) != 0)
+        return false;
+
+    if (str.at(code.size()) != ' ')
+        return false;
+
+    return true;
+}
+
+Shell::Shell(std::ostream &oStream, const Config &config, const std::vector<Command> &cmdTable)
+    : signs(shellSigns), _output(oStream), _config(config), _commandTable(cmdTable) {}
 
 void Shell::printWelcome() {
     _output << "** " << _config.deviceName << " **\n";
@@ -45,8 +58,10 @@ void Shell::consume(int input) {
 
     char c = (char)input;
     // ignore DOS-return (accept only '\n')
-    if (c == '\r')
+    if (c == '\r') {
+        _output << c;
         return;
+    }
 
     if (c == shellSigns.backspace) {
         _output << c;
@@ -83,6 +98,14 @@ void Shell::processString(std::string input) {
         printHelp();
         _output << shellSigns.newLine;
         return;
+    }
+
+    for (auto &&cmd : _commandTable) {
+        if (StringStartsWithFollowedByBlank(input, cmd.code)) {
+            cmd.call(*this, input.substr(cmd.code.size() + 1));
+            _output << "\n";
+            return;
+        }
     }
 
     printError("Unknown command. See help with '?' ...");
