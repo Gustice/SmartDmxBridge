@@ -11,7 +11,9 @@
 #include <stdio.h>
 #include <string.h>
 
-static const char *TAG = "eth_example";
+#include "embedded_cli.h"
+
+static const char *TAG = "dmx-bridge";
 
 extern "C" { // This switch allows the ROS C-implementation to find this main
 void app_main(void);
@@ -27,6 +29,22 @@ void app_main(void);
 #define ECHO_TASK_STACK_SIZE 4098
 
 #define BUF_SIZE (1028)
+
+// 164 bytes is minimum size for this params on Arduino Nano
+#define CLI_BUFFER_SIZE 512
+#define CLI_RX_BUFFER_SIZE 16
+#define CLI_CMD_BUFFER_SIZE 32
+#define CLI_HISTORY_SIZE 16
+#define CLI_BINDING_COUNT 3
+
+EmbeddedCli *cli;
+
+CLI_UINT cliBuffer[BYTES_TO_CLI_UINTS(CLI_BUFFER_SIZE)];
+void onCommand(EmbeddedCli *embeddedCli, CliCommand *command);
+void writeChar(EmbeddedCli *embeddedCli, char c);
+void onHello(EmbeddedCli *cli, char *args, void *context);
+void onLed(EmbeddedCli *cli, char *args, void *context);
+void onAdc(EmbeddedCli *cli, char *args, void *context);
 
 static void echo_task(void *arg) {
     /* Configure parameters of an UART driver,
@@ -47,19 +65,66 @@ static void echo_task(void *arg) {
     ESP_ERROR_CHECK(uart_set_pin(ECHO_UART_PORT_NUM, ECHO_TEST_TXD, ECHO_TEST_RXD, ECHO_TEST_RTS,
                                  ECHO_TEST_CTS));
 
+    EmbeddedCliConfig *config = embeddedCliDefaultConfig();
+    config->cliBuffer = cliBuffer;
+    config->cliBufferSize = CLI_BUFFER_SIZE;
+    config->rxBufferSize = CLI_RX_BUFFER_SIZE;
+    config->cmdBufferSize = CLI_CMD_BUFFER_SIZE;
+    config->historyBufferSize = CLI_HISTORY_SIZE;
+    config->maxBindingCount = CLI_BINDING_COUNT;
+    cli = embeddedCliNew(config);
+
+    if (cli == NULL) {
+        ESP_LOGE(TAG, "Cli was not created, requires %d bytes. Check sizes!",
+                 embeddedCliRequiredSize(config));
+        return;
+    }
+
+    embeddedCliAddBinding(cli, {"get-led", "Get led status", false, nullptr, onLed});
+    embeddedCliAddBinding(cli, {"get-adc", "Read adc value", false, nullptr, onAdc});
+    embeddedCliAddBinding(cli, {"hello", "Print hello message", true, (void *)"World", onHello});
+
+    cli->onCommand = onCommand;
+    cli->writeChar = writeChar;
+
     // Configure a temporary buffer for the incoming data
     uint8_t *data = (uint8_t *)malloc(BUF_SIZE);
 
     while (1) {
-        // Read data from the UART
         int len = uart_read_bytes(ECHO_UART_PORT_NUM, data, (BUF_SIZE - 1), 20 / portTICK_RATE_MS);
-        // Write data back to the UART
-        uart_write_bytes(ECHO_UART_PORT_NUM, (const char *)data, len);
-        if (len) {
-            data[len] = '\0';
-            ESP_LOGI(TAG, "Recv str: %s", (char *)data);
+        for (size_t i = 0; i < len; i++) {
+            embeddedCliReceiveChar(cli, data[i]);
         }
+        embeddedCliProcess(cli);
     }
+}
+
+void onCommand(EmbeddedCli *embeddedCli, CliCommand *command) {
+    ESP_LOGI(TAG, "Received command: %s", command->name);
+    embeddedCliTokenizeArgs(command->args);
+    for (int i = 1; i <= embeddedCliGetTokenCount(command->args); ++i) {
+        ESP_LOGI(TAG, "    arg %d : %s", i, embeddedCliGetToken(command->args, i));
+    }
+}
+
+void onHello(EmbeddedCli *cli, char *args, void *context) {
+    ESP_LOGI(TAG, "Hello ");
+    if (embeddedCliGetTokenCount(args) == 0)
+        ESP_LOGI(TAG, "%s", (const char *)context);
+    else
+        ESP_LOGI(TAG, "%s", embeddedCliGetToken(args, 1));
+}
+
+void onLed(EmbeddedCli *cli, char *args, void *context) {
+    ESP_LOGI(TAG, "LED: %li \r\n", random());
+}
+
+void onAdc(EmbeddedCli *cli, char *args, void *context) {
+    ESP_LOGI(TAG, "ADC: %li \r\n", random());
+}
+
+void writeChar(EmbeddedCli *embeddedCli, char c) {
+    uart_write_bytes(ECHO_UART_PORT_NUM, (const char *)&c, 1);
 }
 
 static int cnt;
