@@ -11,7 +11,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "embedded_cli.h"
+#include "cliWrapper.hpp"
 #include "uart.hpp"
 
 static const char *TAG = "dmx-bridge";
@@ -23,53 +23,23 @@ void app_main(void);
 #define ECHO_TASK_STACK_SIZE 4098
 
 // 164 bytes is minimum size for this params on Arduino Nano
-#define CLI_BUFFER_SIZE 512
-#define CLI_RX_BUFFER_SIZE 16
-#define CLI_CMD_BUFFER_SIZE 32
-#define CLI_HISTORY_SIZE 16
-#define CLI_BINDING_COUNT 3
 
-EmbeddedCli *cli;
-
-CLI_UINT cliBuffer[BYTES_TO_CLI_UINTS(CLI_BUFFER_SIZE)];
 void onCommand(EmbeddedCli *embeddedCli, CliCommand *command);
-void writeChar(EmbeddedCli *embeddedCli, char c);
 void onHello(EmbeddedCli *cli, char *args, void *context);
 void onLed(EmbeddedCli *cli, char *args, void *context);
 void onAdc(EmbeddedCli *cli, char *args, void *context);
 
 static Uart mntPort(1, GPIO_NUM_36, GPIO_NUM_4, Uart::BaudRate::_115200Bd);
+Cli shell(mntPort, onCommand);
 
 static void echo_task(void *arg) {
 
-    EmbeddedCliConfig *config = embeddedCliDefaultConfig();
-    config->cliBuffer = cliBuffer;
-    config->cliBufferSize = CLI_BUFFER_SIZE;
-    config->rxBufferSize = CLI_RX_BUFFER_SIZE;
-    config->cmdBufferSize = CLI_CMD_BUFFER_SIZE;
-    config->historyBufferSize = CLI_HISTORY_SIZE;
-    config->maxBindingCount = CLI_BINDING_COUNT;
-    cli = embeddedCliNew(config);
-
-    if (cli == NULL) {
-        ESP_LOGE(TAG, "Cli was not created, requires %d bytes. Check sizes!",
-                 embeddedCliRequiredSize(config));
-        return;
-    }
-
-    embeddedCliAddBinding(cli, {"get-led", "Get led status", false, nullptr, onLed});
-    embeddedCliAddBinding(cli, {"get-adc", "Read adc value", false, nullptr, onAdc});
-    embeddedCliAddBinding(cli, {"hello", "Print hello message", true, (void *)"World", onHello});
-
-    cli->onCommand = onCommand;
-    cli->writeChar = writeChar;
+    shell.addBinding({"get-led", "Get led status", false, nullptr, onLed});
+    shell.addBinding({"get-adc", "Read adc value", false, nullptr, onAdc});
+    shell.addBinding({"hello", "Print hello message", true, (void *)"World", onHello});
 
     while (1) {
-        auto r = mntPort.read();
-        for (auto &&c : r) {
-            embeddedCliReceiveChar(cli, c);
-        }
-        embeddedCliProcess(cli);
+        shell.process();
     }
 }
 
@@ -95,10 +65,6 @@ void onLed(EmbeddedCli *cli, char *args, void *context) {
 
 void onAdc(EmbeddedCli *cli, char *args, void *context) {
     ESP_LOGI(TAG, "ADC: %li \r\n", random());
-}
-
-void writeChar(EmbeddedCli *embeddedCli, char c) {
-    mntPort.write(c);
 }
 
 static int cnt;
