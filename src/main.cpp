@@ -14,11 +14,21 @@
 #include "cliWrapper.hpp"
 #include "uart.hpp"
 
+#include "esp_system.h"
+#include "lwip/err.h"
+#include "lwip/sockets.h"
+#include "lwip/sys.h"
+#include <lwip/netdb.h>
+#include <string.h>
+#include <sys/param.h>
+
 static const char *TAG = "dmx-bridge";
 
 extern "C" { // This switch allows the ROS C-implementation to find this main
 void app_main(void);
 }
+
+#define PORT 23
 
 #define ECHO_TASK_STACK_SIZE 4098
 
@@ -75,6 +85,11 @@ static int cnt;
 #define CONFIG_EXAMPLE_ETH_MDIO_GPIO 18
 #define PIN_PHY_POWER 12
 
+static esp_eth_handle_t eth_handle = NULL;
+static esp_eth_netif_glue_handle_t eth_glue = NULL;
+static esp_eth_mac_t *mac = NULL;
+static esp_eth_phy_t *phy = NULL;
+
 /** Event handler for Ethernet events */
 static void eth_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id,
                               void *event_data) {
@@ -103,6 +118,11 @@ static void eth_event_handler(void *arg, esp_event_base_t event_base, int32_t ev
     }
 }
 
+#define NR_OF_IP_ADDRESSES_TO_WAIT_FOR (2)
+
+static xSemaphoreHandle s_semph_get_ip_addrs =
+    xSemaphoreCreateCounting(NR_OF_IP_ADDRESSES_TO_WAIT_FOR, 0);
+
 /** Event handler for IP_EVENT_ETH_GOT_IP */
 static void got_ip_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id,
                                  void *event_data) {
@@ -115,6 +135,116 @@ static void got_ip_event_handler(void *arg, esp_event_base_t event_base, int32_t
     ESP_LOGI(TAG, "ETHMASK:" IPSTR, IP2STR(&ip_info->netmask));
     ESP_LOGI(TAG, "ETHGW:" IPSTR, IP2STR(&ip_info->gw));
     ESP_LOGI(TAG, "~~~~~~~~~~~");
+    xSemaphoreGive(s_semph_get_ip_addrs);
+}
+
+esp_netif_t *get_example_netif_from_desc(const char *desc) {
+    esp_netif_t *netif = NULL;
+    char *expected_desc;
+    asprintf(&expected_desc, "%s: %s", TAG, desc);
+    while ((netif = esp_netif_next(netif)) != NULL) {
+        if (strcmp(esp_netif_get_desc(netif), expected_desc) == 0) {
+            free(expected_desc);
+            return netif;
+        }
+    }
+    free(expected_desc);
+    return netif;
+}
+
+static void eth_stop(void) {
+    esp_netif_t *eth_netif = get_example_netif_from_desc("eth");
+    ESP_ERROR_CHECK(
+        esp_event_handler_unregister(IP_EVENT, IP_EVENT_ETH_GOT_IP, &got_ip_event_handler));
+    ESP_ERROR_CHECK(esp_eth_stop(eth_handle));
+    ESP_ERROR_CHECK(esp_eth_del_netif_glue(eth_glue));
+    ESP_ERROR_CHECK(esp_eth_driver_uninstall(eth_handle));
+    ESP_ERROR_CHECK(phy->del(phy));
+    ESP_ERROR_CHECK(mac->del(mac));
+
+    esp_netif_destroy(eth_netif);
+    /* start Ethernet driver state machine */
+}
+
+/**
+ * @brief Checks the netif description if it contains specified prefix.
+ * All netifs created withing common connect component are prefixed with the module TAG,
+ * so it returns true if the specified netif is owned by this module
+ */
+static bool is_our_netif(const char *prefix, esp_netif_t *netif) {
+    return strncmp(prefix, esp_netif_get_desc(netif), strlen(prefix) - 1) == 0;
+}
+
+static void udp_server_task(void *pvParameters) {
+    char rx_buffer[128];
+    char addr_str[128];
+    int addr_family = (int)pvParameters;
+    int ip_protocol = 0;
+    struct sockaddr_in6 dest_addr;
+
+    while (1) {
+        if (addr_family == AF_INET) {
+            struct sockaddr_in *dest_addr_ip4 = (struct sockaddr_in *)&dest_addr;
+            dest_addr_ip4->sin_addr.s_addr = htonl(INADDR_ANY);
+            dest_addr_ip4->sin_family = AF_INET;
+            dest_addr_ip4->sin_port = htons(PORT);
+            ip_protocol = IPPROTO_IP;
+        }
+
+        int sock = socket(addr_family, SOCK_DGRAM, ip_protocol);
+        if (sock < 0) {
+            ESP_LOGE(TAG, "Unable to create socket: errno %d", errno);
+            break;
+        }
+        ESP_LOGI(TAG, "Socket created");
+
+        int err = bind(sock, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
+        if (err < 0) {
+            ESP_LOGE(TAG, "Socket unable to bind: errno %d", errno);
+        }
+        ESP_LOGI(TAG, "Socket bound, port %d", PORT);
+
+        struct sockaddr_storage source_addr; // Large enough for both IPv4 or IPv6
+        socklen_t socklen = sizeof(source_addr);
+
+        while (1) {
+            ESP_LOGI(TAG, "Waiting for data");
+            int len = recvfrom(sock, rx_buffer, sizeof(rx_buffer) - 1, 0,
+                               (struct sockaddr *)&source_addr, &socklen);
+            // Error occurred during receiving
+            if (len < 0) {
+                ESP_LOGE(TAG, "recvfrom failed: errno %d", errno);
+                break;
+            }
+            // Data received
+            else {
+                // Get the sender's ip address as string
+                if (source_addr.ss_family == PF_INET) {
+                    inet_ntoa_r(((struct sockaddr_in *)&source_addr)->sin_addr, addr_str,
+                                sizeof(addr_str) - 1);
+                }
+
+                rx_buffer[len] =
+                    0; // Null-terminate whatever we received and treat like a string...
+                ESP_LOGI(TAG, "Received %d bytes from %s:", len, addr_str);
+                ESP_LOGI(TAG, "%s", rx_buffer);
+
+                int err = sendto(sock, rx_buffer, len, 0, (struct sockaddr *)&source_addr,
+                                 sizeof(source_addr));
+                if (err < 0) {
+                    ESP_LOGE(TAG, "Error occurred during sending: errno %d", errno);
+                    break;
+                }
+            }
+        }
+
+        if (sock != -1) {
+            ESP_LOGE(TAG, "Shutting down socket and restarting...");
+            shutdown(sock, 0);
+            close(sock);
+        }
+    }
+    vTaskDelete(NULL);
 }
 
 void app_main(void) {
@@ -139,13 +269,14 @@ void app_main(void) {
     vTaskDelay(pdMS_TO_TICKS(10));
     mac_config.smi_mdc_gpio_num = CONFIG_EXAMPLE_ETH_MDC_GPIO;
     mac_config.smi_mdio_gpio_num = CONFIG_EXAMPLE_ETH_MDIO_GPIO;
-    esp_eth_mac_t *mac = esp_eth_mac_new_esp32(&mac_config);
-    esp_eth_phy_t *phy = esp_eth_phy_new_lan87xx(&phy_config);
+    mac = esp_eth_mac_new_esp32(&mac_config);
+    phy = esp_eth_phy_new_lan87xx(&phy_config);
     esp_eth_config_t config = ETH_DEFAULT_CONFIG(mac, phy);
-    esp_eth_handle_t eth_handle = NULL;
+
     ESP_ERROR_CHECK(esp_eth_driver_install(&config, &eth_handle));
     /* attach Ethernet driver to TCP/IP stack */
-    ESP_ERROR_CHECK(esp_netif_attach(eth_netif, esp_eth_new_netif_glue(eth_handle)));
+    eth_glue = esp_eth_new_netif_glue(eth_handle);
+    ESP_ERROR_CHECK(esp_netif_attach(eth_netif, eth_glue));
 
     // Register user defined event handers
     ESP_ERROR_CHECK(
@@ -154,11 +285,29 @@ void app_main(void) {
         esp_event_handler_register(IP_EVENT, IP_EVENT_ETH_GOT_IP, &got_ip_event_handler, NULL));
     /* start Ethernet driver state machine */
     ESP_ERROR_CHECK(esp_eth_start(eth_handle));
+    ESP_ERROR_CHECK(esp_register_shutdown_handler(&eth_stop));
 
     xTaskCreate(echo_task, "uart_echo_task", ECHO_TASK_STACK_SIZE, NULL, 10, NULL);
 
+    ESP_LOGI(TAG, "Waiting for IP(s)");
+    xSemaphoreTake(s_semph_get_ip_addrs, portMAX_DELAY);
+
+    // iterate over active interfaces, and print out IPs of "our" netifs
+    esp_netif_t *netif = NULL;
+    esp_netif_ip_info_t ip;
+    for (int i = 0; i < esp_netif_get_nr_of_ifs(); ++i) {
+        netif = esp_netif_next(netif);
+        if (is_our_netif(TAG, netif)) {
+            ESP_LOGI(TAG, "Connected to %s", esp_netif_get_desc(netif));
+            ESP_ERROR_CHECK(esp_netif_get_ip_info(netif, &ip));
+            ESP_LOGI(TAG, "- IPv4 address: " IPSTR, IP2STR(&ip.ip));
+        }
+    }
+
+    xTaskCreate(udp_server_task, "udp_server", 4096, (void *)AF_INET, 5, NULL);
+
     while (true) {
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        vTaskDelay(5000 / portTICK_PERIOD_MS);
         std::cout << "Cnt " << cnt++ << "\n";
     }
 }
