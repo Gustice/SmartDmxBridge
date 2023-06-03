@@ -12,6 +12,7 @@
 #include <string.h>
 
 #include "embedded_cli.h"
+#include "uart.hpp"
 
 static const char *TAG = "dmx-bridge";
 
@@ -19,16 +20,7 @@ extern "C" { // This switch allows the ROS C-implementation to find this main
 void app_main(void);
 }
 
-#define ECHO_TEST_TXD 4
-#define ECHO_TEST_RXD 36
-#define ECHO_TEST_RTS -1
-#define ECHO_TEST_CTS -1
-
-#define ECHO_UART_PORT_NUM 1
-#define ECHO_UART_BAUD_RATE 115200
 #define ECHO_TASK_STACK_SIZE 4098
-
-#define BUF_SIZE (1028)
 
 // 164 bytes is minimum size for this params on Arduino Nano
 #define CLI_BUFFER_SIZE 512
@@ -46,24 +38,9 @@ void onHello(EmbeddedCli *cli, char *args, void *context);
 void onLed(EmbeddedCli *cli, char *args, void *context);
 void onAdc(EmbeddedCli *cli, char *args, void *context);
 
-static void echo_task(void *arg) {
-    /* Configure parameters of an UART driver,
-     * communication pins and install the driver */
-    uart_config_t uart_config = {
-        .baud_rate = ECHO_UART_BAUD_RATE,
-        .data_bits = UART_DATA_8_BITS,
-        .parity = UART_PARITY_DISABLE,
-        .stop_bits = UART_STOP_BITS_1,
-        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
-        .source_clk = UART_SCLK_APB,
-    };
-    int intr_alloc_flags = 0;
+static Uart mntPort(1, GPIO_NUM_36, GPIO_NUM_4, Uart::BaudRate::_115200Bd);
 
-    ESP_ERROR_CHECK(uart_driver_install((uart_port_t)ECHO_UART_PORT_NUM, BUF_SIZE * 2, 0, 0, NULL,
-                                        intr_alloc_flags));
-    ESP_ERROR_CHECK(uart_param_config(ECHO_UART_PORT_NUM, &uart_config));
-    ESP_ERROR_CHECK(uart_set_pin(ECHO_UART_PORT_NUM, ECHO_TEST_TXD, ECHO_TEST_RXD, ECHO_TEST_RTS,
-                                 ECHO_TEST_CTS));
+static void echo_task(void *arg) {
 
     EmbeddedCliConfig *config = embeddedCliDefaultConfig();
     config->cliBuffer = cliBuffer;
@@ -87,13 +64,10 @@ static void echo_task(void *arg) {
     cli->onCommand = onCommand;
     cli->writeChar = writeChar;
 
-    // Configure a temporary buffer for the incoming data
-    uint8_t *data = (uint8_t *)malloc(BUF_SIZE);
-
     while (1) {
-        int len = uart_read_bytes(ECHO_UART_PORT_NUM, data, (BUF_SIZE - 1), 20 / portTICK_RATE_MS);
-        for (size_t i = 0; i < len; i++) {
-            embeddedCliReceiveChar(cli, data[i]);
+        auto r = mntPort.read();
+        for (auto &&c : r) {
+            embeddedCliReceiveChar(cli, c);
         }
         embeddedCliProcess(cli);
     }
@@ -124,7 +98,7 @@ void onAdc(EmbeddedCli *cli, char *args, void *context) {
 }
 
 void writeChar(EmbeddedCli *embeddedCli, char c) {
-    uart_write_bytes(ECHO_UART_PORT_NUM, (const char *)&c, 1);
+    mntPort.write(c);
 }
 
 static int cnt;
