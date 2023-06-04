@@ -16,7 +16,7 @@ class Cli {
     using commandCb = void (*)(EmbeddedCli *embeddedCli, CliCommand *command);
     using writeCb = void (*)(EmbeddedCli *embeddedCli, char c);
 
-    Cli(Uart &port, commandCb cmd) : _port(port) {
+    Cli(CharStream &port, commandCb cmd) : _port(port) {
         EmbeddedCliConfig *config = embeddedCliDefaultConfig();
         config->cliBuffer = cliBuffer;
         config->cliBufferSize = CLI_BUFFER_SIZE;
@@ -50,7 +50,7 @@ class Cli {
     }
 
   private:
-    Uart &_port;
+    CharStream &_port;
     EmbeddedCli *cli = nullptr;
     CLI_UINT cliBuffer[BYTES_TO_CLI_UINTS(CLI_BUFFER_SIZE)];
 

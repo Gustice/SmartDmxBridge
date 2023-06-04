@@ -1,10 +1,10 @@
 #pragma once
 
+#include "charStream.hpp"
 #include "driver/gpio.h"
 #include "driver/uart.h"
-#include <string>
 
-class Uart {
+class Uart : public CharStream {
   public:
     enum BaudRate {
         _115200Bd = 115200,
@@ -14,8 +14,8 @@ class Uart {
     Uart(uart_port_t port, gpio_num_t rxd, gpio_num_t txd, BaudRate rate);
     ~Uart();
 
-    std::string read();
-    void write(char c);
+    std::string read() override;
+    void write(char c) override;
 
   private:
     uart_port_t _port;
