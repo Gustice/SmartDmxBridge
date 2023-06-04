@@ -33,8 +33,6 @@ Socket::~Socket() {
 }
 
 std::string Socket::read() {
-    ESP_LOGI(TAG, " ... start reading port");
-
     int len = recv(_socket, _data, sizeof(_data) - 1, 0);
 
     if (len < 0) {
@@ -60,13 +58,20 @@ std::string Socket::read() {
         return "";
     }
 
-    ESP_LOGI(TAG, "Received %d bytes: %s", len, _data);
+    ESP_LOGD(TAG, "Received %d bytes: %s", len, _data);
     std::string ret((const char *)&_data[i]);
     return ret;
 }
 
 void Socket::write(char c) {
     int written = send(_socket, &c, 1, 0);
+    if (written < 0) {
+        ESP_LOGE(TAG, "Error occurred during sending: errno %d", errno);
+    }
+}
+
+void Socket::write(std::string str) {
+    int written = send(_socket, str.c_str(), str.size(), 0);
     if (written < 0) {
         ESP_LOGE(TAG, "Error occurred during sending: errno %d", errno);
     }

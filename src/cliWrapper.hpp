@@ -5,11 +5,10 @@
 #include <functional>
 #include <uart.hpp>
 
-constexpr static int CLI_BUFFER_SIZE = 512;
 constexpr static int CLI_RX_BUFFER_SIZE = 16;
 constexpr static int CLI_CMD_BUFFER_SIZE = 32;
 constexpr static int CLI_HISTORY_SIZE = 16;
-constexpr static int CLI_BINDING_COUNT = 3;
+constexpr static int CLI_BINDING_COUNT = 6;
 
 class Cli {
   public:
@@ -18,8 +17,8 @@ class Cli {
 
     Cli(CharStream &port, commandCb cmd) : _port(port) {
         EmbeddedCliConfig *config = embeddedCliDefaultConfig();
-        config->cliBuffer = cliBuffer;
-        config->cliBufferSize = CLI_BUFFER_SIZE;
+        // config->cliBuffer = cliBuffer; // Allocate as much as you need
+        // config->cliBufferSize = CLI_BUFFER_SIZE;
         config->rxBufferSize = CLI_RX_BUFFER_SIZE;
         config->cmdBufferSize = CLI_CMD_BUFFER_SIZE;
         config->historyBufferSize = CLI_HISTORY_SIZE;
@@ -49,10 +48,10 @@ class Cli {
         embeddedCliProcess(cli);
     }
 
-  private:
     CharStream &_port;
+
+  private:
     EmbeddedCli *cli = nullptr;
-    CLI_UINT cliBuffer[BYTES_TO_CLI_UINTS(CLI_BUFFER_SIZE)];
 
     static void writeToken(EmbeddedCli *embeddedCli, char c) {
         static_cast<Cli *>(embeddedCli->appContext)->_port.write(c);

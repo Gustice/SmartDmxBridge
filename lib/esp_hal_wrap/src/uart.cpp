@@ -39,3 +39,7 @@ std::string Uart::read() {
 void Uart::write(char c) {
     uart_write_bytes(_port, (const char *)&c, 1);
 }
+
+void Uart::write(std::string str) {
+    uart_write_bytes(_port, str.c_str(), str.size());
+}

@@ -39,24 +39,52 @@ void app_main(void);
 // 164 bytes is minimum size for this params on Arduino Nano
 
 void onCommand(EmbeddedCli *embeddedCli, CliCommand *command);
+
+void getDmxLayout(EmbeddedCli *cli, char *args, void *context);
+void getDmxChannel(EmbeddedCli *cli, char *args, void *context);
+void setDmxChannel(EmbeddedCli *cli, char *args, void *context);
 void onHello(EmbeddedCli *cli, char *args, void *context);
-void onLed(EmbeddedCli *cli, char *args, void *context);
-void onAdc(EmbeddedCli *cli, char *args, void *context);
+
+static const char *welcomeString = "\
+** Smart-DMX-Bridge **\n\
+* \n\
+* \n\
+";
+
+void AppendCallbackToShell(Cli &shell) {
+    shell.addBinding({"hello", "Print Welcome Stream", true, (void *)welcomeString, onHello});
+    shell.addBinding({"get-layout", "Get channel info", false, nullptr, getDmxLayout});
+    shell.addBinding(
+        {"set-ch", "'c v' Set DMX-Channel c to value v", false, nullptr, setDmxChannel});
+    shell.addBinding(
+        {"get-ch", "'c' Get DMX-Channel c (omit c for all)", false, nullptr, getDmxChannel});
+}
 
 static Uart mntPort(1, GPIO_NUM_36, GPIO_NUM_4, Uart::BaudRate::_115200Bd);
-
-static void echo_task(void *arg) {
+static void interfaceTask(void *arg) {
     Cli shell(mntPort, onCommand);
 
-    shell.addBinding({"get-led", "Get led status", false, nullptr, onLed});
-    shell.addBinding({"get-adc", "Read adc value", false, nullptr, onAdc});
-    shell.addBinding({"hello", "Print hello message", true, (void *)"World", onHello});
-
+    AppendCallbackToShell(shell);
     while (1) {
         shell.process();
     }
 }
 
+uint8_t dmxChannels[24];
+void getDmxLayout(EmbeddedCli *cli, char *args, void *context) {
+    auto &port = static_cast<Cli *>(cli->appContext)->_port;
+    port.write("This will be the layout\n");
+}
+
+void getDmxChannel(EmbeddedCli *cli, char *args, void *context) {
+    auto &port = static_cast<Cli *>(cli->appContext)->_port;
+    port.write(std::string("get channel : ") + args + "\n");
+}
+
+void setDmxChannel(EmbeddedCli *cli, char *args, void *context) {
+    auto &port = static_cast<Cli *>(cli->appContext)->_port;
+    port.write(std::string("set channel : ") + args + "\n");
+}
 void onCommand(EmbeddedCli *embeddedCli, CliCommand *command) {
     ESP_LOGI(TAG, "Received command: %s", command->name);
     embeddedCliTokenizeArgs(command->args);
@@ -67,18 +95,12 @@ void onCommand(EmbeddedCli *embeddedCli, CliCommand *command) {
 
 void onHello(EmbeddedCli *cli, char *args, void *context) {
     ESP_LOGI(TAG, "Hello ");
+    auto &port = static_cast<Cli *>(cli->appContext)->_port;
+    port.write((const char *)context);
     if (embeddedCliGetTokenCount(args) == 0)
         ESP_LOGI(TAG, "%s", (const char *)context);
     else
         ESP_LOGI(TAG, "%s", embeddedCliGetToken(args, 1));
-}
-
-void onLed(EmbeddedCli *cli, char *args, void *context) {
-    ESP_LOGI(TAG, "LED: %li \r\n", random());
-}
-
-void onAdc(EmbeddedCli *cli, char *args, void *context) {
-    ESP_LOGI(TAG, "ADC: %li \r\n", random());
 }
 
 static int cnt;
@@ -297,9 +319,7 @@ static void tcp_server_task(void *arg) {
         Socket socket(config, listen_sock);
         Cli shell(socket, onCommand);
 
-        shell.addBinding({"get-led", "Get led status", false, nullptr, onLed});
-        shell.addBinding({"get-adc", "Read adc value", false, nullptr, onAdc});
-        shell.addBinding({"hello", "Print hello message", true, (void *)"World", onHello});
+        AppendCallbackToShell(shell);
 
         while (socket.isActive()) {
             shell.process();
@@ -352,7 +372,7 @@ void app_main(void) {
     ESP_ERROR_CHECK(esp_eth_start(eth_handle));
     ESP_ERROR_CHECK(esp_register_shutdown_handler(&eth_stop));
 
-    xTaskCreate(echo_task, "uart_echo_task", ECHO_TASK_STACK_SIZE, NULL, 10, NULL);
+    // xTaskCreate(interfaceTask, "uart_interfaceTask", ECHO_TASK_STACK_SIZE, NULL, 10, NULL);
 
     ESP_LOGI(TAG, "Waiting for IP(s)");
     xSemaphoreTake(s_semph_get_ip_addrs, portMAX_DELAY);

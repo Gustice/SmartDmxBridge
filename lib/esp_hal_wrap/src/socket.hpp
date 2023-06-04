@@ -16,6 +16,7 @@ class Socket : public CharStream {
 
     std::string read() override;
     void write(char c) override;
+    void write(std::string str) override;
 
   private:
     int _port;

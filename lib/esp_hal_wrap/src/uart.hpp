@@ -16,6 +16,7 @@ class Uart : public CharStream {
 
     std::string read() override;
     void write(char c) override;
+    void write(std::string str) override;
 
   private:
     uart_port_t _port;
