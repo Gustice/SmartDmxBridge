@@ -12,6 +12,7 @@
 #include <string.h>
 
 #include "cliWrapper.hpp"
+#include "dmxInterface.hpp"
 #include "socket.hpp"
 #include "uart.hpp"
 
@@ -60,8 +61,10 @@ void AppendCallbackToShell(Cli &shell) {
         {"get-ch", "'c' Get DMX-Channel c (omit c for all)", false, nullptr, getDmxChannel});
 }
 
-static Uart mntPort(1, GPIO_NUM_36, GPIO_NUM_4, Uart::BaudRate::_115200Bd);
+static Uart dmxPort(2, GPIO_NUM_32, GPIO_NUM_33, Uart::BaudRate::_250000Bd, Uart::StopBits::_2sb);
+
 static void interfaceTask(void *arg) {
+static Uart mntPort(1, GPIO_NUM_36, GPIO_NUM_4, Uart::BaudRate::_115200Bd);
     Cli shell(mntPort, onCommand);
 
     AppendCallbackToShell(shell);
@@ -332,6 +335,16 @@ CLEAN_UP:
     vTaskDelete(NULL);
 }
 
+static void dmx_Listener(void *arg) {
+    DmxInterface *dmx = (DmxInterface *)arg;
+    while (1) {
+        auto bytes = dmx->receive();
+
+        ESP_LOGI(TAG, "DMX-Data received (%d bytes): %d %d %d %d .. %d", bytes.size(), bytes[0],
+                 bytes[1], bytes[2], bytes[3], bytes.back());
+    }
+}
+
 void app_main(void) {
     // Initialize TCP/IP network interface (should be called only once in application)
     ESP_ERROR_CHECK(esp_netif_init());
@@ -391,9 +404,22 @@ void app_main(void) {
 
     // xTaskCreate(udp_server_task, "udp_server", 4096, (void *)AF_INET, 5, NULL);
     xTaskCreate(tcp_server_task, "tcp_server", 4096, (void *)AF_INET, 5, NULL);
+    static DmxInterface dmxInterface(dmxPort);
+    xTaskCreate(dmx_Listener, "dmx_Listener", 4096, &dmxInterface, 5, NULL);
+
+    {
+        uint8_t data[dmxInterface.Size];
+        for (size_t i = 0; i < dmxInterface.Size; i++) {
+            data[i] = i + 1;
+        }
+        dmxInterface.set(data);
+    }
 
     while (true) {
         vTaskDelay(5000 / portTICK_PERIOD_MS);
         std::cout << "Cnt " << cnt++ << "\n";
+        dmxInterface.send();
     }
+
+    // todo: Delete Task dmx-Listener
 }
