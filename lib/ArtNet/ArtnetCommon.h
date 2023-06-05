@@ -1,6 +1,12 @@
+
 #pragma once
 #ifndef ARTNET_COMMON_H
 #define ARTNET_COMMON_H
+
+#include <map>
+#include <functional>
+#include "Streams.hpp"
+#include <string>
 
 namespace arx {
 namespace artnet {
@@ -83,19 +89,11 @@ namespace artnet {
     using CallbackAllType = std::function<void(const uint32_t universe, const uint8_t* data, const uint16_t size)>;
     using CallbackType = std::function<void(const uint8_t* data, const uint16_t size)>;
 
-#if ARX_HAVE_LIBSTDCPLUSPLUS >= 201103L  // Have libstdc++11
     template <uint16_t SIZE>
     using Array = std::array<uint8_t, SIZE>;
     using IntervalMap = std::map<uint32_t, uint32_t>;
     using CallbackMap = std::map<uint32_t, CallbackType>;
     using namespace std;
-#else
-    template <uint16_t SIZE>
-    using Array = arx::vector<uint8_t, SIZE>;
-    using IntervalMap = arx::map<uint32_t, uint32_t>;
-    using CallbackMap = arx::map<uint32_t, CallbackType, 4>;
-    using namespace arx;
-#endif
 
     union ArtPollReply {
         struct {
@@ -139,113 +137,104 @@ namespace artnet {
         uint8_t b[239];
     };
 
-    template <typename S>
-    class Sender_ {
-        Array<PACKET_SIZE> packet;
-        uint8_t target_net {0};
-        uint8_t target_subnet {0};
-        uint8_t target_universe {0};
-        uint8_t seq {0};
-        uint8_t phy {0};
-
-        IntervalMap intervals;
-        S* stream;
-
-    public:
-#if ARX_HAVE_LIBSTDCPLUSPLUS >= 201103L  // Have libstdc++11
-#else
-        Sender_() {
-            packet.resize(PACKET_SIZE);
-        }
-#endif
-        virtual ~Sender_() {}
-
-        // streaming packet
-        void streaming_data(const uint8_t* const data, const uint16_t size) {
-            memcpy((&packet[IDX(Index::DATA)]), data, size);
-        }
-        void streaming_data(const uint16_t ch, const uint8_t data) {
-            packet[IDX(Index::DATA) + ch] = data;
-        }
-
-        void streaming(const String& ip, const uint32_t universe_) {
-            uint32_t now = millis();
-            if (intervals.find(universe_) == intervals.end()) {
-                intervals.insert(make_pair(universe_, now));
-            }
-            if (now >= intervals[universe_] + DEFAULT_INTERVAL_MS) {
-                set_universe(universe_);
-                send_packet(ip);
-                intervals[universe_] = now;
-            }
-        }
-        void streaming(const String& ip, const uint8_t net_, const uint8_t subnet_, const uint8_t universe_) {
-            uint32_t u = ((uint32_t)net_ << 8) | ((uint32_t)subnet_ << 4) | (uint32_t)universe_;
-            streaming(ip, u);
-        }
-
-        // one-line sender
-        void send(const String& ip, const uint32_t universe_, const uint8_t* const data, const uint16_t size) {
-            set_universe(universe_);
-            streaming_data(data, size);
-            send_packet(ip);
-        }
-        void send(
-            const String& ip,
-            const uint8_t net_,
-            const uint8_t subnet_,
-            const uint8_t universe_,
-            const uint8_t* const data,
-            const uint16_t size) {
-            set_universe(net_, subnet_, universe_);
-            streaming_data(data, size);
-            send_packet(ip);
-        }
-
-        void physical(const uint8_t i) {
-            phy = constrain(i, 0, 3);
-        }
-
-        uint8_t sequence() const {
-            return seq;
-        }
-
-    protected:
-        void attach(S& s) {
-            stream = &s;
-            for (size_t i = 0; i < ID_LENGTH; i++) packet[IDX(Index::ID) + i] = static_cast<uint8_t>(ID[i]);
-            packet[IDX(Index::OP_CODE_H)] = (OPC(OpCode::Dmx) >> 8) & 0x00FF;
-            packet[IDX(Index::OP_CODE_L)] = (OPC(OpCode::Dmx) >> 0) & 0x00FF;
-            packet[IDX(Index::PROTOCOL_VER_H)] = (PROTOCOL_VER >> 8) & 0x00FF;
-            packet[IDX(Index::PROTOCOL_VER_L)] = (PROTOCOL_VER >> 0) & 0x00FF;
-        }
-
-        void send_packet(const String& ip) {
-            packet[IDX(Index::SEQUENCE)] = seq++;
-            packet[IDX(Index::PHYSICAL)] = phy;
-            packet[IDX(Index::NET)] = target_net;
-            packet[IDX(Index::SUBUNI)] = (target_subnet << 4) | target_universe;
-            packet[IDX(Index::LENGTH_H)] = (512 >> 8) & 0xFF;
-            packet[IDX(Index::LENGTH_L)] = (512 >> 0) & 0xFF;
-#ifdef ARTNET_ENABLE_WIFI
-            if (WiFi.status() != WL_CONNECTED) return;
-#endif
-            stream->beginPacket(ip.c_str(), DEFAULT_PORT);
-            stream->write(packet.data(), packet.size());
-            stream->endPacket();
-        }
-
-        void set_universe(const uint32_t universe_) {
-            target_net = (universe_ >> 8) & 0x7F;
-            target_subnet = (universe_ >> 4) & 0x0F;
-            target_universe = universe_ & 0x0F;
-        }
-        void set_universe(const uint8_t net_, const uint8_t subnet_, const uint8_t universe_) {
-            target_net = net_ & 0x7F;
-            target_subnet = subnet_ & 0x0F;
-            target_universe = universe_ & 0x0F;
-        }
-    };
+    // template <typename S>
+    // class Sender_ {
+    //     Array<PACKET_SIZE> packet;
+    //     uint8_t target_net {0};
+    //     uint8_t target_subnet {0};
+    //     uint8_t target_universe {0};
+    //     uint8_t seq {0};
+    //     uint8_t phy {0};
+    //
+    //     IntervalMap intervals;
+    //     S* stream;
+    //
+    // public:
+    //     virtual ~Sender_() {}
+    //
+    //     // streaming packet
+    //     void streaming_data(const uint8_t* const data, const uint16_t size) {
+    //         memcpy((&packet[IDX(Index::DATA)]), data, size);
+    //     }
+    //     void streaming_data(const uint16_t ch, const uint8_t data) {
+    //         packet[IDX(Index::DATA) + ch] = data;
+    //     }
+    //
+    //     void streaming(const String& ip, const uint32_t universe_) {
+    //         uint32_t now = millis();
+    //         if (intervals.find(universe_) == intervals.end()) {
+    //             intervals.insert(make_pair(universe_, now));
+    //         }
+    //         if (now >= intervals[universe_] + DEFAULT_INTERVAL_MS) {
+    //             set_universe(universe_);
+    //             send_packet(ip);
+    //             intervals[universe_] = now;
+    //         }
+    //     }
+    //     void streaming(const String& ip, const uint8_t net_, const uint8_t subnet_, const uint8_t universe_) {
+    //         uint32_t u = ((uint32_t)net_ << 8) | ((uint32_t)subnet_ << 4) | (uint32_t)universe_;
+    //         streaming(ip, u);
+    //     }
+    //
+    //     // one-line sender
+    //     void send(const String& ip, const uint32_t universe_, const uint8_t* const data, const uint16_t size) {
+    //         set_universe(universe_);
+    //         streaming_data(data, size);
+    //         send_packet(ip);
+    //     }
+    //     void send(
+    //         const String& ip,
+    //         const uint8_t net_,
+    //         const uint8_t subnet_,
+    //         const uint8_t universe_,
+    //         const uint8_t* const data,
+    //         const uint16_t size) {
+    //         set_universe(net_, subnet_, universe_);
+    //         streaming_data(data, size);
+    //         send_packet(ip);
+    //     }
+    //
+    //     void physical(const uint8_t i) {
+    //         phy = constrain(i, 0, 3);
+    //     }
+    //
+    //     uint8_t sequence() const {
+    //         return seq;
+    //     }
+    //
+    // protected:
+    //     void attach(S& s) {
+    //         stream = &s;
+    //         for (size_t i = 0; i < ID_LENGTH; i++) packet[IDX(Index::ID) + i] = static_cast<uint8_t>(ID[i]);
+    //         packet[IDX(Index::OP_CODE_H)] = (OPC(OpCode::Dmx) >> 8) & 0x00FF;
+    //         packet[IDX(Index::OP_CODE_L)] = (OPC(OpCode::Dmx) >> 0) & 0x00FF;
+    //         packet[IDX(Index::PROTOCOL_VER_H)] = (PROTOCOL_VER >> 8) & 0x00FF;
+    //         packet[IDX(Index::PROTOCOL_VER_L)] = (PROTOCOL_VER >> 0) & 0x00FF;
+    //     }
+    //
+    //     void send_packet(const String& ip) {
+    //         packet[IDX(Index::SEQUENCE)] = seq++;
+    //         packet[IDX(Index::PHYSICAL)] = phy;
+    //         packet[IDX(Index::NET)] = target_net;
+    //         packet[IDX(Index::SUBUNI)] = (target_subnet << 4) | target_universe;
+    //         packet[IDX(Index::LENGTH_H)] = (512 >> 8) & 0xFF;
+    //         packet[IDX(Index::LENGTH_L)] = (512 >> 0) & 0xFF;
+    //         stream->beginPacket(ip.c_str(), DEFAULT_PORT);
+    //         stream->write(packet.data(), packet.size());
+    //         stream->endPacket();
+    //     }
+    //
+    //     void set_universe(const uint32_t universe_) {
+    //         target_net = (universe_ >> 8) & 0x7F;
+    //         target_subnet = (universe_ >> 4) & 0x0F;
+    //         target_universe = universe_ & 0x0F;
+    //     }
+    //     void set_universe(const uint8_t net_, const uint8_t subnet_, const uint8_t universe_) {
+    //         target_net = net_ & 0x7F;
+    //         target_subnet = subnet_ & 0x0F;
+    //         target_universe = universe_ & 0x0F;
+    //     }
+    // };
 
     template <typename S>
     class Receiver_ {
@@ -254,28 +243,18 @@ namespace artnet {
         uint16_t remote_port;
         uint8_t net_switch;  // net of universe
         uint8_t sub_switch;  // subnet of universe
-        String short_name {"Arduino ArtNet"};
-        String long_name {"Ardino ArtNet Protocol by hideakitai/ArtNet"};
-        String node_report {""};
+        std::string short_name {"Arduino ArtNet"};
+        std::string long_name {"Ardino ArtNet Protocol by hideakitai/ArtNet"};
+        std::string node_report {""};
         CallbackMap callbacks;
         CallbackAllType callback_all;
         S* stream;
         bool b_verbose {false};
 
     public:
-#if ARX_HAVE_LIBSTDCPLUSPLUS >= 201103L  // Have libstdc++11
-#else
-        Receiver_() {
-            packet.resize(PACKET_SIZE);
-        }
-#endif
-
         virtual ~Receiver_() {}
 
         OpCode parse() {
-#ifdef ARTNET_ENABLE_WIFI
-            if (WiFi.status() != WL_CONNECTED) return OpCode::NA;
-#endif
             const size_t size = stream->parsePacket();
             if (size == 0) return OpCode::NA;
 
@@ -323,8 +302,8 @@ namespace artnet {
             return remote_port;
         }
 
-        inline String id() const {
-            String str;
+        inline std::string id() const {
+            std::string str;
             for (uint8_t i = 0; i < ID_LENGTH; ++i) str += packet[IDX(Index::ID) + i];
             return str;
         }
@@ -447,21 +426,6 @@ namespace artnet {
             callbacks.clear();
         }
 
-#ifdef FASTLED_VERSION
-        inline void forward(const uint8_t universe, CRGB* leds, const uint16_t num) {
-            subscribe(universe, [&](const uint8_t* data, const uint16_t size) {
-                if (size < num * 3) {
-                    Serial.println(F("ERROR: Too many LEDs to forward"));
-                }
-                for (size_t pixel = 0; pixel < num; ++pixel) {
-                    size_t idx = pixel * 3;
-                    leds[pixel].r = data[idx + 0];
-                    leds[pixel].g = data[idx + 1];
-                    leds[pixel].b = data[idx + 2];
-                }
-            });
-        }
-#endif
         void shortname(const String& sn) {
             short_name = sn;
         }
@@ -566,22 +530,6 @@ namespace artnet {
             stream->endPacket();
         }
 
-#ifdef ARTNET_ENABLE_WIFI
-        template <typename T = S>
-        auto localIP() -> std::enable_if_t<std::is_same<T, WiFiUDP>::value, IPAddress> {
-            return WiFi.localIP();
-        }
-        template <typename T = S>
-        auto subnetMask() -> std::enable_if_t<std::is_same<T, WiFiUDP>::value, IPAddress> {
-            return WiFi.subnetMask();
-        }
-        template <typename T = S>
-        auto macAddress(uint8_t* mac) -> std::enable_if_t<std::is_same<T, WiFiUDP>::value> {
-            WiFi.macAddress(mac);
-        }
-#endif  // ARTNET_ENABLE_WIFI
-
-#ifdef ARTNET_ENABLE_ETHER
         template <typename T = S>
         auto localIP() -> std::enable_if_t<std::is_same<T, EthernetUDP>::value, IPAddress> {
             return Ethernet.localIP();
@@ -592,54 +540,51 @@ namespace artnet {
         }
         template <typename T = S>
         auto macAddress(uint8_t* mac) -> std::enable_if_t<std::is_same<T, EthernetUDP>::value> {
-#ifndef ESP8266
-            Ethernet.MACAddress(mac);
-#endif
         }
-#endif  // ARTNET_ENABLE_ETHER
     };  // namespace artnet
 
-    template <typename S>
-    class Manager : public Sender_<S>, public Receiver_<S> {
-        S stream;
+    // template <typename S>
+    // class Manager : public Sender_<S>, public Receiver_<S> {
+    //     S stream;
+
+    // public:
+    //     void begin(
+    //         const uint8_t subscribe_net = 0,
+    //         const uint8_t subscribe_subnet = 0,
+    //         const uint16_t recv_port = DEFAULT_PORT) {
+    //         stream.begin(recv_port);
+    //         this->Sender_<S>::attach(stream);
+    //         this->Receiver_<S>::attach(stream, subscribe_net, subscribe_subnet);
+    //     }
+
+    //     void parse() {
+    //         this->Receiver_<S>::parse();
+    //     }
+    // };
+
+    // template <typename S>
+    // class Sender : public Sender_<S> {
+    //     S stream;
+
+    // public:
+    //     void begin() {
+    //         stream.begin(DEFAULT_PORT);
+    //         this->Sender_<S>::attach(stream);
+    //     }
+    // };
+
+    class Receiver : public Receiver_ {
+        // ByteStream stream;
 
     public:
+        // Receiver()
+
         void begin(
             const uint8_t subscribe_net = 0,
             const uint8_t subscribe_subnet = 0,
             const uint16_t recv_port = DEFAULT_PORT) {
             stream.begin(recv_port);
-            this->Sender_<S>::attach(stream);
-            this->Receiver_<S>::attach(stream, subscribe_net, subscribe_subnet);
-        }
-
-        void parse() {
-            this->Receiver_<S>::parse();
-        }
-    };
-
-    template <typename S>
-    class Sender : public Sender_<S> {
-        S stream;
-
-    public:
-        void begin() {
-            stream.begin(DEFAULT_PORT);
-            this->Sender_<S>::attach(stream);
-        }
-    };
-
-    template <typename S>
-    class Receiver : public Receiver_<S> {
-        S stream;
-
-    public:
-        void begin(
-            const uint8_t subscribe_net = 0,
-            const uint8_t subscribe_subnet = 0,
-            const uint16_t recv_port = DEFAULT_PORT) {
-            stream.begin(recv_port);
-            this->Receiver_<S>::attach(stream, subscribe_net, subscribe_subnet);
+            this->Receiver_<ByteStream>::attach(stream, subscribe_net, subscribe_subnet);
         }
     };
 }  // namespace artnet

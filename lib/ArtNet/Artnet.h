@@ -6,15 +6,10 @@
 // Packet Summary : https://art-net.org.uk/structure/packet-summary-2/
 // Packet Definition : https://art-net.org.uk/structure/streaming-packets/artdmx-packet-definition/
 
-#include "ArtnetWiFi.h"
-#include "ArtnetEther.h"
+// using Artnet = arx::artnet::Manager;
+// using ArtnetSender = arx::artnet::Sender;
+using ArtnetReceiver = arx::artnet::Receiver;
 
-#if !defined(ARTNET_ENABLE_WIFI) && !defined(ARTNET_ENABLE_ETHER)
-#error THIS PLATFORM HAS NO WIFI OR ETHERNET OR NOT SUPPORTED ARCHITECTURE. PLEASE LET ME KNOW!
-#endif
-
-#if defined(ARTNET_ENABLE_WIFI) && defined(ARTNET_ENABLE_ETHER)
-#error BOTH WIFI AND ETHERNET ARE ENABLED. PLEASE INCLUDE ONLY ArtnetWiFi.h OR ArtnetEther.h
-#endif
+#include "ArtnetCommon.h"
 
 #endif  // ARDUINO_ARTNET_H
