@@ -1,6 +1,6 @@
 #pragma once
 
-#include "charStream.hpp"
+#include "streams.hpp"
 #include "driver/gpio.h"
 #include "driver/uart.h"
 #include <vector>

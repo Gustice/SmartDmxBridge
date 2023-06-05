@@ -1,8 +1,8 @@
 #pragma once
 
-#include "charStream.hpp"
+#include "streams.hpp"
 
-class Socket : public CharStream {
+class TcpSocket : public CharStream, public VolatileStream {
   public:
     struct Config {
         int keepAlive;
@@ -11,8 +11,8 @@ class Socket : public CharStream {
         int keepCount;
     };
 
-    Socket(Config &config, int listener);
-    ~Socket();
+    TcpSocket(Config &config, int listener);
+    ~TcpSocket();
 
     std::string read() override;
     void write(char c) override;
