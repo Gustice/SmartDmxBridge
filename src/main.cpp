@@ -248,59 +248,33 @@ static void dmx_Socket(void * args) {
 }
 
 static void tcp_server_task(void *arg) {
-    TcpSocket::Config config{
+    TcpSession::Config config{
         .keepAlive = 1,
         .keepIdle = KEEPALIVE_IDLE,
         .keepInterval = KEEPALIVE_INTERVAL,
         .keepCount = KEEPALIVE_COUNT,
     };
-    struct sockaddr_storage dest_addr;
+    struct sockaddr_in dest_addr_ip4 {
+        .sin_len = sizeof(sockaddr_in),
+        .sin_family = AF_INET,
+        .sin_port = htons(PORT),
+        .sin_addr {.s_addr = htonl(INADDR_ANY),}
+    };
 
-    struct sockaddr_in *dest_addr_ip4 = (struct sockaddr_in *)&dest_addr;
-    dest_addr_ip4->sin_addr.s_addr = htonl(INADDR_ANY);
-    dest_addr_ip4->sin_family = AF_INET;
-    dest_addr_ip4->sin_port = htons(PORT);
+    TcpSocket socket(dest_addr_ip4, deviceInfo);
 
-    int listen_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
-    if (listen_sock < 0) {
-        ESP_LOGE(TAG, "Unable to create socket: errno %d", errno);
-        vTaskDelete(NULL);
-        return;
-    }
-    int opt = 1;
-    setsockopt(listen_sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
-    ESP_LOGI(TAG, "Socket created");
-
-    int err = bind(listen_sock, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
-    if (err != 0) {
-        ESP_LOGE(TAG, "Socket unable to bind: errno %d", errno);
-        ESP_LOGE(TAG, "IPPROTO: %d", AF_INET);
-        goto CLEAN_UP;
-    }
-    ESP_LOGI(TAG, "Socket bound, port %d", PORT);
-
-    err = listen(listen_sock, 1);
-    if (err != 0) {
-        ESP_LOGE(TAG, "Error occurred during listen: errno %d", errno);
-        goto CLEAN_UP;
-    }
-
-    while (1) {
+    while (socket.isActive()) {
 
         ESP_LOGI(TAG, "Socket waiting for connect");
-        TcpSocket socket(config, listen_sock);
-        Cli shell(socket, onCommand);
-
+        TcpSession session(config, socket);
+        Cli shell(session, onCommand);
         AppendCallbackToShell(shell);
 
-        while (socket.isActive()) {
+        while (session.isActive()) {
             shell.process();
         }
         ESP_LOGI(TAG, "Tearing down socket");
     }
-
-CLEAN_UP:
-    close(listen_sock);
     vTaskDelete(NULL);
 }
 
