@@ -1,4 +1,4 @@
-#include "socket.hpp"
+#include "tcpSocket.hpp"
 #include "esp_log.h"
 #include "lwip/err.h"
 #include "lwip/sockets.h"
@@ -7,7 +7,7 @@
 
 static const char *TAG = "ETH";
 
-Socket::Socket(Config &config, int listener) {
+TcpSocket::TcpSocket(Config &config, int listener) {
     struct sockaddr_storage source_addr; // Large enough for both IPv4 or IPv6
     socklen_t addr_len = sizeof(source_addr);
     _socket = accept(listener, (struct sockaddr *)&source_addr, &addr_len);
@@ -27,12 +27,12 @@ Socket::Socket(Config &config, int listener) {
 
     active = true;
 }
-Socket::~Socket() {
+TcpSocket::~TcpSocket() {
     shutdown(_socket, 0);
     close(_socket);
 }
 
-std::string Socket::read() {
+std::string TcpSocket::read() {
     int len = recv(_socket, _data, sizeof(_data) - 1, 0);
 
     if (len < 0) {
@@ -63,14 +63,14 @@ std::string Socket::read() {
     return ret;
 }
 
-void Socket::write(char c) {
+void TcpSocket::write(char c) {
     int written = send(_socket, &c, 1, 0);
     if (written < 0) {
         ESP_LOGE(TAG, "Error occurred during sending: errno %d", errno);
     }
 }
 
-void Socket::write(std::string str) {
+void TcpSocket::write(std::string str) {
     int written = send(_socket, str.c_str(), str.size(), 0);
     if (written < 0) {
         ESP_LOGE(TAG, "Error occurred during sending: errno %d", errno);

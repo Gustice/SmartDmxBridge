@@ -12,13 +12,16 @@
 #include <string.h>
 
 #include "cliWrapper.hpp"
-#include "socket.hpp"
+#include "dmxInterface.hpp"
+#include "tcpSocket.hpp"
+#include "udpSocket.hpp"
 #include "uart.hpp"
 
 #include "esp_system.h"
 #include "lwip/err.h"
 #include "lwip/sockets.h"
 #include "lwip/sys.h"
+#include <Artnet.h>
 #include <lwip/netdb.h>
 #include <string.h>
 #include <sys/param.h>
@@ -35,6 +38,7 @@ void app_main(void);
 #define KEEPALIVE_COUNT 3    // int "TCP keep-alive packet retry send counts"
 
 #define ECHO_TASK_STACK_SIZE 4098
+static IpInfo deviceInfo;
 
 // 164 bytes is minimum size for this params on Arduino Nano
 
@@ -60,8 +64,10 @@ void AppendCallbackToShell(Cli &shell) {
         {"get-ch", "'c' Get DMX-Channel c (omit c for all)", false, nullptr, getDmxChannel});
 }
 
-static Uart mntPort(1, GPIO_NUM_36, GPIO_NUM_4, Uart::BaudRate::_115200Bd);
+static Uart dmxPort(2, GPIO_NUM_32, GPIO_NUM_33, Uart::BaudRate::_250000Bd, Uart::StopBits::_2sb);
+
 static void interfaceTask(void *arg) {
+    static Uart mntPort(1, GPIO_NUM_36, GPIO_NUM_4, Uart::BaudRate::_115200Bd);
     Cli shell(mntPort, onCommand);
 
     AppendCallbackToShell(shell);
@@ -127,6 +133,7 @@ static void eth_event_handler(void *arg, esp_event_base_t event_base, int32_t ev
     case ETHERNET_EVENT_CONNECTED:
         esp_eth_ioctl(eth_handle, ETH_CMD_G_MAC_ADDR, mac_addr);
         ESP_LOGI(TAG, "Ethernet Link Up");
+        std::copy(std::begin(mac_addr), std::end(mac_addr), deviceInfo.macAddress.begin());
         ESP_LOGI(TAG, "Ethernet HW Addr %02x:%02x:%02x:%02x:%02x:%02x", mac_addr[0], mac_addr[1],
                  mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
         break;
@@ -154,6 +161,10 @@ static void got_ip_event_handler(void *arg, esp_event_base_t event_base, int32_t
                                  void *event_data) {
     ip_event_got_ip_t *event = (ip_event_got_ip_t *)event_data;
     const esp_netif_ip_info_t *ip_info = &event->ip_info;
+
+    deviceInfo.address = IpAddress(ip_info->ip.addr);
+    deviceInfo.subnet = IpAddress(ip_info->netmask.addr);
+    deviceInfo.gateway = IpAddress(ip_info->gw.addr);
 
     ESP_LOGI(TAG, "Ethernet Got IP Address");
     ESP_LOGI(TAG, "~~~~~~~~~~~");
@@ -201,81 +212,43 @@ static bool is_our_netif(const char *prefix, esp_netif_t *netif) {
     return strncmp(prefix, esp_netif_get_desc(netif), strlen(prefix) - 1) == 0;
 }
 
-static void udp_server_task(void *pvParameters) {
-    char rx_buffer[128];
-    char addr_str[128];
-    int addr_family = (int)pvParameters;
-    int ip_protocol = 0;
-    struct sockaddr_in6 dest_addr;
+uint32_t universe1 = 1; // 0 - 15
+uint32_t universe2 = 2; // 0 - 15
 
+DmxInterface * dmxInterface;
+void Universe1Callback(const uint8_t *data, const uint16_t size) {
+    int len = size;
+    if (len > DMX_DEV_WIDTH)
+        len = DMX_DEV_WIDTH;
+    
+    dmxInterface->set(data, size);
+    dmxInterface->send();
+}
+
+static void dmx_Socket(void * args) {
+    dmxInterface = (DmxInterface *) args;
     while (1) {
-        if (addr_family == AF_INET) {
-            struct sockaddr_in *dest_addr_ip4 = (struct sockaddr_in *)&dest_addr;
-            dest_addr_ip4->sin_addr.s_addr = htonl(INADDR_ANY);
-            dest_addr_ip4->sin_family = AF_INET;
-            dest_addr_ip4->sin_port = htons(PORT);
-            ip_protocol = IPPROTO_IP;
-        }
+            struct sockaddr_in dest_addr_ip4 {
+                .sin_len = sizeof(sockaddr_in),
+                .sin_family = AF_INET,
+                .sin_port = htons(arx::artnet::DEFAULT_PORT),
+                .sin_addr {.s_addr = htonl(INADDR_ANY),}
+            };
 
-        int sock = socket(addr_family, SOCK_DGRAM, ip_protocol);
-        if (sock < 0) {
-            ESP_LOGE(TAG, "Unable to create socket: errno %d", errno);
-            break;
-        }
-        ESP_LOGI(TAG, "Socket created");
+        UdpSocket socket(dest_addr_ip4, deviceInfo);
+        ArtnetReceiver artnet(socket);
+        artnet.subscribe(universe1, Universe1Callback);
 
-        int err = bind(sock, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
-        if (err < 0) {
-            ESP_LOGE(TAG, "Socket unable to bind: errno %d", errno);
-        }
-        ESP_LOGI(TAG, "Socket bound, port %d", PORT);
-
-        struct sockaddr_storage source_addr; // Large enough for both IPv4 or IPv6
-        socklen_t socklen = sizeof(source_addr);
-
-        while (1) {
-            ESP_LOGI(TAG, "Waiting for data");
-            int len = recvfrom(sock, rx_buffer, sizeof(rx_buffer) - 1, 0,
-                               (struct sockaddr *)&source_addr, &socklen);
-            // Error occurred during receiving
-            if (len < 0) {
-                ESP_LOGE(TAG, "recvfrom failed: errno %d", errno);
-                break;
-            }
-            // Data received
-            else {
-                // Get the sender's ip address as string
-                if (source_addr.ss_family == PF_INET) {
-                    inet_ntoa_r(((struct sockaddr_in *)&source_addr)->sin_addr, addr_str,
-                                sizeof(addr_str) - 1);
-                }
-
-                rx_buffer[len] =
-                    0; // Null-terminate whatever we received and treat like a string...
-                ESP_LOGI(TAG, "Received %d bytes from %s:", len, addr_str);
-                ESP_LOGI(TAG, "%s", rx_buffer);
-
-                int err = sendto(sock, rx_buffer, len, 0, (struct sockaddr *)&source_addr,
-                                 sizeof(source_addr));
-                if (err < 0) {
-                    ESP_LOGE(TAG, "Error occurred during sending: errno %d", errno);
-                    break;
-                }
-            }
-        }
-
-        if (sock != -1) {
-            ESP_LOGE(TAG, "Shutting down socket and restarting...");
-            shutdown(sock, 0);
-            close(sock);
+        while (socket.isActive()) {
+            ESP_LOGD(TAG, "Waiting for data");
+            artnet.parse();
         }
     }
     vTaskDelete(NULL);
 }
 
 static void tcp_server_task(void *arg) {
-    int ip_protocol = 0;
-    Socket::Config config{
+    TcpSocket::Config config{
         .keepAlive = 1,
         .keepIdle = KEEPALIVE_IDLE,
         .keepInterval = KEEPALIVE_INTERVAL,
@@ -287,9 +260,8 @@ static void tcp_server_task(void *arg) {
     dest_addr_ip4->sin_addr.s_addr = htonl(INADDR_ANY);
     dest_addr_ip4->sin_family = AF_INET;
     dest_addr_ip4->sin_port = htons(PORT);
-    ip_protocol = IPPROTO_IP;
 
-    int listen_sock = socket(AF_INET, SOCK_STREAM, ip_protocol);
+    int listen_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
     if (listen_sock < 0) {
         ESP_LOGE(TAG, "Unable to create socket: errno %d", errno);
         vTaskDelete(NULL);
@@ -316,7 +288,7 @@ static void tcp_server_task(void *arg) {
     while (1) {
 
         ESP_LOGI(TAG, "Socket waiting for connect");
-        Socket socket(config, listen_sock);
+        TcpSocket socket(config, listen_sock);
         Cli shell(socket, onCommand);
 
         AppendCallbackToShell(shell);
@@ -330,6 +302,16 @@ static void tcp_server_task(void *arg) {
 CLEAN_UP:
     close(listen_sock);
     vTaskDelete(NULL);
+}
+
+static void dmx_Listener(void *arg) {
+    DmxInterface *dmx = (DmxInterface *)arg;
+    while (1) {
+        auto bytes = dmx->receive();
+
+        ESP_LOGI(TAG, "DMX-Data received (%d bytes): %d %d %d %d .. %d", bytes.size(), bytes[0],
+                 bytes[1], bytes[2], bytes[3], bytes.back());
+    }
 }
 
 void app_main(void) {
@@ -389,11 +371,24 @@ void app_main(void) {
         }
     }
 
-    // xTaskCreate(udp_server_task, "udp_server", 4096, (void *)AF_INET, 5, NULL);
-    xTaskCreate(tcp_server_task, "tcp_server", 4096, (void *)AF_INET, 5, NULL);
+    xTaskCreate(tcp_server_task, "tcp_server", 4096, nullptr, 5, NULL);
+    static DmxInterface dmxInterface(dmxPort);
+    xTaskCreate(dmx_Socket, "dmx_Socket", 4096, &dmxInterface, 5, NULL);
+    xTaskCreate(dmx_Listener, "dmx_Listener", 4096, &dmxInterface, 5, NULL);
+
+    {
+        uint8_t data[dmxInterface.Size];
+        for (size_t i = 0; i < dmxInterface.Size; i++) {
+            data[i] = i + 1;
+        }
+        dmxInterface.set(data);
+    }
 
     while (true) {
         vTaskDelay(5000 / portTICK_PERIOD_MS);
         std::cout << "Cnt " << cnt++ << "\n";
+        dmxInterface.send();
     }
+
+    // todo: Delete Task dmx-Listener
 }

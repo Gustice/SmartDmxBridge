@@ -1,8 +1,9 @@
 #pragma once
 
-#include "charStream.hpp"
+#include "streams.hpp"
 #include "driver/gpio.h"
 #include "driver/uart.h"
+#include <vector>
 
 class Uart : public CharStream {
   public:
@@ -11,17 +12,24 @@ class Uart : public CharStream {
         _250000Bd = 250000,
     };
 
-    Uart(uart_port_t port, gpio_num_t rxd, gpio_num_t txd, BaudRate rate);
+    enum StopBits { _1sb = UART_STOP_BITS_1, _1_5sb = UART_STOP_BITS_1_5, _2sb = UART_STOP_BITS_2 };
+
+    Uart(uart_port_t port, gpio_num_t rxd, gpio_num_t txd, BaudRate rate, StopBits stopBits = _1sb);
     ~Uart();
 
     std::string read() override;
     void write(char c) override;
     void write(std::string str) override;
+    // local functions
+    void write(uint8_t b);
+    void write(uint8_t *b, int len);
+    std::vector<uint8_t> readBytes(int byteCount);
+
+    const uart_port_t Port;
+    const gpio_num_t RxdPin;
+    const gpio_num_t TxdPin;
 
   private:
-    uart_port_t _port;
-    gpio_num_t _rxdPin;
-    gpio_num_t _txdPin;
     BaudRate _baudRate;
     gpio_num_t _rtsPin = gpio_num_t::GPIO_NUM_NC;
     gpio_num_t _ctsPin = gpio_num_t::GPIO_NUM_NC;
