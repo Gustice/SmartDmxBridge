@@ -11,7 +11,7 @@
 #include "ip.hpp"
 
 class TcpSocket : public VolatileStream {
-  public: 
+  public:
     TcpSocket(sockaddr_in &dest, IpInfo &device) : dest_addr(dest), Device(device) {
         listen_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
         if (listen_sock < 0) {
@@ -27,29 +27,33 @@ class TcpSocket : public VolatileStream {
         if (err != 0) {
             ESP_LOGE("TCP", "Socket unable to bind: errno %d", errno);
             ESP_LOGE("TCP", "IPPROTO: %d", AF_INET);
-            return; // todo Exception
+            return; // todo Exception => close(listen_sock);
         }
         ESP_LOGI("TCP", "Socket bound, port %d", ntohs(dest_addr.sin_port));
 
         err = listen(listen_sock, 1);
         if (err != 0) {
             ESP_LOGE("TCP", "Error occurred during listen: errno %d", errno);
-            return; // todo Exception
+            return; // todo Exception => close(listen_sock);
         }
 
         active = true;
     }
 
+    bool isActive() override {
+        return active;
+    }
+
+
     ~TcpSocket() {
-        shutdown(listen_sock, 0);
         close(listen_sock);
     }
 
     int getSocketId() {
-      return listen_sock;
+        return listen_sock;
     }
 
-        sockaddr_in &dest_addr; // This Station
+    sockaddr_in &dest_addr; // This Station
     const IpInfo &Device;
     struct sockaddr_storage source_addr; // Remote Station
 
@@ -73,7 +77,7 @@ class TcpSession : public CharStream, public VolatileStream {
         if (_socket < 0) {
             ESP_LOGE("TCP", "Unable to accept connection: errno %d", errno);
             active = false;
-            return;
+            return; // todo exception
         }
 
         // Set tcp keepalive option
@@ -89,8 +93,12 @@ class TcpSession : public CharStream, public VolatileStream {
         active = true;
     }
     ~TcpSession() {
-        // shutdown(_socket, 0); // todo something goes wrong on tidy up
-        // close(_socket);
+        if (_socket < 0)
+            return;
+
+        ESP_LOGI("TCP", "Tearing down socket");
+        shutdown(_socket, 0); // todo something goes wrong on tidy up
+        close(_socket);
     }
 
     std::string read() override {

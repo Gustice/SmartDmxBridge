@@ -5,7 +5,7 @@
 
 class VolatileStream {
   public: 
-    bool isActive() {
+    virtual bool isActive() {
         return active;
     }
 

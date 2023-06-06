@@ -261,19 +261,21 @@ static void tcp_server_task(void *arg) {
         .sin_addr {.s_addr = htonl(INADDR_ANY),}
     };
 
-    TcpSocket socket(dest_addr_ip4, deviceInfo);
+    while (1) {
+        TcpSocket socket(dest_addr_ip4, deviceInfo);
+        while (socket.isActive()) { // todo better way to find to query active
 
-    while (socket.isActive()) {
+            ESP_LOGI(TAG, "Socket waiting for connect");
+            TcpSession session(config, socket);
+            Cli shell(session, onCommand);
+            AppendCallbackToShell(shell);
+            if (!session.isActive())
+                break;
 
-        ESP_LOGI(TAG, "Socket waiting for connect");
-        TcpSession session(config, socket);
-        Cli shell(session, onCommand);
-        AppendCallbackToShell(shell);
-
-        while (session.isActive()) {
-            shell.process();
+            while (session.isActive()) {
+                shell.process();
+            }
         }
-        ESP_LOGI(TAG, "Tearing down socket");
     }
     vTaskDelete(NULL);
 }
