@@ -1,5 +1,8 @@
 #pragma once
 
+// https://www.soundlight.de/techtips/dmx512/dmx512.htm
+// http://mc.mikrocontroller.com/de/dmx512.php
+
 #include "driver/timer.h"
 #include "esp_log.h"
 #include "uart.hpp"
@@ -99,7 +102,11 @@ class DmxInterface {
         ESP_LOGD("DMX", "Time scale is %d", TIMER_SCALE);
     }
 
-    void set(uint8_t dmx[DMX_DEV_WIDTH]) {
+    void set(const uint8_t dmx[DMX_DEV_WIDTH]) {
+        memcpy(&dmxMsg[1], dmx, DMX_DEV_WIDTH);
+    }
+
+    void set(const uint8_t * dmx, int size) {
         memcpy(&dmxMsg[1], dmx, DMX_DEV_WIDTH);
     }
 

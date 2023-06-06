@@ -21,7 +21,7 @@
 #include "lwip/err.h"
 #include "lwip/sockets.h"
 #include "lwip/sys.h"
-// #include <Artnet.h>
+#include <Artnet.h>
 #include <lwip/netdb.h>
 #include <string.h>
 #include <sys/param.h>
@@ -38,6 +38,7 @@ void app_main(void);
 #define KEEPALIVE_COUNT 3    // int "TCP keep-alive packet retry send counts"
 
 #define ECHO_TASK_STACK_SIZE 4098
+static IpInfo deviceInfo;
 
 // 164 bytes is minimum size for this params on Arduino Nano
 
@@ -132,6 +133,7 @@ static void eth_event_handler(void *arg, esp_event_base_t event_base, int32_t ev
     case ETHERNET_EVENT_CONNECTED:
         esp_eth_ioctl(eth_handle, ETH_CMD_G_MAC_ADDR, mac_addr);
         ESP_LOGI(TAG, "Ethernet Link Up");
+        std::copy(std::begin(mac_addr), std::end(mac_addr), deviceInfo.macAddress.begin());
         ESP_LOGI(TAG, "Ethernet HW Addr %02x:%02x:%02x:%02x:%02x:%02x", mac_addr[0], mac_addr[1],
                  mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
         break;
@@ -159,6 +161,10 @@ static void got_ip_event_handler(void *arg, esp_event_base_t event_base, int32_t
                                  void *event_data) {
     ip_event_got_ip_t *event = (ip_event_got_ip_t *)event_data;
     const esp_netif_ip_info_t *ip_info = &event->ip_info;
+
+    deviceInfo.address = IpAddress(ip_info->ip.addr);
+    deviceInfo.subnet = IpAddress(ip_info->netmask.addr);
+    deviceInfo.gateway = IpAddress(ip_info->gw.addr);
 
     ESP_LOGI(TAG, "Ethernet Got IP Address");
     ESP_LOGI(TAG, "~~~~~~~~~~~");
@@ -209,47 +215,33 @@ static bool is_our_netif(const char *prefix, esp_netif_t *netif) {
 uint32_t universe1 = 1; // 0 - 15
 uint32_t universe2 = 2; // 0 - 15
 
+DmxInterface * dmxInterface;
 void Universe1Callback(const uint8_t *data, const uint16_t size) {
-    // int len = size;
-    // if (len > DMX_DEV_WIDTH)
-    //     len = DMX_DEV_WIDTH;
-    // Send Data here
+    int len = size;
+    if (len > DMX_DEV_WIDTH)
+        len = DMX_DEV_WIDTH;
+    
+    dmxInterface->set(data, size);
+    dmxInterface->send();
 }
 
-void Universe2Callback(const uint8_t *data, const uint16_t size) {
-    // you can also use pre-defined callbacks
-    // if (length < DMX_DEV_WIDTH) {
-    //   ESP_LOGW(TAG, "Data to short for DMX-Message");
-    //   return ESP_FAIL;
-    // }
-
-    // memcpy(&dmxMsg[1], buffer, DMX_DEV_WIDTH);
-}
-
-
-static void udp_server_task(void *) {
+static void dmx_Socket(void * args) {
+    dmxInterface = (DmxInterface *) args;
     while (1) {
             struct sockaddr_in dest_addr_ip4 {
                 .sin_len = sizeof(sockaddr_in),
                 .sin_family = AF_INET,
-                .sin_port = htons(24),
+                .sin_port = htons(arx::artnet::DEFAULT_PORT),
                 .sin_addr {.s_addr = htonl(INADDR_ANY),}
             };
 
-        UdpSocket socket(dest_addr_ip4);
-        // ArtnetReceiver artnet;
-        // artnet.begin();
-        // artnet.subscribe(universe1, Universe1Callback);
-        // artnet.subscribe(universe2, Universe2Callback);
+        UdpSocket socket(dest_addr_ip4, deviceInfo);
+        ArtnetReceiver artnet(socket);
+        artnet.subscribe(universe1, Universe1Callback);
 
         while (socket.isActive()) {
-            ESP_LOGI(TAG, "Waiting for data");
-            auto data = socket.read();
-
-            if (data.size() > 0)
-            {
-                socket.write(data);
-            }
+            ESP_LOGD(TAG, "Waiting for data");
+            artnet.parse();
         }
     }
     vTaskDelete(NULL);
@@ -379,9 +371,9 @@ void app_main(void) {
         }
     }
 
-    xTaskCreate(udp_server_task, "udp_server", 4096, nullptr, 5, NULL);
     xTaskCreate(tcp_server_task, "tcp_server", 4096, nullptr, 5, NULL);
     static DmxInterface dmxInterface(dmxPort);
+    xTaskCreate(dmx_Socket, "dmx_Socket", 4096, &dmxInterface, 5, NULL);
     xTaskCreate(dmx_Listener, "dmx_Listener", 4096, &dmxInterface, 5, NULL);
 
     {
