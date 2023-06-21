@@ -24,18 +24,12 @@
  * Define DEBUG_SERIAL_ENABLE to enable debug serial. 
  * Comment it to disable debug serial. 
  */
-#define DEBUG_SERIAL_ENABLE
+// #define DEBUG_SERIAL_ENABLE
 
 /**
  * Define dbSerial for the output of debug messages. 
  */
-#define dbSerial Serial
-
-/**
- * Define nexSerial for communicate with Nextion touch panel. 
- */
-#define nexSerial Serial2
-
+// #define dbSerial Serial
 
 #ifdef DEBUG_SERIAL_ENABLE
 #define dbSerialPrint(a)    dbSerial.print(a)

@@ -62,7 +62,7 @@ class NexRtc
      * @return true if success, false for failure
      */
     
-    uint32_t read_rtc_time(char *time,uint32_t len);
+    bool read_rtc_time(char *time,uint32_t len);
     
     /**
      * read rtc times
@@ -72,7 +72,7 @@ class NexRtc
      * @return true if success, false for failure
      */
     
-    uint32_t read_rtc_time(char *time_type,uint32_t *number);
+    bool read_rtc_time(char *time_type,uint32_t *number);
     
     /**
      * read rtc time
@@ -82,7 +82,7 @@ class NexRtc
      * @return true if success, false for failure
      */
     
-    uint32_t read_rtc_time(uint32_t *time,uint32_t len);
+    bool read_rtc_time(uint32_t *time,uint32_t len);
     
 };
 

@@ -21,44 +21,44 @@ NexVariable::NexVariable(uint8_t pid, uint8_t cid, const char *name)
 
 uint32_t NexVariable::getValue(uint32_t *number)
 {
-    String cmd = String("get ");
+    std::string cmd("get ");
     cmd += getObjName();
     cmd += ".val";
-    sendCommand(cmd.c_str());
+    sendCommand(cmd);
     return recvRetNumber(number);
 }
 
 bool NexVariable::setValue(uint32_t number)
 {
     char buf[10] = {0};
-    String cmd;
+    std::string cmd;
     
     utoa(number, buf, 10);
     cmd += getObjName();
     cmd += ".val=";
     cmd += buf;
 
-    sendCommand(cmd.c_str());
+    sendCommand(cmd);
     return recvRetCommandFinished();
 }
 
 uint32_t NexVariable::getText(char *buffer, uint32_t len)
 {
-    String cmd;
+    std::string cmd;
     cmd += "get ";
     cmd += getObjName();
     cmd += ".txt";
-    sendCommand(cmd.c_str());
+    sendCommand(cmd);
     return recvRetString(buffer,len);
 }
 
 bool NexVariable::setText(const char *buffer)
 {
-    String cmd;
+    std::string cmd;
     cmd += getObjName();
     cmd += ".txt=\"";
     cmd += buffer;
     cmd += "\"";
-    sendCommand(cmd.c_str());
+    sendCommand(cmd);
     return recvRetCommandFinished();    
 }

@@ -30,9 +30,9 @@ bool NexPage::show(void)
         return false;
     }
     
-    String cmd = String("page ");
+    std::string cmd("page ");
     cmd += name;
-    sendCommand(cmd.c_str());
+    sendCommand(cmd);
     return recvRetCommandFinished();
 }
 

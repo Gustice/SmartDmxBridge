@@ -32,17 +32,17 @@ void NexTimer::detachTimer(void)
 
 bool NexTimer::getCycle(uint32_t *number)
 {
-    String cmd = String("get ");
+    std::string cmd("get ");
     cmd += getObjName();
     cmd += ".tim";
-    sendCommand(cmd.c_str());
+    sendCommand(cmd);
     return recvRetNumber(number);
 }
 
 bool NexTimer::setCycle(uint32_t number)
 {
     char buf[10] = {0};
-    String cmd;
+    std::string cmd;
     if (number < 50)
     {
         number = 50;
@@ -52,7 +52,7 @@ bool NexTimer::setCycle(uint32_t number)
     cmd += ".tim=";
     cmd += buf;
 
-    sendCommand(cmd.c_str());
+    sendCommand(cmd);
     return recvRetCommandFinished();
 }
 
@@ -60,42 +60,42 @@ bool NexTimer::setCycle(uint32_t number)
 bool NexTimer::enable(void)
 {
     char buf[10] = {0};
-    String cmd;
+    std::string cmd;
     utoa(1, buf, 10);
     cmd += getObjName();
     cmd += ".en=";
     cmd += buf;
 
-    sendCommand(cmd.c_str());
+    sendCommand(cmd);
     return recvRetCommandFinished();
 }
 
 bool NexTimer::disable(void)
 {
     char buf[10] = {0};
-    String cmd;
+    std::string cmd;
     utoa(0, buf, 10);
     cmd += getObjName();
     cmd += ".en=";
     cmd += buf;
 
-    sendCommand(cmd.c_str());
+    sendCommand(cmd);
     return recvRetCommandFinished();
 }
 
 uint32_t NexTimer::Get_cycle_tim(uint32_t *number)
 {
-    String cmd = String("get ");
+    std::string cmd("get ");
     cmd += getObjName();
     cmd += ".tim";
-    sendCommand(cmd.c_str());
+    sendCommand(cmd);
     return recvRetNumber(number);
 }
 
 bool NexTimer::Set_cycle_tim(uint32_t number)
 {
     char buf[10] = {0};
-    String cmd;
+    std::string cmd;
     if (number < 8)
     {
         number = 8;
@@ -104,12 +104,12 @@ bool NexTimer::Set_cycle_tim(uint32_t number)
     cmd += getObjName();
     cmd += ".tim=";
     cmd += buf;
-    sendCommand(cmd.c_str());
+    sendCommand(cmd);
 	
     cmd = "";
     cmd += "ref ";
     cmd += getObjName();
-    sendCommand(cmd.c_str());
+    sendCommand(cmd);
     return recvRetCommandFinished();
 }
 

@@ -17,7 +17,7 @@
 bool NexGpio::pin_mode(uint32_t port,uint32_t mode,uint32_t control_id)
 {
     char buf;
-    String cmd;
+    std::string cmd;
     
     cmd += "cfgpio ";
     buf = port + '0';
@@ -29,14 +29,14 @@ bool NexGpio::pin_mode(uint32_t port,uint32_t mode,uint32_t control_id)
     buf = control_id = '0';
     cmd += buf;
 
-    sendCommand(cmd.c_str());
+    sendCommand(cmd);
     return recvRetCommandFinished();
     
 }
 
 bool NexGpio::digital_write(uint32_t port,uint32_t value)
 {
-    String cmd;
+    std::string cmd;
     char buf;
     
     cmd += "pio";
@@ -46,7 +46,7 @@ bool NexGpio::digital_write(uint32_t port,uint32_t value)
     buf = value + '0';
     cmd += buf;
     
-    sendCommand(cmd.c_str());
+    sendCommand(cmd);
     return recvRetCommandFinished();
 }
 
@@ -55,12 +55,12 @@ uint32_t NexGpio::digital_read(uint32_t port)
     uint32_t number;
     char buf;
     
-    String cmd = String("get ");
+    std::string cmd("get ");
     cmd += "pio";
     buf = port + '0';
     cmd += buf;
     
-    sendCommand(cmd.c_str());
+    sendCommand(cmd);
     recvRetNumber(&number);
     return number;
 }
@@ -69,7 +69,7 @@ bool NexGpio::analog_write(uint32_t port,uint32_t value)
 {
     char buf[10] = {0};
     char c;
-    String cmd;
+    std::string cmd;
     
     utoa(value, buf, 10);
     cmd += "pwm";
@@ -78,28 +78,27 @@ bool NexGpio::analog_write(uint32_t port,uint32_t value)
     cmd += '=';
     cmd += buf;
     
-    Serial.print(cmd);
-    sendCommand(cmd.c_str());
+    sendCommand(cmd);
     return recvRetCommandFinished();   
 }
 
 bool NexGpio::set_pwmfreq(uint32_t value)
 {
     char buf[10] = {0};
-    String cmd;
+    std::string cmd;
     
     utoa(value, buf, 10);
     cmd += "pwmf";
     cmd += '=';
     cmd += buf;
     
-    sendCommand(cmd.c_str());
+    sendCommand(cmd);
     return recvRetCommandFinished();   
 }
 
 uint32_t NexGpio::get_pwmfreq(uint32_t *number)
 {
-    String cmd = String("get pwmf");
-    sendCommand(cmd.c_str());
+    std::string cmd("get pwmf");
+    sendCommand(cmd);
     return recvRetNumber(number);
 }

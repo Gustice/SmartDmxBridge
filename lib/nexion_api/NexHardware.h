@@ -14,9 +14,11 @@
  */
 #ifndef __NEXHARDWARE_H__
 #define __NEXHARDWARE_H__
-#include <Arduino.h>
+#include "allinclude.h"
 #include "NexConfig.h"
 #include "NexTouch.h"
+
+#include "uart.hpp"
 
 /**
  * @addtogroup CoreAPI 
@@ -28,7 +30,7 @@
  * 
  * @return true if success, false for failure. 
  */
-bool nexInit(void);
+bool nexInit(Uart &port);
 
 /**
  * Listen touch event and calling callbacks attached before.
@@ -49,7 +51,7 @@ void nexLoop(NexTouch *nex_listen_list[]);
 
 bool recvRetNumber(uint32_t *number, uint32_t timeout = 100);
 uint16_t recvRetString(char *buffer, uint16_t len, uint32_t timeout = 100);
-void sendCommand(const char* cmd);
+void sendCommand(std::string cmd);
 bool recvRetCommandFinished(uint32_t timeout = 100);
 
 #endif /* #ifndef __NEXHARDWARE_H__ */

@@ -178,7 +178,7 @@ bool NexUpload::_setDownloadBaudrate(uint32_t baudrate)
     
     dbSerialPrintln(cmd);
     this->sendCommand("");
-    this->sendCommand(cmd.c_str());
+    this->sendCommand(cmd);
     delay(50);
     nexSerial.begin(baudrate);
     this->recvRetString(string,500);  

@@ -17,7 +17,7 @@
 #ifndef __NEXTION_H__
 #define __NEXTION_H__
 
-#include "Arduino.h"
+#include "allinclude.h"
 #include "NexConfig.h"
 #include "NexTouch.h"
 #include "NexHardware.h"

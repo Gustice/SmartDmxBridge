@@ -17,7 +17,7 @@
 #ifndef __NEXTOUCH_H__
 #define __NEXTOUCH_H__
 
-#include <Arduino.h>
+#include "allinclude.h"
 #include "NexConfig.h"
 #include "NexObject.h"
 

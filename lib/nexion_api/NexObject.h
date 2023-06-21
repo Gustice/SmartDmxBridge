@@ -15,7 +15,7 @@
  */
 #ifndef __NEXOBJECT_H__
 #define __NEXOBJECT_H__
-#include <Arduino.h>
+#include "allinclude.h"
 #include "NexConfig.h"
 /**
  * @addtogroup CoreAPI 
