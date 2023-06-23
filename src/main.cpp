@@ -85,7 +85,7 @@ void AppendCallbackToShell(Cli &shell) {
         {"get-ch", "'c' Get DMX-Channel c (omit c for all)", false, nullptr, getDmxChannel});
 }
 
-static Uart dmxPort(2, GPIO_NUM_32, GPIO_NUM_33, Uart::BaudRate::_250000Bd, Uart::StopBits::_2sb);
+static Uart dmxPort(2, GPIO_NUM_32, GPIO_NUM_33, Uart::BaudRate::_250000Bd, 128, Uart::StopBits::_2sb);
 
 static void interfaceTask(void *arg) {
     static Uart mntPort(1, GPIO_NUM_36, GPIO_NUM_4, Uart::BaudRate::_115200Bd);
@@ -239,8 +239,8 @@ uint32_t universe2 = 2; // 0 - 15
 DmxInterface * dmxInterface;
 void Universe1Callback(const uint8_t *data, const uint16_t size) {
     int len = size;
-    if (len > DMX_DEV_WIDTH)
-        len = DMX_DEV_WIDTH;
+    if (len > DmxChannelCount)
+        len = DmxChannelCount;
     
     dmxInterface->set(data, size);
     dmxInterface->send();
@@ -306,8 +306,12 @@ static void dmx_Listener(void *arg) {
     while (1) {
         auto bytes = dmx->receive();
 
+        if (bytes.size() > 0) {
         ESP_LOGI(TAG, "DMX-Data received (%d bytes): %d %d %d %d .. %d", bytes.size(), bytes[0],
                  bytes[1], bytes[2], bytes[3], bytes.back());
+        }
+       
+        vTaskDelay(100 / portTICK_PERIOD_MS);
     }
 }
 
@@ -493,6 +497,4 @@ void app_main(void) {
         std::cout << "Cnt " << cnt++ << "\n";
         dmxInterface.send();
     }
-
-    // todo: Delete Task dmx-Listener
 }
