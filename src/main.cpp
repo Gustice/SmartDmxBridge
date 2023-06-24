@@ -249,8 +249,15 @@ void hCustomBgCb(void *ptr)
     // Update Display color and color
 }
 
-uint8_t scaleColorDown(uint8_t val, uint8_t max) {
-    return val*max/0xFF;
+void bToInfoPageCb (void *ptr) {
+    
+}
+void bToWorkingPageCb (void *ptr) {
+
+}
+
+uint32_t scaleColorDown(uint8_t val, uint8_t max) {
+    return (uint8_t) ((uint32_t)val*max/0xFF);
 }
 
 uint32_t calcNextionColor(uint8_t r, uint8_t g, uint8_t b) {
@@ -263,15 +270,19 @@ uint32_t calcNextionColor(uint8_t r, uint8_t g, uint8_t b) {
 }
 
 static void displayTask(void *arg) {
-    static Uart nxtPort(1, GPIO_NUM_36, GPIO_NUM_4, Uart::BaudRate::_115200Bd);
-    NexPage page0    = NexPage(0, 0, "splashScreen");
-    NexPage page1    = NexPage(1, 0, "workingPage");
-    NexPage page2    = NexPage(2, 0, "infoPage");
+    ESP_LOGI(TAG, "Starting Display Task");
+    static Uart nxtPort(1, GPIO_NUM_36, GPIO_NUM_4, Uart::BaudRate::_9600Bd);
+    NexPage workingPage    = NexPage(1, 0, "workingPage");
+    NexPage infoPage    = NexPage(2, 0, "infoPage");
 
     NexButton bScheme1 = NexButton(1, 1, "bScheme1");
     NexButton bScheme2 = NexButton(1, 4, "bScheme2");
     NexButton bScheme3 = NexButton(1, 7, "bScheme3");
     NexButton bSchemeCustom = NexButton(1, 10, "bSchemeCustom");
+
+    NexButton bToInfoPage = NexButton(1, 15, "bNext");
+    NexButton bToWorkingPage = NexButton(2, 11, "bPrev");
+    NexText tHealth = NexText(0, 4, "tHealth");
 
     NexText tScheme1Fg = NexText(1, 2, "tScheme1Fg");
     NexText tScheme1Bg = NexText(1, 3, "tScheme1Bg");
@@ -293,6 +304,8 @@ static void displayTask(void *arg) {
 
     NexTouch *nex_listen_list[] = 
     {
+        &bToInfoPage,
+        &bToWorkingPage,
         &bScheme1,
         &bScheme2,
         &bScheme3,
@@ -303,8 +316,11 @@ static void displayTask(void *arg) {
     };
 
     nexInit(nxtPort);
+    tHealth.setText("Setup Image");
     ESP_LOGI("DISP", "begin setup");
-   
+
+    workingPage.show();
+    
     bScheme1.attachPop(bScheme1Cb, &bScheme1);
     bScheme2.attachPop(bScheme2Cb, &bScheme2);
     bScheme3.attachPop(bScheme3Cb, &bScheme3);
@@ -312,10 +328,15 @@ static void displayTask(void *arg) {
     hCustomFg.attachPop(hCustomFgCb, &hCustomFg);
     hCustomBg.attachPop(hCustomBgCb, &hCustomBg);
 
+    bToInfoPage.attachPop(bToInfoPageCb, &bToInfoPage);
+    bToWorkingPage.attachPop(bToWorkingPageCb, &bToWorkingPage);
+
+
     tScheme1Fg.Set_background_color_bco(calcNextionColor(0xFF,0,0));
     tScheme2Fg.Set_background_color_bco(calcNextionColor(0,0xFF,0));
     tScheme3Fg.Set_background_color_bco(calcNextionColor(0,0,0xFF));
 
+    infoPage.show();
     tName.setText("DMX-Bridge");
     tVersion.setText("T 0.0.0");
     tAddress.setText("0.0.0.0");
@@ -325,10 +346,11 @@ static void displayTask(void *arg) {
     ESP_LOGI("DISP", "setup finished");
 
     vTaskDelay(pdMS_TO_TICKS(1000));
-    page1.show();
+    workingPage.show();
 
     while (1) {
         nexLoop(nex_listen_list);
+        vTaskDelay(pdMS_TO_TICKS(50));
     }
 }
 
@@ -384,7 +406,7 @@ void app_main(void) {
     static int cnt;
     while (true) {
         vTaskDelay(5000 / portTICK_PERIOD_MS);
-        std::cout << "Cnt OTA" << cnt++ << "\n";
+        std::cout << "Cnt" << cnt++ << "\n";
         dmxInterface.send();
     }
 }

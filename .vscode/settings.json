@@ -67,6 +67,8 @@
         "codecvt": "cpp",
         "csignal": "cpp",
         "future": "cpp",
-        "*.ipp": "cpp"
+        "*.ipp": "cpp",
+        "bitset": "cpp",
+        "regex": "cpp"
     }
 }

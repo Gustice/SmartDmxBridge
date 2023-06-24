@@ -8,6 +8,7 @@
 class Uart : public CharStream {
   public:
     enum BaudRate {
+        _9600Bd = 9600,
         _115200Bd = 115200,
         _250000Bd = 250000,
     };

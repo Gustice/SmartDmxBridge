@@ -15,9 +15,7 @@
  */
 #ifndef __NEXUPLOAD_H__
 #define __NEXUPLOAD_H__
-#include <Arduino.h>
-#include <SPI.h>
-#include <SD.h>
+#include "allInclude.h"
 #include "NexHardware.h"
 
 /**
@@ -49,7 +47,7 @@ public: /* methods */
      * @param SD_chip_select - sd chip select pin.
      * @param download_baudrate - set download baudrate.
      */
-    NexUpload(const String file_Name,const uint8_t SD_chip_select,uint32_t download_baudrate); 
+    NexUpload(const std::string file_Name,const uint8_t SD_chip_select,uint32_t download_baudrate); 
     
     /**
      * destructor. 
@@ -125,12 +123,12 @@ private: /* methods */
      * @return the length of string buffer.
      *
      */   
-    uint16_t recvRetString(String &string, uint32_t timeout = 100,bool recv_flag = false);
+    uint16_t recvRetString(std::string &string, uint32_t timeout = 100,bool recv_flag = false);
     
 private: /* data */ 
     uint32_t _baudrate; /*nextion serail baudrate*/
     const char *_file_name; /*nextion tft file name*/
-    File _myFile; /*nextion ftf file*/
+    // File _myFile; /*nextion ftf file*/
     uint32_t _undownloadByte; /*undownload byte of tft file*/
     uint8_t _SD_chip_select; /*sd chip select pin*/
     uint32_t _download_baudrate; /*download baudrate*/

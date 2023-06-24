@@ -14,13 +14,8 @@
  */
 
 #include "NexUpload.h"
-#include <SoftwareSerial.h>
 
 //#define USE_SOFTWARE_SERIAL
-#ifdef USE_SOFTWARE_SERIAL
-SoftwareSerial dbSerial(3, 2); /* RX:D3, TX:D2 */
-#define DEBUG_SERIAL_ENABLE
-#endif
 
 #ifdef DEBUG_SERIAL_ENABLE
 #define dbSerialPrint(a)    dbSerial.print(a)
@@ -39,7 +34,7 @@ NexUpload::NexUpload(const char *file_name,const uint8_t SD_chip_select,uint32_t
     _download_baudrate = download_baudrate;
 }
 
-NexUpload::NexUpload(const String file_Name,const uint8_t SD_chip_select,uint32_t download_baudrate)
+NexUpload::NexUpload(const std::string file_Name,const uint8_t SD_chip_select,uint32_t download_baudrate)
 {
     NexUpload(file_Name.c_str(),SD_chip_select,download_baudrate);
 }
@@ -87,154 +82,155 @@ uint16_t NexUpload::_getBaudrate(void)
 
 bool NexUpload::_checkFile(void)
 {
-    dbSerialPrintln("start _checkFile");
-    if(!SD.begin(_SD_chip_select))
-    {
-        dbSerialPrintln("init sd failed");
-        return 0;
-    }
-    if(!SD.exists(_file_name))
-    {
-        dbSerialPrintln("file is not exit");
-    }
-   _myFile = SD.open(_file_name);
-    _undownloadByte = _myFile.size();
-    dbSerialPrintln("tft file size is:");
-    dbSerialPrintln(_undownloadByte);
-    dbSerialPrintln("check file ok");
+//     dbSerialPrintln("start _checkFile");
+//     if(!SD.begin(_SD_chip_select))
+//     {
+//         dbSerialPrintln("init sd failed");
+//         return 0;
+//     }
+//     if(!SD.exists(_file_name))
+//     {
+//         dbSerialPrintln("file is not exit");
+//     }
+//    _myFile = SD.open(_file_name);
+//     _undownloadByte = _myFile.size();
+//     dbSerialPrintln("tft file size is:");
+//     dbSerialPrintln(_undownloadByte);
+//     dbSerialPrintln("check file ok");
     return 1;
 }
 
 bool NexUpload::_searchBaudrate(uint32_t baudrate)
 {
-    String string = String("");  
-    nexSerial.begin(baudrate);
-    this->sendCommand("");
-    this->sendCommand("connect");
-    this->recvRetString(string);  
-    if(string.indexOf("comok") != -1)
-    {
-        return 1;
-    } 
+    // std::string string;  
+    // nexSerial.begin(baudrate);
+    // this->sendCommand("");
+    // this->sendCommand("connect");
+    // this->recvRetString(string);  
+    // if(string.indexOf("comok") != -1)
+    // {
+    //     return 1;
+    // } 
     return 0;
 }
 
 void NexUpload::sendCommand(const char* cmd)
 {
 
-    while (nexSerial.available())
-    {
-        nexSerial.read();
-    }
+    // while (nexSerial.available())
+    // {
+    //     nexSerial.read();
+    // }
 
-    nexSerial.print(cmd);
-    nexSerial.write(0xFF);
-    nexSerial.write(0xFF);
-    nexSerial.write(0xFF);
+    // nexSerial.print(cmd);
+    // nexSerial.write(0xFF);
+    // nexSerial.write(0xFF);
+    // nexSerial.write(0xFF);
 }
 
-uint16_t NexUpload::recvRetString(String &string, uint32_t timeout,bool recv_flag)
+uint16_t NexUpload::recvRetString(std::string &string, uint32_t timeout,bool recv_flag)
 {
     uint16_t ret = 0;
-    uint8_t c = 0;
-    long start;
-    bool exit_flag = false;
-    start = millis();
-    while (millis() - start <= timeout)
-    {
-        while (nexSerial.available())
-        {
-            c = nexSerial.read(); 
-            if(c == 0)
-            {
-                continue;
-            }
-            string += (char)c;
-            if(recv_flag)
-            {
-                if(string.indexOf(0x05) != -1)
-                { 
-                    exit_flag = true;
-                } 
-            }
-        }
-        if(exit_flag)
-        {
-            break;
-        }
-    }
-    ret = string.length();
+    // uint8_t c = 0;
+    // long start;
+    // bool exit_flag = false;
+    // start = millis();
+    // while (millis() - start <= timeout)
+    // {
+    //     while (nexSerial.available())
+    //     {
+    //         c = nexSerial.read(); 
+    //         if(c == 0)
+    //         {
+    //             continue;
+    //         }
+    //         string += (char)c;
+    //         if(recv_flag)
+    //         {
+    //             if(string.indexOf(0x05) != -1)
+    //             { 
+    //                 exit_flag = true;
+    //             } 
+    //         }
+    //     }
+    //     if(exit_flag)
+    //     {
+    //         break;
+    //     }
+    // }
+    // ret = string.length();
     return ret;
 }
 
 bool NexUpload::_setDownloadBaudrate(uint32_t baudrate)
 {
-    String string = String(""); 
-    String cmd = String("");
+    // std::string string; 
+    // std::string cmd;
     
-    String filesize_str = String(_undownloadByte,10);
-    String baudrate_str = String(baudrate,10);
-    cmd = "whmi-wri " + filesize_str + "," + baudrate_str + ",0";
+    // std::string filesize_str = String(_undownloadByte,10);
+    // std::string baudrate_str = String(baudrate,10);
+    // cmd = "whmi-wri " + filesize_str + "," + baudrate_str + ",0";
     
-    dbSerialPrintln(cmd);
-    this->sendCommand("");
-    this->sendCommand(cmd);
-    delay(50);
-    nexSerial.begin(baudrate);
-    this->recvRetString(string,500);  
-    if(string.indexOf(0x05) != -1)
-    { 
-        return 1;
-    } 
+    // dbSerialPrintln(cmd);
+    // this->sendCommand("");
+    // this->sendCommand(cmd);
+    // delay(50);
+    // nexSerial.begin(baudrate);
+    // this->recvRetString(string,500);  
+    // if(string.indexOf(0x05) != -1)
+    // { 
+    //     return 1;
+    // } 
     return 0;
 }
 
 bool NexUpload::_downloadTftFile(void)
 {
-    uint8_t c;
-    uint16_t send_timer = 0;
-    uint16_t last_send_num = 0;
-    String string = String("");
-    send_timer = _undownloadByte / 4096 + 1;
-    last_send_num = _undownloadByte % 4096;
+    // uint8_t c;
+    // uint16_t send_timer = 0;
+    // uint16_t last_send_num = 0;
+    // std::string string = String("");
+    // send_timer = _undownloadByte / 4096 + 1;
+    // last_send_num = _undownloadByte % 4096;
 
-    while(send_timer)
-    {
+    // while(send_timer)
+    // {
 
-        if(send_timer == 1)
-        {
-            for(uint16_t j = 1; j <= 4096; j++)
-            {
-                if(j <= last_send_num)
-                {
-                    c = _myFile.read();
-                    nexSerial.write(c);
-                }
-                else
-                {
-                    break;
-                }
-            }
-        }
+    //     if(send_timer == 1)
+    //     {
+    //         for(uint16_t j = 1; j <= 4096; j++)
+    //         {
+    //             if(j <= last_send_num)
+    //             {
+    //                 c = _myFile.read();
+    //                 nexSerial.write(c);
+    //             }
+    //             else
+    //             {
+    //                 break;
+    //             }
+    //         }
+    //     }
 
-        else
-        {
-            for(uint16_t i = 1; i <= 4096; i++)
-            {
-                c = _myFile.read();
-                nexSerial.write(c);
-            }
-        }
-        this->recvRetString(string,500,true);  
-        if(string.indexOf(0x05) != -1)
-        { 
-            string = "";
-        } 
-        else
-        {
-            return 0;
-        }
-         --send_timer;
-    }  
+    //     else
+    //     {
+    //         for(uint16_t i = 1; i <= 4096; i++)
+    //         {
+    //             c = _myFile.read();
+    //             nexSerial.write(c);
+    //         }
+    //     }
+    //     this->recvRetString(string,500,true);  
+    //     if(string.indexOf(0x05) != -1)
+    //     { 
+    //         string = "";
+    //     } 
+    //     else
+    //     {
+    //         return 0;
+    //     }
+    //      --send_timer;
+    // }  
+    return false;
 }
 

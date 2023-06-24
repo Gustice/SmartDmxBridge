@@ -52,20 +52,18 @@ uint32_t NexText::Get_background_color_bco(uint32_t *number)
 
 bool NexText::Set_background_color_bco(uint32_t number)
 {
-    char buf[10] = {0};
-    std::string cmd;
-    
-    utoa(number, buf, 10);
-    cmd += getObjName();
-    cmd += ".bco=";
-    cmd += buf;
-    sendCommand(cmd);
+    std::string setCmd;
+    setCmd += getObjName();
+    setCmd += ".bco=";
+    setCmd += std::to_string(number);
+    sendCommand(setCmd);
 	
-    cmd="";
-    cmd += "ref ";
-    cmd += getObjName();
-    sendCommand(cmd);
-    return recvRetCommandFinished();
+    // only if version is lower than 0.38
+    // std::string refreshCmd;
+    // refreshCmd += "ref ";
+    // refreshCmd += getObjName();
+    // sendCommand(refreshCmd);
+    // return recvRetCommandFinished();
 }
 
 uint32_t NexText::Get_font_color_pco(uint32_t *number)

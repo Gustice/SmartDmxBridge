@@ -47,7 +47,6 @@ static Uart * SerialPort = nullptr;
  */
 bool recvRetNumber(uint32_t *number, uint32_t timeout)
 {
-    bool ret = false;
     if (!number) {
         dbSerialPrintln("recvRetNumber err");
         return false;
@@ -75,79 +74,69 @@ bool recvRetNumber(uint32_t *number, uint32_t timeout)
 }
 
 
-/*
- * Receive string data. 
- * 
- * @param buffer - save string data. 
- * @param len - string buffer length. 
- * @param timeout - set timeout time. 
- *
- * @return the length of string buffer.
- *
- */
-uint16_t recvRetString(char *buffer, uint16_t len, uint32_t timeout)
-{
-    uint16_t ret = 0;
-    bool str_start_flag = false;
-    uint8_t cnt_0xff = 0;
-    std::string temp;
-    uint8_t c = 0;
-    long start;
+// /*
+//  * Receive string data. 
+//  * 
+//  * @param buffer - save string data. 
+//  * @param len - string buffer length. 
+//  * @param timeout - set timeout time. 
+//  *
+//  * @return the length of string buffer.
+//  *
+//  */
+// uint16_t recvRetString(char *buffer, uint16_t len, uint32_t timeout)
+// {
+//     uint16_t ret = 0;
+//     bool str_start_flag = false;
+//     uint8_t cnt_0xff = 0;
+//     std::string temp;
+//     uint8_t c = 0;
+//     long start;
 
-    if (!buffer || len == 0) {
-        goto __return;
-    }
+//     if (!buffer || len == 0) {
+//         return 0;
+//     }
     
-    auto read = SerialPort->read();
-
+//     auto read = SerialPort->read();
     
-    start = millis();
-    while (millis() - start <= timeout)
-    {
-        while (nexSerial.available())
-        {
-            c = nexSerial.read();
-            if (str_start_flag)
-            {
-                if (0xFF == c)
-                {
-                    cnt_0xff++;                    
-                    if (cnt_0xff >= 3)
-                    {
-                        break;
-                    }
-                }
-                else
-                {
-                    temp += (char)c;
-                }
-            }
-            else if (NEX_RET_STRING_HEAD == c)
-            {
-                str_start_flag = true;
-            }
-        }
+//     while (millis() - start <= timeout)
+//     {
+//         while (nexSerial.available())
+//         {
+//             c = nexSerial.read();
+//             if (str_start_flag)
+//             {
+//                 if (0xFF == c)
+//                 {
+//                     cnt_0xff++;                    
+//                     if (cnt_0xff >= 3)
+//                     {
+//                         break;
+//                     }
+//                 }
+//                 else
+//                 {
+//                     temp += (char)c;
+//                 }
+//             }
+//             else if (NEX_RET_STRING_HEAD == c)
+//             {
+//                 str_start_flag = true;
+//             }
+//         }
         
-        if (cnt_0xff >= 3)
-        {
-            break;
-        }
-    }
+//         if (cnt_0xff >= 3)
+//         {
+//             break;
+//         }
+//     }
 
-    ret = temp.length();
-    ret = ret > len ? len : ret;
-    strncpy(buffer, temp.c_str(), ret);
-    
-__return:
+//     ret = temp.length();
+//     ret = ret > len ? len : ret;
+//     strncpy(buffer, temp.c_str(), ret);
 
-    dbSerialPrint("recvRetString[");
-    dbSerialPrint(temp.length());
-    dbSerialPrint(",");
-    dbSerialPrint(temp);
-    dbSerialPrintln("]");
-
-    return ret;
-}
+//     return ret;
+// }
 
 /*
  * Send command to Nextion.
@@ -201,8 +190,7 @@ bool nexInit(Uart &port)
     SerialPort = &port;
     bool ret = true;
     
-    sendCommand("");
-    sendCommand("bkcmd=1");
+    sendCommand("bkcmd=1"); // response verbosity (1=OnSuccess 2=OnFailure 3=Always)
     ret &= recvRetCommandFinished();
     sendCommand("page 0");
     ret &= recvRetCommandFinished();
@@ -211,30 +199,23 @@ bool nexInit(Uart &port)
 
 void nexLoop(NexTouch *nex_listen_list[])
 {
-    static uint8_t __buffer[10];
-    
     uint16_t i;
     uint8_t c;  
     
-    auto input = SerialPort->read();
-    for (auto &&c : input)
+    auto input = SerialPort->readBytes(6);
+
+    if (input.size() > 0)
     {
-        if (NEX_RET_EVENT_TOUCH_HEAD == c)
+        if (NEX_RET_EVENT_TOUCH_HEAD == input[0])
         {
-            if (nexSerial.available() >= 6)
+            if (input.size() >= 6)
             {
-                __buffer[0] = c;  
-                for (i = 1; i < 7; i++)
-                {
-                    __buffer[i] = nexSerial.read();
-                }
-                __buffer[i] = 0x00;
-                
-                if (0xFF == __buffer[4] && 0xFF == __buffer[5] && 0xFF == __buffer[6]) {
-                    NexTouch::iterate(nex_listen_list, __buffer[1], __buffer[2], (int32_t)__buffer[3]);
+                if (0xFF == (input[4] & input[5] & input[6])) {
+                    NexTouch::iterate(nex_listen_list, input[1], input[2], (int32_t)input[3]);
                 }
             }
         }
     }
-}
+    
 
+}
