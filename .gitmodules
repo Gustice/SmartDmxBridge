@@ -1,3 +1,6 @@
 [submodule "external/embedded-cli"]
 	path = external/embedded-cli
 	url = https://github.com/funbiscuit/embedded-cli.git
+[submodule "external/Nextion"]
+	path = external/Nextion
+	url = https://github.com/itead/ITEADLIB_Arduino_Nextion.git

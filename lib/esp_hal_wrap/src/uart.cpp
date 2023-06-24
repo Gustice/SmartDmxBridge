@@ -46,6 +46,12 @@ std::vector<uint8_t> Uart::readBytes(int byteCount) {
     return ret;
 }
 
+std::vector<uint8_t> Uart::readBytes(int byteCount, uint32_t timeout) {
+    int len = uart_read_bytes(Port, data, byteCount, timeout / portTICK_RATE_MS);
+    std::vector<uint8_t> ret(data, data + len);
+    return ret;
+}
+
 void Uart::write(char c) {
     uart_write_bytes(Port, (const char *)&c, 1);
 }

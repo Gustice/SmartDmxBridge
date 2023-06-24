@@ -30,6 +30,7 @@ class Uart : public CharStream {
     void write(uint8_t b);
     void write(uint8_t *b, int len);
     std::vector<uint8_t> readBytes(int byteCount);
+    std::vector<uint8_t> readBytes(int byteCount, uint32_t timeout);
 
     const uart_port_t Port;
     const gpio_num_t RxdPin;
