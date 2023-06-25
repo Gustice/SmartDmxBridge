@@ -17,7 +17,8 @@
 #ifndef __NEXTION_H__
 #define __NEXTION_H__
 
-#include "allinclude.h"
+#include "NexColor.h"
+#include "NexIncludes.h"
 #include "NexConfig.h"
 #include "NexTouch.h"
 #include "NexHardware.h"

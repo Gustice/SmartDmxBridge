@@ -17,7 +17,7 @@
 #ifndef __NEXTOUCH_H__
 #define __NEXTOUCH_H__
 
-#include "allinclude.h"
+#include "NexIncludes.h"
 #include "NexConfig.h"
 #include "NexObject.h"
 
@@ -27,12 +27,12 @@
  */
 
 /**
- * Push touch event occuring when your finger or pen coming to Nextion touch pannel. 
+ * Push touch event occuring when your finger or pen coming to Nextion touch panel. 
  */
 #define NEX_EVENT_PUSH  (0x01)
 
 /**
- * Pop touch event occuring when your finger or pen leaving from Nextion touch pannel. 
+ * Pop touch event occuring when your finger or pen leaving from Nextion touch panel. 
  */
 #define NEX_EVENT_POP   (0x00)  
 
@@ -58,9 +58,9 @@ public: /* static methods */
 public: /* methods */
 
     /**
-     * @copydoc NexObject::NexObject(uint8_t pid, uint8_t cid, const char *name);
+     * @copydoc NexObject::NexObject(uint8_t pid, uint8_t cid, std::string name);
      */
-    NexTouch(uint8_t pid, uint8_t cid, const char *name);
+    NexTouch(uint8_t pid, uint8_t cid, std::string name);
 
     /**
      * Attach an callback function of push touch event. 
@@ -71,7 +71,7 @@ public: /* methods */
      *
      * @note If calling this method multiply, the last call is valid. 
      */
-    void attachPush(NexTouchEventCb push, void *ptr = NULL);
+    void attachPush(NexTouchEventCb push, void *ptr = nullptr);
 
     /**
      * Detach an callback function. 
@@ -89,7 +89,7 @@ public: /* methods */
      *
      * @note If calling this method multiply, the last call is valid. 
      */
-    void attachPop(NexTouchEventCb pop, void *ptr = NULL);
+    void attachPop(NexTouchEventCb pop, void *ptr = nullptr);
 
     /**
      * Detach an callback function. 

@@ -15,7 +15,7 @@
  */
 #ifndef __NEXUPLOAD_H__
 #define __NEXUPLOAD_H__
-#include "allInclude.h"
+#include "NexIncludes.h"
 #include "NexHardware.h"
 
 /**

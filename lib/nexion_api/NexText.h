@@ -31,26 +31,24 @@ class NexText: public NexTouch
 {
 public: /* methods */
     /**
-     * @copydoc NexObject::NexObject(uint8_t pid, uint8_t cid, const char *name);
+     * @copydoc NexObject::NexObject(uint8_t pid, uint8_t cid, std::string name);
      */
-    NexText(uint8_t pid, uint8_t cid, const char *name);
+    NexText(uint8_t pid, uint8_t cid, std::string name);
     
     /**
      * Get text attribute of component.
      *
-     * @param buffer - buffer storing text returned. 
-     * @param len - length of buffer. 
-     * @return The real length of text returned. 
+     * @return returned text. 
      */
-    uint16_t getText(char *buffer, uint16_t len);
+    std::string getText();
     
     /**
      * Set text attribute of component.
      *
-     * @param buffer - text buffer terminated with '\0'. 
+     * @param value - text value. 
      * @return true if success, false for failure. 
      */
-    bool setText(const char *buffer);    
+    bool setText(std::string value);    
 	
     /**
      * Get bco attribute of component

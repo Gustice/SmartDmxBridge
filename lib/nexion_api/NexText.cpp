@@ -14,49 +14,32 @@
  */
 #include "NexText.h"
 
-NexText::NexText(uint8_t pid, uint8_t cid, const char *name)
+NexText::NexText(uint8_t pid, uint8_t cid, std::string name)
     :NexTouch(pid, cid, name)
 {
 }
 
-uint16_t NexText::getText(char *buffer, uint16_t len)
+std::string NexText::getText()
 {
-    std::string cmd;
-    cmd += "get ";
-    cmd += getObjName();
-    cmd += ".txt";
-    sendCommand(cmd);
-    return recvRetString(buffer,len);
+    sendCommand(std::string{"get "} + getObjName() + ".txt");
+    return recvRetString();
 }
 
-bool NexText::setText(const char *buffer)
+bool NexText::setText(std::string value)
 {
-    std::string cmd;
-    cmd += getObjName();
-    cmd += ".txt=\"";
-    cmd += buffer;
-    cmd += "\"";
-    sendCommand(cmd);
-    return recvRetCommandFinished();    
+    sendCommand(std::string {getObjName()} + ".txt=\""+ value + "\"");
+    return recvRetCommandFinished();
 }
 
 uint32_t NexText::Get_background_color_bco(uint32_t *number)
 {
-    std::string cmd;
-    cmd += "get ";
-    cmd += getObjName();
-    cmd += ".bco";
-    sendCommand(cmd);
+    sendCommand(std::string{"get "} + getObjName() + ".bco");
     return recvRetNumber(number);
 }
 
 bool NexText::Set_background_color_bco(uint32_t number)
 {
-    std::string setCmd;
-    setCmd += getObjName();
-    setCmd += ".bco=";
-    setCmd += std::to_string(number);
-    sendCommand(setCmd);
+    sendCommand(getObjName() + ".bco=" + std::to_string(number));
 	
     // only if version is lower than 0.38
     // std::string refreshCmd;
@@ -68,167 +51,97 @@ bool NexText::Set_background_color_bco(uint32_t number)
 
 uint32_t NexText::Get_font_color_pco(uint32_t *number)
 {
-    std::string cmd;
-    cmd += "get ";
-    cmd += getObjName();
-    cmd += ".pco";
-    sendCommand(cmd);
+    sendCommand(std::string{"get "} + getObjName() + ".pco" );
     return recvRetNumber(number);
 }
 
 bool NexText::Set_font_color_pco(uint32_t number)
 {
-    char buf[10] = {0};
-    std::string cmd;
-    
-    utoa(number, buf, 10);
-    cmd += getObjName();
-    cmd += ".pco=";
-    cmd += buf;
-    sendCommand(cmd);
+    sendCommand(getObjName() + ".pco=" + std::to_string(number));
 	
-    cmd = "";
-    cmd += "ref ";
-    cmd += getObjName();
-    sendCommand(cmd);
-    return recvRetCommandFinished();
+    // cmd = "";
+    // cmd += "ref ";
+    // cmd += getObjName();
+    // sendCommand(cmd);
+    // return recvRetCommandFinished();
 }
 
 uint32_t NexText::Get_place_xcen(uint32_t *number)
 {
-    std::string cmd;
-    cmd += "get ";
-    cmd += getObjName();
-    cmd += ".xcen";
-    sendCommand(cmd);
+    sendCommand(std::string{"get "} + getObjName() + ".xcen");
     return recvRetNumber(number);
 }
 
 bool NexText::Set_place_xcen(uint32_t number)
 {
-    char buf[10] = {0};
-    std::string cmd;
-    
-    utoa(number, buf, 10);
-    cmd += getObjName();
-    cmd += ".xcen=";
-    cmd += buf;
-    sendCommand(cmd);
+    sendCommand(getObjName() + ".xcen=" + std::to_string(number));
 	
-    cmd = "";
-    cmd += "ref ";
-    cmd += getObjName();
-    sendCommand(cmd);
-    return recvRetCommandFinished();
+    // cmd = "";
+    // cmd += "ref ";
+    // cmd += getObjName();
+    // sendCommand(cmd);
+    // return recvRetCommandFinished();
 }
 
 uint32_t NexText::Get_place_ycen(uint32_t *number)
 {
-    std::string cmd;
-    cmd += "get ";
-    cmd += getObjName();
-    cmd += ".ycen";
-    sendCommand(cmd);
+    sendCommand(std::string{"get "} + getObjName() + ".ycen");
     return recvRetNumber(number);
 }
 
 bool NexText::Set_place_ycen(uint32_t number)
 {
-    char buf[10] = {0};
-    std::string cmd;
-    
-    utoa(number, buf, 10);
-    cmd += getObjName();
-    cmd += ".ycen=";
-    cmd += buf;
-    sendCommand(cmd);
+    sendCommand(getObjName() + ".ycen=" + std::to_string(number));
 	
-    cmd = "";
-    cmd += "ref ";
-    cmd += getObjName();
-    sendCommand(cmd);
-    return recvRetCommandFinished();
+    // cmd = "";
+    // cmd += "ref ";
+    // cmd += getObjName();
+    // sendCommand(cmd);
+    // return recvRetCommandFinished();
 }
 
 uint32_t NexText::getFont(uint32_t *number)
 {
-    std::string cmd;
-    cmd += "get ";
-    cmd += getObjName();
-    cmd += ".font";
-    sendCommand(cmd);
+    sendCommand(std::string{"get "} + getObjName() + ".font");
     return recvRetNumber(number);
 }
 
 bool NexText::setFont(uint32_t number)
 {
-    char buf[10] = {0};
-    std::string cmd;
-    
-    utoa(number, buf, 10);
-    cmd += getObjName();
-    cmd += ".font=";
-    cmd += buf;
-    sendCommand(cmd);
+    sendCommand(getObjName() + ".font=" + std::to_string(number));
 
-    cmd = "";
-    cmd += "ref ";
-    cmd += getObjName();
-    sendCommand(cmd);
-    return recvRetCommandFinished();
+    // cmd = "";
+    // cmd += "ref ";
+    // cmd += getObjName();
+    // sendCommand(cmd);
+    // return recvRetCommandFinished();
 }
 
 uint32_t NexText::Get_background_crop_picc(uint32_t *number)
 {
-    std::string cmd;
-    cmd += "get ";
-    cmd += getObjName();
-    cmd += ".picc";
-    sendCommand(cmd);
+    sendCommand(std::string{"get "} + getObjName() + ".picc");
     return recvRetNumber(number);
 }
 
 bool NexText::Set_background_crop_picc(uint32_t number)
 {
-    char buf[10] = {0};
-    std::string cmd;
-    
-    utoa(number, buf, 10);
-    cmd += getObjName();
-    cmd += ".picc=";
-    cmd += buf;
-    sendCommand(cmd);
+    sendCommand(getObjName() + ".picc=" + std::to_string(number));
 	
-    cmd = "";
-    cmd += "ref ";
-    cmd += getObjName();
-    sendCommand(cmd);
-    return recvRetCommandFinished();
+    // cmd = "";
+    // cmd += "ref ";
+    // cmd += getObjName();
+    // sendCommand(cmd);
+    // return recvRetCommandFinished();
 }
 
 uint32_t NexText::Get_background_image_pic(uint32_t *number)
 {
-    std::string cmd("get ");
-    cmd += getObjName();
-    cmd += ".pic";
-    sendCommand(cmd);
+    sendCommand(std::string{"get "} + getObjName() + ".pic");
     return recvRetNumber(number);
 }
 
 bool NexText::Set_background_image_pic(uint32_t number)
 {
-    char buf[10] = {0};
-    std::string cmd;
-    
-    utoa(number, buf, 10);
-    cmd += getObjName();
-    cmd += ".pic=";
-    cmd += buf;
-
-    sendCommand(cmd);
+    sendCommand(getObjName() + ".pic=" + std::to_string(number));
     return recvRetCommandFinished();
 }
-
-
-
-
