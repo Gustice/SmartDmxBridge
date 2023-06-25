@@ -55,6 +55,15 @@ public: /* methods */
         output << "[" << this << ":" << __pid << "," << __cid << "," << __name << "]";
     }
 
+    /**
+     * Get component name.
+     *
+     * @return the name of component. 
+     */
+    std::string getObjName(void) {
+        return __name;
+    }
+
 protected: /* methods */
 
     /*
@@ -73,15 +82,6 @@ protected: /* methods */
      */
     uint8_t getObjCid(void) {
         return __cid;
-    }
-
-    /*
-     * Get component name.
-     *
-     * @return the name of component. 
-     */
-    std::string getObjName(void) {
-        return __name;
     }
     
 private: /* data */ 

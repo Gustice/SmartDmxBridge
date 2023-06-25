@@ -15,6 +15,9 @@
 #include "NexHardware.h"
 #include <cstring>
 
+// enum class NextReturn {
+// }
+
 #define NEX_RET_CMD_FINISHED            (0x01)
 #define NEX_RET_EVENT_LAUNCHED          (0x88)
 #define NEX_RET_EVENT_UPGRADED          (0x89)
@@ -33,7 +36,8 @@
 #define NEX_RET_INVALID_VARIABLE        (0x1A)
 #define NEX_RET_INVALID_OPERATION       (0x1B)
 
-static Uart * SerialPort = nullptr;
+static CharStream * SerialPort = nullptr;
+const std::string EndSequence = "\xFF\xFF\xFF";
 
 /*
  * Receive uint32_t data. 
@@ -45,48 +49,48 @@ static Uart * SerialPort = nullptr;
  * @retval false - failed.
  *
  */
-bool recvRetNumber(uint32_t *number, uint32_t timeout)
+uint32_t recvRetNumber(uint32_t timeout)
 {
-    if (!number) {
-        dbSerialPrintln("recvRetNumber err");
-        return false;
-    }
+    // if (!number) {
+    //     dbSerialPrintln("recvRetNumber err");
+    //     return false;
+    // }
     
-    auto buf = SerialPort->readBytes(8);
-    if (8 != buf.size()) {
-        dbSerialPrintln("recvRetNumber err");
-        return false;
-    }
+    // auto buf = SerialPort->readBytes(8);
+    // if (8 != buf.size()) {
+    //     dbSerialPrintln("recvRetNumber err");
+    //     return false;
+    // }
 
-    if (buf[0] == NEX_RET_NUMBER_HEAD
-        && buf[5] == 0xFF
-        && buf[6] == 0xFF
-        && buf[7] == 0xFF
-        ) {
-        *number = ((uint32_t)buf[4] << 24) | ((uint32_t)buf[3] << 16) | (buf[2] << 8) | (buf[1]);
-        dbSerialPrint("recvRetNumber :");
-        dbSerialPrintln(*number);
-        return true;
-    }
+    // if (buf[0] == NEX_RET_NUMBER_HEAD
+    //     && buf[5] == 0xFF
+    //     && buf[6] == 0xFF
+    //     && buf[7] == 0xFF
+    //     ) {
+    //     *number = ((uint32_t)buf[4] << 24) | ((uint32_t)buf[3] << 16) | (buf[2] << 8) | (buf[1]);
+    //     dbSerialPrint("recvRetNumber :");
+    //     dbSerialPrintln(*number);
+    //     return true;
+    // }
 
-    dbSerialPrintln("recvRetNumber err");
-    return false;
+    // dbSerialPrintln("recvRetNumber err");
+    return 0;
 }
 
 
-// /*
-//  * Receive string data. 
-//  * 
-//  * @param buffer - save string data. 
-//  * @param len - string buffer length. 
-//  * @param timeout - set timeout time. 
-//  *
-//  * @return the length of string buffer.
-//  *
-//  */
-// uint16_t recvRetString(char *buffer, uint16_t len, uint32_t timeout)
-// {
-//     uint16_t ret = 0;
+/*
+ * Receive string data. 
+ * 
+ * @param buffer - save string data. 
+ * @param len - string buffer length. 
+ * @param timeout - set timeout time. 
+ *
+ * @return the length of string buffer.
+ *
+ */
+std::string recvRetString(uint32_t timeout)
+{
+    uint16_t ret = 0;
 //     bool str_start_flag = false;
 //     uint8_t cnt_0xff = 0;
 //     std::string temp;
@@ -135,8 +139,8 @@ bool recvRetNumber(uint32_t *number, uint32_t timeout)
 //     ret = ret > len ? len : ret;
 //     strncpy(buffer, temp.c_str(), ret);
 
-//     return ret;
-// }
+    return "";
+}
 
 /*
  * Send command to Nextion.
@@ -145,9 +149,8 @@ bool recvRetNumber(uint32_t *number, uint32_t timeout)
  */
 void sendCommand(std::string cmd)
 {
+    cmd += "\xFF\xFF\xFF";
     SerialPort->write(cmd);
-    uint8_t end[3] {0xFF, 0xFF, 0xFF};
-    SerialPort->write(end, sizeof(end));
 }
 
 
@@ -162,60 +165,60 @@ void sendCommand(std::string cmd)
  */
 bool recvRetCommandFinished(uint32_t timeout)
 {    
-    bool ret = false;
-    uint8_t temp[4] = {0};
+    // bool ret = false;
+    // uint8_t temp[4] = {0};
     
-    auto buf = SerialPort->readBytes(4, timeout);
-    if (4 != buf.size()) {
-        ret = false;
-    }
+    // auto buf = SerialPort->readBytes(4, timeout);
+    // if (4 != buf.size()) {
+    //     ret = false;
+    // }
 
-    if (temp[0] == NEX_RET_CMD_FINISHED
-        && temp[1] == 0xFF
-        && temp[2] == 0xFF
-        && temp[3] == 0xFF
-        )
-    {
-        dbSerialPrintln("recvRetCommandFinished ok");
-        ret = true;
-    }
+    // if (temp[0] == NEX_RET_CMD_FINISHED
+    //     && temp[1] == 0xFF
+    //     && temp[2] == 0xFF
+    //     && temp[3] == 0xFF
+    //     )
+    // {
+    //     dbSerialPrintln("recvRetCommandFinished ok");
+    //     ret = true;
+    // }
 
-    dbSerialPrintln("recvRetCommandFinished err");
+    // dbSerialPrintln("recvRetCommandFinished err");
     return false;
 }
 
 
-bool nexInit(Uart &port)
+bool nexInit(CharStream &port)
 {
     SerialPort = &port;
     bool ret = true;
     
-    sendCommand("bkcmd=1"); // response verbosity (1=OnSuccess 2=OnFailure 3=Always)
-    ret &= recvRetCommandFinished();
-    sendCommand("page 0");
-    ret &= recvRetCommandFinished();
+    // sendCommand("bkcmd=1"); // response verbosity (1=OnSuccess 2=OnFailure 3=Always)
+    // ret &= recvRetCommandFinished();
+    // sendCommand("page 0");
+    // ret &= recvRetCommandFinished();
     return ret;
 }
 
 void nexLoop(NexTouch *nex_listen_list[])
 {
-    uint16_t i;
-    uint8_t c;  
+    // uint16_t i;
+    // uint8_t c;  
     
-    auto input = SerialPort->readBytes(6);
+    // auto input = SerialPort->readBytes(6);
 
-    if (input.size() > 0)
-    {
-        if (NEX_RET_EVENT_TOUCH_HEAD == input[0])
-        {
-            if (input.size() >= 6)
-            {
-                if (0xFF == (input[4] & input[5] & input[6])) {
-                    NexTouch::iterate(nex_listen_list, input[1], input[2], (int32_t)input[3]);
-                }
-            }
-        }
-    }
+    // if (input.size() > 0)
+    // {
+    //     if (NEX_RET_EVENT_TOUCH_HEAD == input[0])
+    //     {
+    //         if (input.size() >= 6)
+    //         {
+    //             if (0xFF == (input[4] & input[5] & input[6])) {
+    //                 NexTouch::iterate(nex_listen_list, input[1], input[2], (int32_t)input[3]);
+    //             }
+    //         }
+    //     }
+    // }
     
 
 }

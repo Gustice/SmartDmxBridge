@@ -14,11 +14,12 @@
  */
 #ifndef __NEXHARDWARE_H__
 #define __NEXHARDWARE_H__
-#include "allinclude.h"
-#include "NexConfig.h"
+// #include "NexIncludes.h"
+// #include "NexConfig.h"
 #include "NexTouch.h"
+#include "Streams.hpp"
 
-#include "uart.hpp"
+extern const std::string EndSequence;
 
 /**
  * @addtogroup CoreAPI 
@@ -30,7 +31,7 @@
  * 
  * @return true if success, false for failure. 
  */
-bool nexInit(Uart &port);
+bool nexInit(CharStream &port);
 
 /**
  * Listen touch event and calling callbacks attached before.
@@ -49,8 +50,8 @@ void nexLoop(NexTouch *nex_listen_list[]);
  * @}
  */
 
-bool recvRetNumber(uint32_t *number, uint32_t timeout = 100);
-uint16_t recvRetString(char *buffer, uint16_t len, uint32_t timeout = 100);
+uint32_t recvRetNumber(uint32_t timeout = 100);
+std::string recvRetString(uint32_t timeout = 100);
 void sendCommand(std::string cmd);
 bool recvRetCommandFinished(uint32_t timeout = 100);
 

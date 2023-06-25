@@ -19,6 +19,10 @@
 
 #include "NexTouch.h"
 #include "NexHardware.h"
+#include "NexColor.h"
+#include "NexAlignment.h"
+#include "NexFont.h"
+
 /**
  * @addtogroup Component 
  * @{ 
@@ -48,88 +52,28 @@ public: /* methods */
      * @param value - text value. 
      * @return true if success, false for failure. 
      */
-    bool setText(std::string value);    
-	
-    /**
-     * Get bco attribute of component
-     *
-     * @param number - buffer storing data retur
-     * @return the length of the data 
-     */
-    uint32_t Get_background_color_bco(uint32_t *number);   
-    	
-    /**
-     * Set bco attribute of component
-     *
-     * @param number - To set up the data
-     * @return true if success, false for failure
-     */
-    bool Set_background_color_bco(uint32_t number);           
-	
-    /**
-     * Get pco attribute of component
-     *
-     * @param number - buffer storing data retur
-     * @return the length of the data 
-     */
-    uint32_t Get_font_color_pco(uint32_t *number); 
+    bool setText(std::string value);
 
     /**
-     * Set pco attribute of component
-     *
-     * @param number - To set up the data
-     * @return true if success, false for failure
+     * Background-color (bco) attribute of component
      */
-    bool Set_font_color_pco(uint32_t number);			
-	
-    /**
-     * Get xcen attribute of component
-     *
-     * @param number - buffer storing data retur
-     * @return the length of the data 
-     */
-    uint32_t Get_place_xcen(uint32_t *number);	
+    NexColor background{*this, "bco"};
 
     /**
-     * Set xcen attribute of component
-     *
-     * @param number - To set up the data
-     * @return true if success, false for failure
+     * Font-color (pco) attribute of component
      */
-    bool Set_place_xcen(uint32_t number);			
-	
-    /**
-     * Get ycen attribute of component
-     *
-     * @param number - buffer storing data retur
-     * @return the length of the data 
-     */
-    uint32_t Get_place_ycen(uint32_t *number);	
+    NexColor fontColor{*this, "pco"};
 
     /**
-     * Set ycen attribute of component
-     *
-     * @param number - To set up the data
-     * @return true if success, false for failure
+     * Text alignment
      */
-    bool Set_place_ycen(uint32_t number);			
-	
+    NexAlignment alignment{*this};
+
     /**
-     * Get font attribute of component
-     *
-     * @param number - buffer storing data retur
-     * @return the length of the data 
+     * Text font
      */
-    uint32_t getFont(uint32_t *number);		
-	
-    /**
-     * Set font attribute of component
-     *
-     * @param number - To set up the data
-     * @return true if success, false for failure
-     */
-    bool setFont(uint32_t number);			
-	
+    NexFont font{*this};
+
     /**
      * Get picc attribute of component
      *

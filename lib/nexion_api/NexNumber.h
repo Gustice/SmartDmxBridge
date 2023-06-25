@@ -19,6 +19,10 @@
 
 #include "NexTouch.h"
 #include "NexHardware.h"
+#include "NexColor.h"
+#include "NexAlignment.h"
+#include "NexFont.h"
+
 /**
  * @addtogroup Component 
  * @{ 
@@ -41,7 +45,7 @@ public: /* methods */
      * @param number - buffer storing text returned. 
      * @return The real length of text returned. 
      */
-    bool getValue(uint32_t *number);
+    bool getValue();
     
     /**
      * Set number attribute of component.
@@ -52,89 +56,29 @@ public: /* methods */
     bool setValue(uint32_t number);
 	
     /**
-     * Get bco attribute of component
-     *
-     * @param number - buffer storing data retur
-     * @return the length of the data 
+     * Background-color (bco) attribute of component
      */
-    uint32_t Get_background_color_bco(uint32_t *number);
-	
-    /**
-     * Set bco attribute of component
-     *
-     * @param number - To set up the data
-     * @return true if success, false for failure
-     */
-    bool Set_background_color_bco(uint32_t number);
-	
-    /**
-     * Get pco attribute of component
-     *
-     * @param number - buffer storing data retur
-     * @return the length of the data 
-     */
-    uint32_t Get_font_color_pco(uint32_t *number);	
+    NexColor background{*this, "bco"};
 
     /**
-     * Set pco attribute of component
-     *
-     * @param number - To set up the data
-     * @return true if success, false for failure
+     * Font-color (pco) attribute of component
      */
-    bool Set_font_color_pco(uint32_t number);			
+    NexColor fontColor{*this, "pco"};
 	
     /**
-     * Get xcen attribute of component
-     *
-     * @param number - buffer storing data retur
-     * @return the length of the data 
+     * Text alignment
      */
-    uint32_t Get_place_xcen(uint32_t *number);	
-
-    /**
-     * Set xcen attribute of component
-     *
-     * @param number - To set up the data
-     * @return true if success, false for failure
-     */
-    bool Set_place_xcen(uint32_t number);			
+    NexAlignment alignment{*this};
 	
     /**
-     * Get ycen attribute of component
-     *
-     * @param number - buffer storing data retur
-     * @return the length of the data 
+     * Text font
      */
-    uint32_t Get_place_ycen(uint32_t *number);	
-
-    /**
-     * Set ycen attribute of component
-     *
-     * @param number - To set up the data
-     * @return true if success, false for failure
-     */
-    bool Set_place_ycen(uint32_t number);			
-	
-    /**
-     * Get font attribute of component
-     *
-     * @param number - buffer storing data retur
-     * @return the length of the data 
-     */
-    uint32_t getFont(uint32_t *number);	
-
-    /**
-     * Set font attribute of component
-     *
-     * @param number - To set up the data
-     * @return true if success, false for failure
-     */
-    bool setFont(uint32_t number);			
+    NexFont font{*this};
 	
     /**
      * Get lenth attribute of component
      *
-     * @param number - buffer storing data retur
+     * @param number - buffer storing data return
      * @return the length of the data 
      */
     uint32_t Get_number_lenth(uint32_t *number);
@@ -150,10 +94,10 @@ public: /* methods */
     /**
      * Get picc attribute of component
      *
-     * @param number - buffer storing data retur
+     * @param number - buffer storing data return
      * @return the length of the data 
      */
-    uint32_t Get_background_crop_picc(uint32_t *number);	
+    uint32_t Get_background_crop_picc();	
 
     /**
      * Set picc attribute of component
@@ -166,10 +110,10 @@ public: /* methods */
     /**
      * Get pic attribute of component
      *
-     * @param number - buffer storing data retur
+     * @param number - buffer storing data return
      * @return the length of the data 
      */
-    uint32_t Get_background_image_pic(uint32_t *number);	
+    uint32_t Get_background_image_pic();	
 
     /**
      * Set pic attribute of component

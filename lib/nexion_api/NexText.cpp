@@ -31,96 +31,10 @@ bool NexText::setText(std::string value)
     return recvRetCommandFinished();
 }
 
-uint32_t NexText::Get_background_color_bco(uint32_t *number)
-{
-    sendCommand(std::string{"get "} + getObjName() + ".bco");
-    return recvRetNumber(number);
-}
-
-bool NexText::Set_background_color_bco(uint32_t number)
-{
-    sendCommand(getObjName() + ".bco=" + std::to_string(number));
-	
-    // only if version is lower than 0.38
-    // std::string refreshCmd;
-    // refreshCmd += "ref ";
-    // refreshCmd += getObjName();
-    // sendCommand(refreshCmd);
-    // return recvRetCommandFinished();
-}
-
-uint32_t NexText::Get_font_color_pco(uint32_t *number)
-{
-    sendCommand(std::string{"get "} + getObjName() + ".pco" );
-    return recvRetNumber(number);
-}
-
-bool NexText::Set_font_color_pco(uint32_t number)
-{
-    sendCommand(getObjName() + ".pco=" + std::to_string(number));
-	
-    // cmd = "";
-    // cmd += "ref ";
-    // cmd += getObjName();
-    // sendCommand(cmd);
-    // return recvRetCommandFinished();
-}
-
-uint32_t NexText::Get_place_xcen(uint32_t *number)
-{
-    sendCommand(std::string{"get "} + getObjName() + ".xcen");
-    return recvRetNumber(number);
-}
-
-bool NexText::Set_place_xcen(uint32_t number)
-{
-    sendCommand(getObjName() + ".xcen=" + std::to_string(number));
-	
-    // cmd = "";
-    // cmd += "ref ";
-    // cmd += getObjName();
-    // sendCommand(cmd);
-    // return recvRetCommandFinished();
-}
-
-uint32_t NexText::Get_place_ycen(uint32_t *number)
-{
-    sendCommand(std::string{"get "} + getObjName() + ".ycen");
-    return recvRetNumber(number);
-}
-
-bool NexText::Set_place_ycen(uint32_t number)
-{
-    sendCommand(getObjName() + ".ycen=" + std::to_string(number));
-	
-    // cmd = "";
-    // cmd += "ref ";
-    // cmd += getObjName();
-    // sendCommand(cmd);
-    // return recvRetCommandFinished();
-}
-
-uint32_t NexText::getFont(uint32_t *number)
-{
-    sendCommand(std::string{"get "} + getObjName() + ".font");
-    return recvRetNumber(number);
-}
-
-bool NexText::setFont(uint32_t number)
-{
-    sendCommand(getObjName() + ".font=" + std::to_string(number));
-
-    // cmd = "";
-    // cmd += "ref ";
-    // cmd += getObjName();
-    // sendCommand(cmd);
-    // return recvRetCommandFinished();
-}
-
 uint32_t NexText::Get_background_crop_picc(uint32_t *number)
 {
     sendCommand(std::string{"get "} + getObjName() + ".picc");
-    return recvRetNumber(number);
+    return recvRetNumber();
 }
 
 bool NexText::Set_background_crop_picc(uint32_t number)
@@ -137,7 +51,7 @@ bool NexText::Set_background_crop_picc(uint32_t number)
 uint32_t NexText::Get_background_image_pic(uint32_t *number)
 {
     sendCommand(std::string{"get "} + getObjName() + ".pic");
-    return recvRetNumber(number);
+    return recvRetNumber();
 }
 
 bool NexText::Set_background_image_pic(uint32_t number)
