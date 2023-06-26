@@ -19,7 +19,7 @@
 
 #include "NexIncludes.h"
 #include "NexConfig.h"
-#include "NexObject.h"
+#include "bases/NexObject.h"
 
 /**
  * @addtogroup TouchEvent 

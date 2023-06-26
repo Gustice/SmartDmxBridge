@@ -1,4 +1,4 @@
-#include "NexHardware.h"
+#include "../NexHardware.h"
 #include "NexIncludes.h"
 #include <cstdint>
 #include <string>
@@ -14,11 +14,22 @@ class NexColor {
         return std::string(_key);
     }
 
+    /**
+     * Get bco attribute of component
+     *
+     * @return return value 
+     */
     uint32_t getColor() {
         sendCommand(std::string{"get "} + _parent.getObjName() + "." + _key.begin());
         return recvRetNumber();
     }
 
+    /**
+     * Set bco attribute of component
+     *
+     * @param number - To set up the data
+     * @return true if success, false for failure
+     */
     bool setColor(uint32_t number) {
         sendCommand(_parent.getObjName() + "." + _key.begin() + "=" + std::to_string(number));
         // cmd = "";

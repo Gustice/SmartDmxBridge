@@ -31,7 +31,7 @@ bool NexNumber::setValue(uint32_t number)
     return recvRetCommandFinished();
 }
 
-uint32_t NexNumber::Get_number_lenth(uint32_t *number)
+uint32_t NexNumber::Get_number_lenth()
 {
     sendCommand(std::string{"get "} + getObjName() + ".lenth");
     return recvRetNumber();
@@ -40,38 +40,6 @@ uint32_t NexNumber::Get_number_lenth(uint32_t *number)
 bool NexNumber::Set_number_lenth(uint32_t number)
 {
     sendCommand(std::string{getObjName()} + ".lenth=" + std::to_string(number));
-    // cmd = "";
-    // cmd += "ref ";
-    // cmd += getObjName();
-    // sendCommand(cmd);
-    // return recvRetCommandFinished();
-}
-
-uint32_t NexNumber::Get_background_crop_picc()
-{
-    sendCommand(std::string{"get "} + getObjName() + ".picc");
-    return recvRetNumber();
-}
-
-bool NexNumber::Set_background_crop_picc(uint32_t number)
-{
-    sendCommand(std::string{getObjName()} + ".picc=" + std::to_string(number));
-    // cmd = "";
-    // cmd += "ref ";
-    // cmd += getObjName();
-    // sendCommand(cmd);
-    // return recvRetCommandFinished();
-}
-
-uint32_t NexNumber::Get_background_image_pic()
-{
-    sendCommand(std::string{"get "} + getObjName() + ".pic");
-    return recvRetNumber();
-}
-
-bool NexNumber::Set_background_image_pic(uint32_t number)
-{
-    sendCommand(std::string{getObjName()} + ".pic=" + std::to_string(number));
     // cmd = "";
     // cmd += "ref ";
     // cmd += getObjName();

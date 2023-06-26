@@ -30,32 +30,3 @@ bool NexText::setText(std::string value)
     sendCommand(std::string {getObjName()} + ".txt=\""+ value + "\"");
     return recvRetCommandFinished();
 }
-
-uint32_t NexText::Get_background_crop_picc(uint32_t *number)
-{
-    sendCommand(std::string{"get "} + getObjName() + ".picc");
-    return recvRetNumber();
-}
-
-bool NexText::Set_background_crop_picc(uint32_t number)
-{
-    sendCommand(getObjName() + ".picc=" + std::to_string(number));
-	
-    // cmd = "";
-    // cmd += "ref ";
-    // cmd += getObjName();
-    // sendCommand(cmd);
-    // return recvRetCommandFinished();
-}
-
-uint32_t NexText::Get_background_image_pic(uint32_t *number)
-{
-    sendCommand(std::string{"get "} + getObjName() + ".pic");
-    return recvRetNumber();
-}
-
-bool NexText::Set_background_image_pic(uint32_t number)
-{
-    sendCommand(getObjName() + ".pic=" + std::to_string(number));
-    return recvRetCommandFinished();
-}

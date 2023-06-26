@@ -19,9 +19,10 @@
 
 #include "NexTouch.h"
 #include "NexHardware.h"
-#include "NexColor.h"
-#include "NexAlignment.h"
+#include "bases/NexColor.h"
+#include "bases/NexAlignment.h"
 #include "NexFont.h"
+#include "bases/NexBackgroundImage.h"
 
 /**
  * @addtogroup Component 
@@ -75,37 +76,9 @@ public: /* methods */
     NexFont font{*this};
 
     /**
-     * Get picc attribute of component
-     *
-     * @param number - buffer storing data retur
-     * @return the length of the data 
+     * Background image
      */
-    uint32_t Get_background_crop_picc(uint32_t *number);	
-
-    /**
-     * Set picc attribute of component
-     *
-     * @param number - To set up the data
-     * @return true if success, false for failure
-     */
-    bool Set_background_crop_picc(uint32_t number);			
-	
-    /**
-     * Get pic attribute of component
-     *
-     * @param number - buffer storing data retur
-     * @return the length of the data 
-     */
-    uint32_t Get_background_image_pic(uint32_t *number);	
-
-    /**
-     * Set pic attribute of component
-     *
-     * @param number - To set up the data
-     * @return true if success, false for failure
-     */
-    bool Set_background_image_pic(uint32_t number);	
-    
+    NexBackgroundImage backgroundImage{*this};
 };
 
 /**

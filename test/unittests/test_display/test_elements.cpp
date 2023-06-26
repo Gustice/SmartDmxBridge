@@ -1,6 +1,7 @@
 #include "NexPage.h"
 #include "NexText.h"
 #include "NexNumber.h"
+#include "NexScrolltext.h"
 #include "Streams.hpp"
 #include "fakes/streamDummy.hpp"
 #include <gtest/gtest.h>
@@ -38,44 +39,34 @@ TEST(DisplayTestElements, TextTests) {
 
     eut.background.getColor();
     EXPECT_EQ(stream.lastWrite, std::string("get eut.bco") + EndSequence);
-    
     eut.background.setColor(123);
     EXPECT_EQ(stream.lastWrite, std::string("eut.bco=123") + EndSequence);
-
     eut.fontColor.getColor();
     EXPECT_EQ(stream.lastWrite, std::string("get eut.pco") + EndSequence);
-    
     eut.fontColor.setColor(234);
     EXPECT_EQ(stream.lastWrite, std::string("eut.pco=234") + EndSequence);
 
-    eut.alignment.getPlaceXcen(&num);
+    eut.alignment.getPlaceXcen();
     EXPECT_EQ(stream.lastWrite, std::string("get eut.xcen") + EndSequence);
-    
     eut.alignment.setPlaceXcen(123);
     EXPECT_EQ(stream.lastWrite, std::string("eut.xcen=123") + EndSequence);
-
-    eut.alignment.getPlaceYcen(&num);
+    eut.alignment.getPlaceYcen();
     EXPECT_EQ(stream.lastWrite, std::string("get eut.ycen") + EndSequence);
-    
     eut.alignment.setPlaceYcen(123);
     EXPECT_EQ(stream.lastWrite, std::string("eut.ycen=123") + EndSequence);
 
     eut.font.getFont();
     EXPECT_EQ(stream.lastWrite, std::string("get eut.font") + EndSequence);
-    
     eut.font.setFont(123);
     EXPECT_EQ(stream.lastWrite, std::string("eut.font=123") + EndSequence);
 
-    eut.Get_background_crop_picc(&num);
+    eut.backgroundImage.getBackgroundCropPicc();
     EXPECT_EQ(stream.lastWrite, std::string("get eut.picc") + EndSequence);
-    
-    eut.Set_background_crop_picc(123);
+    eut.backgroundImage.setBackgroundCropPicc(123);
     EXPECT_EQ(stream.lastWrite, std::string("eut.picc=123") + EndSequence);
-
-    eut.Get_background_image_pic(&num);
+    eut.backgroundImage.getImagePic();
     EXPECT_EQ(stream.lastWrite, std::string("get eut.pic") + EndSequence);
-    
-    eut.Set_background_image_pic(123);
+    eut.backgroundImage.setImagePic(123);
     EXPECT_EQ(stream.lastWrite, std::string("eut.pic=123") + EndSequence);
 }
 
@@ -93,44 +84,97 @@ TEST(DisplayTestElements, NumberTests) {
 
     eut.background.getColor();
     EXPECT_EQ(stream.lastWrite, std::string("get eut.bco") + EndSequence);
-    
     eut.background.setColor(123);
     EXPECT_EQ(stream.lastWrite, std::string("eut.bco=123") + EndSequence);
-
     eut.fontColor.getColor();
     EXPECT_EQ(stream.lastWrite, std::string("get eut.pco") + EndSequence);
-    
     eut.fontColor.setColor(234);
     EXPECT_EQ(stream.lastWrite, std::string("eut.pco=234") + EndSequence);
 
-    eut.alignment.getPlaceXcen(&num);
+    eut.alignment.getPlaceXcen();
     EXPECT_EQ(stream.lastWrite, std::string("get eut.xcen") + EndSequence);
-    
     eut.alignment.setPlaceXcen(123);
     EXPECT_EQ(stream.lastWrite, std::string("eut.xcen=123") + EndSequence);
-
-    eut.alignment.getPlaceYcen(&num);
+    eut.alignment.getPlaceYcen();
     EXPECT_EQ(stream.lastWrite, std::string("get eut.ycen") + EndSequence);
-    
     eut.alignment.setPlaceYcen(123);
     EXPECT_EQ(stream.lastWrite, std::string("eut.ycen=123") + EndSequence);
 
     eut.font.getFont();
     EXPECT_EQ(stream.lastWrite, std::string("get eut.font") + EndSequence);
-    
     eut.font.setFont(123);
     EXPECT_EQ(stream.lastWrite, std::string("eut.font=123") + EndSequence);
 
-    eut.Get_background_crop_picc();
+    eut.backgroundImage.getBackgroundCropPicc();
     EXPECT_EQ(stream.lastWrite, std::string("get eut.picc") + EndSequence);
-    
-    eut.Set_background_crop_picc(123);
+    eut.backgroundImage.setBackgroundCropPicc(123);
     EXPECT_EQ(stream.lastWrite, std::string("eut.picc=123") + EndSequence);
-
-    eut.Get_background_image_pic();
+    eut.backgroundImage.getImagePic();
     EXPECT_EQ(stream.lastWrite, std::string("get eut.pic") + EndSequence);
-    
-    eut.Set_background_image_pic(123);
+    eut.backgroundImage.setImagePic(123);
+    EXPECT_EQ(stream.lastWrite, std::string("eut.pic=123") + EndSequence);
+}
+
+TEST(DisplayTestElements, ScrollTextTests) {
+    uint32_t num;
+
+    nexInit(stream);
+    NexScrolltext eut(0, 1, "eut");
+
+    eut.getText();
+    EXPECT_EQ(stream.lastWrite, std::string("get eut.txt") + EndSequence);
+
+    eut.setText("xyz");
+    EXPECT_EQ(stream.lastWrite, std::string("eut.txt=\"xyz\"") + EndSequence);
+
+    eut.background.getColor();
+    EXPECT_EQ(stream.lastWrite, std::string("get eut.bco") + EndSequence);
+    eut.background.setColor(123);
+    EXPECT_EQ(stream.lastWrite, std::string("eut.bco=123") + EndSequence);
+    eut.fontColor.getColor();
+    EXPECT_EQ(stream.lastWrite, std::string("get eut.pco") + EndSequence);
+    eut.fontColor.setColor(234);
+    EXPECT_EQ(stream.lastWrite, std::string("eut.pco=234") + EndSequence);
+
+    eut.alignment.getPlaceXcen();
+    EXPECT_EQ(stream.lastWrite, std::string("get eut.xcen") + EndSequence);
+    eut.alignment.setPlaceXcen(123);
+    EXPECT_EQ(stream.lastWrite, std::string("eut.xcen=123") + EndSequence);
+    eut.alignment.getPlaceYcen();
+    EXPECT_EQ(stream.lastWrite, std::string("get eut.ycen") + EndSequence);
+    eut.alignment.setPlaceYcen(123);
+    EXPECT_EQ(stream.lastWrite, std::string("eut.ycen=123") + EndSequence);
+
+    eut.font.getFont();
+    EXPECT_EQ(stream.lastWrite, std::string("get eut.font") + EndSequence);
+    eut.font.setFont(123);
+    EXPECT_EQ(stream.lastWrite, std::string("eut.font=123") + EndSequence);
+
+    eut.backgroundImage.getBackgroundCropPicc();
+    EXPECT_EQ(stream.lastWrite, std::string("get eut.picc") + EndSequence);
+    eut.backgroundImage.setBackgroundCropPicc(123);
+    EXPECT_EQ(stream.lastWrite, std::string("eut.picc=123") + EndSequence);
+    eut.backgroundImage.getImagePic();
+    EXPECT_EQ(stream.lastWrite, std::string("get eut.pic") + EndSequence);
+    eut.backgroundImage.setImagePic(123);
     EXPECT_EQ(stream.lastWrite, std::string("eut.pic=123") + EndSequence);
 
+
+    eut.Get_scroll_dir();
+    EXPECT_EQ(stream.lastWrite, std::string("get eut.dir") + EndSequence);
+    eut.Set_scroll_dir(123);
+    EXPECT_EQ(stream.lastWrite, std::string("eut.dir=123") + EndSequence);
+    eut.Get_scroll_distance();
+    EXPECT_EQ(stream.lastWrite, std::string("get eut.dis") + EndSequence);
+    eut.Set_scroll_distance(123);
+    EXPECT_EQ(stream.lastWrite, std::string("eut.dis=123") + EndSequence);
+    eut.Get_cycle_tim();
+    EXPECT_EQ(stream.lastWrite, std::string("get eut.tim") + EndSequence);
+    eut.Set_cycle_tim(123);
+    EXPECT_EQ(stream.lastWrite, std::string("eut.tim=123") + EndSequence);
+
+    eut.enable();
+    EXPECT_EQ(stream.lastWrite, std::string("eut.en=1") + EndSequence);
+    eut.disable();
+    EXPECT_EQ(stream.lastWrite, std::string("eut.en=0") + EndSequence);
 }
