@@ -16,7 +16,7 @@
 #define __NEXHARDWARE_H__
 // #include "NexIncludes.h"
 // #include "NexConfig.h"
-#include "NexTouch.h"
+#include "bases/NexTouch.h"
 #include "Streams.hpp"
 
 extern const std::string EndSequence;

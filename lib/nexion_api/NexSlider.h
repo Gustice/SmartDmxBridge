@@ -17,8 +17,10 @@
 #ifndef __NEXSLIDER_H__
 #define __NEXSLIDER_H__
 
-#include "NexTouch.h"
+#include "bases/NexTouch.h"
 #include "NexHardware.h"
+#include "bases/NexColor.h"
+
 /**
  * @addtogroup Component 
  * @{ 
@@ -38,12 +40,9 @@ public: /* methods */
     /**
      * Get the value of slider. 
      * 
-     * @param number - an output parameter to save the value of slider.  
-     * 
-     * @retval true - success. 
-     * @retval false - failed. 
+     * @retval returns value
      */
-    bool getValue(uint32_t *number);
+    uint32_t getValue();
     
     /**
      * Set the value of slider.
@@ -56,36 +55,14 @@ public: /* methods */
     bool setValue(uint32_t number);
 	
     /**
-     * Get bco attribute of component
-     *
-     * @param number - buffer storing data retur
-     * @return the length of the data 
+     * Background-color (bco) attribute of component
      */
-    uint32_t Get_background_color_bco(uint32_t *number);
+    NexColor background{*this, "bco"};
 	
     /**
-     * Set bco attribute of component
-     *
-     * @param number - To set up the data
-     * @return true if success, false for failure
+     * Font-color (pco) attribute of component
      */
-    bool Set_background_color_bco(uint32_t number);
-	
-    /**
-     * Get pco attribute of component
-     *
-     * @param number - buffer storing data retur
-     * @return the length of the data 
-     */
-    uint32_t Get_font_color_pco(uint32_t *number);		
-	
-    /**
-     * Set pco attribute of component
-     *
-     * @param number - To set up the data
-     * @return true if success, false for failure
-     */
-    bool Set_font_color_pco(uint32_t number);			
+    NexColor fontColor{*this, "pco"};
 	
     /**
      * Get wid attribute of component
@@ -93,7 +70,7 @@ public: /* methods */
      * @param number - buffer storing data retur
      * @return the length of the data 
      */
-    uint32_t Get_pointer_thickness_wid(uint32_t *number);	
+    uint32_t Get_pointer_thickness_wid();
 
     /**
      * Set wid attribute of component
@@ -101,7 +78,7 @@ public: /* methods */
      * @param number - To set up the data
      * @return true if success, false for failure
      */
-    bool Set_pointer_thickness_wid(uint32_t number);		
+    bool Set_pointer_thickness_wid(uint32_t number);
 
     /**
      * Get hig attribute of component
@@ -109,7 +86,7 @@ public: /* methods */
      * @param number - buffer storing data retur
      * @return the length of the data 
      */
-    uint32_t Get_cursor_height_hig(uint32_t *number);	
+    uint32_t Get_cursor_height_hig();	
 
     /**
      * Set hig attribute of component
@@ -117,15 +94,15 @@ public: /* methods */
      * @param number - To set up the data
      * @return true if success, false for failure
      */
-    bool Set_cursor_height_hig(uint32_t number);			
+    bool Set_cursor_height_hig(uint32_t number);
 	
     /**
      * Get maxval attribute of component
      *
-     * @param number - buffer storing data retur
+     * @param number - buffer storing data return
      * @return the length of the data 
      */
-    uint32_t getMaxval(uint32_t *number);	
+    uint32_t getMaxval();	
 	
     /**
      * Set maxval attribute of component
@@ -138,10 +115,10 @@ public: /* methods */
     /**
      * Get minval attribute of component
      *
-     * @param number - buffer storing data retur
+     * @param number - buffer storing data return
      * @return the length of the data 
      */
-    uint32_t getMinval(uint32_t *number);	
+    uint32_t getMinval();	
 	
     /**
      * Set minval attribute of component

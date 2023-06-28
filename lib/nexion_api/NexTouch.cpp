@@ -12,7 +12,7 @@
  * published by the Free Software Foundation; either version 2 of
  * the License, or (at your option) any later version.
  */
-#include "NexTouch.h"
+#include "bases/NexTouch.h"
 
 NexTouch::NexTouch(uint8_t pid, uint8_t cid, std::string name) : NexObject(pid, cid, name) {
     this->__cb_push = nullptr;

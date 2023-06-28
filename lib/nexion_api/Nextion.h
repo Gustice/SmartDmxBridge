@@ -20,7 +20,7 @@
 #include "NexColor.h"
 #include "NexIncludes.h"
 #include "NexConfig.h"
-#include "NexTouch.h"
+#include "bases/NexTouch.h"
 #include "NexHardware.h"
 
 #include "NexButton.h"

@@ -17,8 +17,13 @@
 #ifndef __NEXBUTTON_H__
 #define __NEXBUTTON_H__
 
-#include "NexTouch.h"
+#include "bases/NexTouch.h"
 #include "NexHardware.h"
+#include "bases/NexColor.h"
+#include "bases/NexAlignment.h"
+#include "bases/NexFont.h"
+#include "bases/NexBackgroundImage.h"
+
 /**
  * @addtogroup Component 
  * @{ 
@@ -44,195 +49,57 @@ public: /* methods */
     /**
      * Get text attribute of component.
      *
-     * @param buffer - buffer storing text returned. 
-     * @param len - length of buffer. 
      * @return The real length of text returned. 
      */
-    uint16_t getText(char *buffer, uint16_t len);    
+    std::string getText();
 
     /**
      * Set text attribute of component.
      *
-     * @param buffer - text buffer terminated with '\0'. 
      * @return true if success, false for failure. 
      */
-    bool setText(const char *buffer);   
+    bool setText(std::string value);
 
     /**
-     * Get bco attribute of component
-     *
-     * @param number - buffer storing data return
-     * @return the length of the data 
+     * Background-color (bco) attribute of component
      */
-    uint32_t Get_background_color_bco(uint32_t *number);
-	
-    /**
-     * Set bco attribute of component
-     *
-     * @param number - To set up the data
-     * @return true if success, false for failure
-     */
-    bool Set_background_color_bco(uint32_t number);
-	
-    /**
-     * Get bco2 attribute of component
-     *
-     * @param number - buffer storing data return
-     * @return the length of the data 
-     */
-    uint32_t Get_press_background_color_bco2(uint32_t *number);	
+    NexColor background{*this, "bco"};
 
     /**
-     * Set bco2 attribute of component
-     *
-     * @param number - To set up the data
-     * @return true if success, false for failure
+     * Font-color (pco) attribute of component
      */
-    bool Set_press_background_color_bco2(uint32_t number);			
-	
-    /**
-     * Get pco attribute of component
-     *
-     * @param number - buffer storing data return
-     * @return the length of the data 
-     */
-    uint32_t Get_font_color_pco(uint32_t *number);		
-	
-    /**
-     * Set pco attribute of component
-     *
-     * @param number - To set up the data
-     * @return true if success, false for failure
-     */
-    bool Set_font_color_pco(uint32_t number);			
-	
-    /**
-     * Get pco2 attribute of component
-     *
-     * @param number - buffer storing data return
-     * @return the length of the data 
-     */
-    uint32_t Get_press_font_color_pco2(uint32_t *number);		
-	
-    /**
-     * Set pco2 attribute of component
-     *
-     * @param number - To set up the data
-     * @return true if success, false for failure
-     */
-    bool Set_press_font_color_pco2(uint32_t number);			
-	
-    /**
-     * Get xcen attribute of component
-     *
-     * @param number - buffer storing data return
-     * @return the length of the data 
-     */
-    uint32_t Get_place_xcen(uint32_t *number);		
-	
-    /**
-     * Set xcen attribute of component
-     *
-     * @param number - To set up the data
-     * @return true if success, false for failure
-     */
-    bool Set_place_xcen(uint32_t number);  
+    NexColor fontColor{*this, "pco"};
 
     /**
-     * Get ycen attribute of component
-     *
-     * @param number - buffer storing data return
-     * @return the length of the data 
+     * Background-color (bco) attribute of component in active state 
      */
-    uint32_t Get_place_ycen(uint32_t *number);	
+    NexColor backgroundPressed{*this, "bco2"};
 
     /**
-     * Set ycen attribute of component
-     *
-     * @param number - To set up the data
-     * @return true if success, false for failure
+     * Font-color (pco) attribute of component in active state 
      */
-    bool Set_place_ycen(uint32_t number);			
+    NexColor fontColorPressed{*this, "pco2"};
+		
+    /**
+     * Text alignment
+     */
+    NexAlignment alignment{*this};
 	
     /**
-     * Get font attribute of component
-     *
-     * @param number - buffer storing data return
-     * @return the length of the data 
+     * Text font
      */
-    uint32_t getFont(uint32_t *number);		
-	
-    /**
-     * Set font attribute of component
-     *
-     * @param number - To set up the data
-     * @return true if success, false for failure
-     */
-    bool setFont(uint32_t number);	
+    NexFont font{*this};
 
     /**
-     * Get picc attribute of component
-     *
-     * @param number - buffer storing data return
-     * @return the length of the data 
+     * Background image
      */
-    uint32_t Get_background_cropi_picc(uint32_t *number);	
+    NexBackgroundImage backgroundImage{*this};
 
     /**
-     * Set picc attribute of component
-     *
-     * @param number - To set up the data
-     * @return true if success, false for failure
+     * Background image
      */
-    bool Set_background_crop_picc(uint32_t number);	
+    NexBackgroundImage backgroundImagePressed{*this,"2"};
 
-    /**
-     * Get picc2 attribute of component
-     *
-     * @param number - buffer storing data return
-     * @return the length of the data 
-     */
-    uint32_t Get_press_background_crop_picc2(uint32_t *number);	
-	
-    /**
-     * Set picc2 attribute of component
-     *
-     * @param number - To set up the data
-     * @return true if success, false for failure
-     */
-    bool Set_press_background_crop_picc2(uint32_t number);		
-
-    /**
-     * Get pic attribute of component
-     *
-     * @param number - buffer storing data return
-     * @return the length of the data 
-     */
-    uint32_t Get_background_image_pic(uint32_t *number);	
-
-    /**
-     * Set pic attribute of component
-     *
-     * @param number - To set up the data
-     * @return true if success, false for failure
-     */
-    bool Set_background_image_pic(uint32_t number);		
-
-    /**
-     * Get pic2 attribute of component
-     *
-     * @param number - buffer storing data return
-     * @return the length of the data 
-     */	
-    uint32_t Get_press_background_image_pic2(uint32_t *number);	
-
-    /**
-     * Set pic2 attribute of component
-     *
-     * @param number - To set up the data
-     * @return true if success, false for failure
-     */
-    bool Set_press_background_image_pic2(uint32_t number);				
 };
 /**
  * @}

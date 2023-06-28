@@ -17,11 +17,11 @@
 #ifndef __NEXNUMBER_H__
 #define __NEXNUMBER_H__
 
-#include "NexTouch.h"
+#include "bases/NexTouch.h"
 #include "NexHardware.h"
 #include "bases/NexColor.h"
 #include "bases/NexAlignment.h"
-#include "NexFont.h"
+#include "bases/NexFont.h"
 #include "bases/NexBackgroundImage.h"
 
 /**
