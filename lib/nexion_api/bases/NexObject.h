@@ -16,7 +16,6 @@
 #ifndef __NEXOBJECT_H__
 #define __NEXOBJECT_H__
 #include "NexIncludes.h"
-#include "NexConfig.h"
 #include <sstream>
 
 /**

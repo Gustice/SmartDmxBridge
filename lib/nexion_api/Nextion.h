@@ -1,5 +1,5 @@
 /**
- * @file Nextion.h
+ * @file tion.h
  *
  * The header file including all other header files provided by this library. 
  *
@@ -17,30 +17,30 @@
 #ifndef __NEXTION_H__
 #define __NEXTION_H__
 
-#include "NexColor.h"
-#include "NexIncludes.h"
-#include "NexConfig.h"
-#include "bases/NexTouch.h"
-#include "NexHardware.h"
+// #include "Color.h"
+// #include "Includes.h"
+// #include "Config.h"
+// #include "bases/Touch.h"
+// #include "Hardware.h"
 
-#include "NexButton.h"
-#include "NexCrop.h"
-#include "NexGauge.h"
-#include "NexHotspot.h"
+#include "Button.hpp"
+// #include "Crop.h"
+// #include "Gauge.h"
+// #include "Hotspot.h"
 #include "NexPage.h"
-#include "NexPicture.h"
-#include "NexProgressBar.h"
-#include "NexSlider.h"
-#include "NexText.h"
-#include "NexWaveform.h"
-#include "NexTimer.h"
-#include "NexNumber.h"
-#include "NexDualStateButton.h"
-#include "NexVariable.h"
-#include "NexCheckbox.h"
-#include "NexRadio.h"
-#include "NexScrolltext.h"
-#include "NexGpio.h"
-#include "NexRtc.h"
+// #include "Picture.h"
+// #include "ProgressBar.h"
+#include "Slider.hpp"
+#include "Text.hpp"
+// #include "Waveform.h"
+// #include "Timer.h"
+#include "Number.hpp"
+// #include "DualStateButton.h"
+// #include "Variable.h"
+// #include "Checkbox.h"
+// #include "Radio.h"
+#include "Scrolltext.hpp"
+// #include "Gpio.h"
+// #include "Rtc.h"
 
 #endif /* #ifndef __NEXTION_H__ */

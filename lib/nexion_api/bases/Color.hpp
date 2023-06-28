@@ -1,23 +1,20 @@
 #include "../NexHardware.h"
 #include "NexIncludes.h"
+#include "Values.hpp"
 #include <cstdint>
 #include <string>
 #include <string_view>
 
 #pragma once
 
-class NexColor {
-  public:
-    NexColor(NexObject &parent, std::string_view key) : _key(key), _parent(parent) {}
+namespace Nxt {
 
-    std::string getKey() {
-        return std::string(_key);
-    }
+class Color : public IntegerValue {
+  public:
+    Color(NexObject &parent, std::string_view key) : IntegerValue(parent, key) {}
 
     /**
-     * Get bco attribute of component
-     *
-     * @return return value 
+     * Color-getter
      */
     uint32_t getColor() {
         sendCommand(std::string{"get "} + _parent.getObjName() + "." + _key.begin());
@@ -25,9 +22,7 @@ class NexColor {
     }
 
     /**
-     * Set bco attribute of component
-     *
-     * @param number - To set up the data
+     * Color-setter
      * @return true if success, false for failure
      */
     bool setColor(uint32_t number) {
@@ -49,11 +44,9 @@ class NexColor {
     }
 
   private:
-    std::string_view _key;
-    NexObject &_parent;
-
     static uint32_t scaleColorDown(uint8_t val, uint8_t max) {
         return (uint8_t)((uint32_t)val * max / 0xFF);
     }
 };
 
+}

@@ -6,25 +6,30 @@
 
 #pragma once
 
-class NexFont {
+namespace Nxt {
+
+class Font {
   public:
-    NexFont(NexObject &parent) : _parent(parent) {}
+    Font(NexObject &parent) : _parent(parent) {}
 
-    uint32_t getPlaceXcen() {
-        sendCommand(std::string{"get "} + _parent.getObjName() + ".xcen");
-        return recvRetNumber();
-    }
-
-    uint32_t getFont()
-    {
+    /**
+     * Get font attribute of component
+     *
+     * @return returns value
+     */
+    uint32_t getFont() {
         sendCommand(std::string{"get "} + _parent.getObjName() + ".font");
         return recvRetNumber();
     }
 
-    bool setFont(uint32_t number)
-    {
+    /**
+     * Set font attribute of component
+     *
+     * @param number - To set up the data
+     * @return true if success, false for failure
+     */
+    bool setFont(uint32_t number) {
         sendCommand(_parent.getObjName() + ".font=" + std::to_string(number));
-
         // cmd = "";
         // cmd += "ref ";
         // cmd += getObjName();
@@ -35,3 +40,5 @@ class NexFont {
   private:
     NexObject &_parent;
 };
+
+}

@@ -18,8 +18,7 @@
 #define __NEXTOUCH_H__
 
 #include "NexIncludes.h"
-#include "NexConfig.h"
-#include "bases/NexObject.h"
+#include "NexObject.h"
 
 /**
  * @addtogroup TouchEvent 

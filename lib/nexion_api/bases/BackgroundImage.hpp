@@ -6,18 +6,19 @@
 
 #pragma once
 
-class NexBackgroundImage {
+namespace Nxt {
+
+class BackgroundImage {
   public:
-    NexBackgroundImage(NexObject &parent) : _parent(parent) {}
+    BackgroundImage(NexObject &parent, std::string_view key = "") : _parent(parent), _key(key) {}
 
     /**
      * Get pic attribute of component
      *
      * @return return value
      */
-    uint32_t getImagePic()
-    {
-        sendCommand(std::string{"get "} + _parent.getObjName() + ".pic");
+    uint32_t getImagePic() {
+        sendCommand(std::string{"get "} + _parent.getObjName() + ".pic" + _key.begin());
         return recvRetNumber();
     }
 
@@ -27,19 +28,18 @@ class NexBackgroundImage {
      * @param number - To set up the data
      * @return true if success, false for failure
      */
-    bool setImagePic(uint32_t number)
-    {
-        sendCommand(_parent.getObjName() + ".pic=" + std::to_string(number));
+    bool setImagePic(uint32_t number) {
+        sendCommand(_parent.getObjName() + ".pic" + _key.begin() + "=" + std::to_string(number));
         return recvRetCommandFinished();
     }
 
     /**
      * Get picc attribute of component
      *
-     * @return return value 
+     * @return return value
      */
-    uint32_t getBackgroundCropPicc(){
-        sendCommand(std::string{"get "} + _parent.getObjName() + ".picc");
+    uint32_t getBackgroundCropPicc() {
+        sendCommand(std::string{"get "} + _parent.getObjName() + ".picc" + _key.begin());
         return recvRetNumber();
     }
 
@@ -49,8 +49,8 @@ class NexBackgroundImage {
      * @param number - To set up the data
      * @return true if success, false for failure
      */
-    bool setBackgroundCropPicc(uint32_t number){
-        sendCommand(_parent.getObjName() + ".picc=" + std::to_string(number));
+    bool setBackgroundCropPicc(uint32_t number) {
+        sendCommand(_parent.getObjName() + ".picc" + _key.begin() + "=" + std::to_string(number));
         // cmd = "";
         // cmd += "ref ";
         // cmd += getObjName();
@@ -60,4 +60,7 @@ class NexBackgroundImage {
 
   private:
     NexObject &_parent;
+    std::string_view _key;
 };
+
+} // namespace Nxt
