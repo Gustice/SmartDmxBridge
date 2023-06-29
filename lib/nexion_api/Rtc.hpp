@@ -1,34 +1,21 @@
-/**
- * @file NexRtc.h
- *
- * The definition of class NexRtc. 
- *
- * @author Wu Pengfei (email:<pengfei.wu@itead.cc>)
- * @date 2015/8/13
- *
- * @copyright 
- * Copyright (C) 2014-2015 ITEAD Intelligent Systems Co., Ltd. \n
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- */
+#pragma once
 
-#ifndef _NEXRTC_H
-#define _NEXRTC_H
-     
-#include "NexTouch.h"
 #include "NexHardware.h"
+#include "bases/Color.hpp"
+#include "bases/NexTouch.h"
+
+namespace Nxt {
+
 /**
  * @addtogroup Component 
  * @{ 
  */
 
 /**
- * NexRtc component.
+ * Rtc component.
  */
 
-class NexRtc
+class Rtc
 {
     public:
 
@@ -51,7 +38,7 @@ class NexRtc
      * @return true if success, false for failure
      */
     
-    bool write_rtc_time(uint32_t *time);
+    bool write_rtc_time(uint32_t time[6]);
     
     
     /**
@@ -72,7 +59,7 @@ class NexRtc
      * @return true if success, false for failure
      */
     
-    bool read_rtc_time(char *time_type,uint32_t *number);
+    uint32_t read_rtc_time(std::string type);
     
     /**
      * read rtc time
@@ -90,4 +77,4 @@ class NexRtc
  * @}
  */
 
-#endif /* #ifndef __NEXRTC_H__ */
+}

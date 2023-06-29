@@ -1,7 +1,7 @@
 /**
- * @file NexRtc.cpp
+ * @file Rtc.cpp
  *
- * The implementation of class NexRtc. 
+ * The implementation of class Rtc. 
  *
  * @author  Wu Pengfei (email:<pengfei.wu@itead.cc>)
  * @date    2015/8/13
@@ -12,13 +12,17 @@
  * published by the Free Software Foundation; either version 2 of
  * the License, or (at your option) any later version.
  */
-#include "NexRtc.h"
+#include "Rtc.hpp"
+#include "NexHardware.h"
+#include "bases/NexTouch.h"
+
 #include <cstring>
 
-bool NexRtc::write_rtc_time(char *time)
+namespace Nxt {
+
+bool Rtc::write_rtc_time(char *time)
 {
     char year[5],mon[3],day[3],hour[3],min[3],sec[3];
-    std::string cmd("rtc");
     
     if(strlen(time) < 19) {
         return false;
@@ -31,6 +35,7 @@ bool NexRtc::write_rtc_time(char *time)
     min[0]=time[14];min[1]=time[15];min[2]='\0';
     sec[0]=time[17];sec[1]=time[18];sec[2]='\0';
     
+    std::string cmd("rtc");
     cmd += "0=";
     cmd += year;
     sendCommand(cmd); 
@@ -69,98 +74,88 @@ bool NexRtc::write_rtc_time(char *time)
     return true;
 }
 
-bool NexRtc::write_rtc_time(uint32_t *time)
+bool Rtc::write_rtc_time(uint32_t time[6])
 {
     char year[5],mon[3],day[3],hour[3],min[3],sec[3];
     std::string cmd("rtc");
     bool ret = true;
     
-    utoa(time[0],year,10);
-    utoa(time[1],mon, 10);
-    utoa(time[2],day, 10);
-    utoa(time[3],hour,10);
-    utoa(time[4],min, 10);
-    utoa(time[5],sec, 10);
-        
     cmd += "0=";
-    cmd += year;
+    cmd += std::to_string(time[0]);
     sendCommand(cmd); 
     ret &=recvRetCommandFinished();
     
     cmd = "";
     cmd += "rtc1=";
-    cmd += mon;
+    cmd += std::to_string(time[1]);
     sendCommand(cmd);
     ret &=recvRetCommandFinished();
     
     cmd = "";
     cmd += "rtc2=";
-    cmd += day;
+    cmd += std::to_string(time[2]);
     sendCommand(cmd);
     ret &=recvRetCommandFinished();
     
     cmd = "";
     cmd += "rtc3=";
-    cmd += hour;
+    cmd += std::to_string(time[3]);
     sendCommand(cmd);
     ret &=recvRetCommandFinished();
     
     cmd = "";
     cmd += "rtc4=";
-    cmd += min;
+    cmd += std::to_string(time[4]);
     sendCommand(cmd);
     ret &=recvRetCommandFinished();
     
     cmd = "";
     cmd += "rtc5=";
-    cmd += sec;
+    cmd += std::to_string(time[5]);
     sendCommand(cmd);
     ret &=recvRetCommandFinished();
     return ret;
 }
 
-bool NexRtc::write_rtc_time(char *time_type,uint32_t number)
+bool Rtc::write_rtc_time(char *time_type, uint32_t number)
 {
     std::string cmd("rtc");
-    char buf[10] = {0};
-    
-    utoa(number, buf, 10);
     if(strstr(time_type,"year"))
     {
         cmd += "0=";
-        cmd += buf;
+        cmd += std::to_string(number);
     }
     if(strstr(time_type,"mon"))
     {
         cmd += "1=";
-        cmd += buf;
+        cmd += std::to_string(number);
     }
     if(strstr(time_type,"day"))
     {
         cmd += "2=";
-        cmd += buf;
+        cmd += std::to_string(number);
     }
     if(strstr(time_type,"hour"))
     {
         cmd += "3=";
-        cmd += buf;
+        cmd += std::to_string(number);
     }
     if(strstr(time_type,"min"))
     {
         cmd += "4=";
-        cmd += buf;
+        cmd += std::to_string(number);
     }
     if(strstr(time_type,"sec"))
     {
         cmd += "5=";
-        cmd += buf;
+        cmd += std::to_string(number);
     }
     
     sendCommand(cmd);
     return recvRetCommandFinished();
 }
 
-bool NexRtc::read_rtc_time(char *time,uint32_t len)
+bool Rtc::read_rtc_time(char *time,uint32_t len)
 {
     char time_buf[22] = {"0000/00/00 00:00:00 0"};
     uint32_t year,mon,day,hour,min,sec,week;
@@ -168,37 +163,37 @@ bool NexRtc::read_rtc_time(char *time,uint32_t len)
     bool ret = true; 
     cmd = "get rtc0";
     sendCommand(cmd);
-    ret &= recvRetNumber(&year);
+    ret &= recvRetNumber(year);
     
     cmd = "";
     cmd = "get rtc1";
     sendCommand(cmd);
-    ret &= recvRetNumber(&mon);
+    ret &= recvRetNumber(mon);
     
     cmd = "";
     cmd = "get rtc2";
     sendCommand(cmd);
-    ret &= recvRetNumber(&day);
+    ret &= recvRetNumber(day);
     
     cmd = "";
     cmd = "get rtc3";
     sendCommand(cmd);
-    ret &= recvRetNumber(&hour);
+    ret &= recvRetNumber(hour);
     
     cmd = "";
     cmd = "get rtc4";
     sendCommand(cmd);
-    ret &= recvRetNumber(&min);
+    ret &= recvRetNumber(min);
     
     cmd = "";
     cmd = "get rtc5";
     sendCommand(cmd);
-    ret &= recvRetNumber(&sec);
+    ret &= recvRetNumber(sec);
     
     cmd = "";
     cmd = "get rtc6";
     sendCommand(cmd);
-    ret &= recvRetNumber(&week);
+    ret &= recvRetNumber(week);
     
     time_buf[0] = year/1000 + '0';
     time_buf[1] = (year/100)%10 + '0';
@@ -231,7 +226,7 @@ bool NexRtc::read_rtc_time(char *time,uint32_t len)
     return ret;
 }
 
-bool NexRtc::read_rtc_time(uint32_t *time,uint32_t len)
+bool Rtc::read_rtc_time(uint32_t *time,uint32_t len)
 {
     uint32_t time_buf[7] = {0};
     std::string cmd;
@@ -239,37 +234,37 @@ bool NexRtc::read_rtc_time(uint32_t *time,uint32_t len)
 
     cmd = "get rtc0";
     sendCommand(cmd);
-    ret &= recvRetNumber(&time_buf[0]);
+    ret &= recvRetNumber(time_buf[0]);
     
     cmd = "";
     cmd = "get rtc1";
     sendCommand(cmd);
-    ret &= recvRetNumber(&time_buf[1]);
+    ret &= recvRetNumber(time_buf[1]);
     
     cmd = "";
     cmd = "get rtc2";
     sendCommand(cmd);
-    ret &= recvRetNumber(&time_buf[2]);
+    ret &= recvRetNumber(time_buf[2]);
     
     cmd = "";
     cmd = "get rtc3";
     sendCommand(cmd);
-    ret &= recvRetNumber(&time_buf[3]);
+    ret &= recvRetNumber(time_buf[3]);
     
     cmd = "";
     cmd = "get rtc4";
     sendCommand(cmd);
-    ret &= recvRetNumber(&time_buf[4]);
+    ret &= recvRetNumber(time_buf[4]);
     
     cmd = "";
     cmd = "get rtc5";
     sendCommand(cmd);
-    ret &= recvRetNumber(&time_buf[5]);
+    ret &= recvRetNumber(time_buf[5]);
     
     cmd = "";
     cmd = "get rtc6";
     sendCommand(cmd);
-    ret &= recvRetNumber(&time_buf[6]);
+    ret &= recvRetNumber(time_buf[6]);
     
 
     for(int i=0;i<len;i++) {
@@ -279,42 +274,43 @@ bool NexRtc::read_rtc_time(uint32_t *time,uint32_t len)
 }
 
 
-bool NexRtc::read_rtc_time(char *time_type,uint32_t *number)
+uint32_t Rtc::read_rtc_time(std::string type)
 {
     std::string cmd("get rtc");
     
-    if(strstr(time_type,"year"))
+    if(type == "year")
     {
         cmd += '0';
     }
-    else if(strstr(time_type,"mon"))
+    else if(type == "mon")
     {
         cmd += '1';
     }
-    else if(strstr(time_type,"day"))
+    else if(type == "day")
     {
         cmd += '2';
     }
-    else if(strstr(time_type,"hour"))
+    else if(type == "hour")
     {
         cmd += '3';
     }
-    else if(strstr(time_type,"min"))
+    else if(type == "min")
     {
         cmd += '4';       
     }
-    else if(strstr(time_type,"sec"))
+    else if(type == "sec")
     {
         cmd += '5';
     }
-    else if(strstr(time_type,"week"))
+    else if(type == "week")
     {
         cmd += '6';
     }
     else{
-        return false;
+        return -1;
     }
     
     sendCommand(cmd);
-    return recvRetNumber(number);
+    return recvRetNumber();
+}
 }

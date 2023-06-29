@@ -4,8 +4,7 @@
 #include <gtest/gtest.h>
 
 StreamDummy stream;
-auto & lW = stream.lastWrite;
-
+auto &lW = stream.lastWrite;
 
 std::string aESeq(std::string_view sv) {
     return std::string{sv.begin()} + EndSequence;
@@ -34,7 +33,7 @@ class Pseudo : public NexTouch {
 
     Nxt::TextValue text{*this, "txt"};
     Nxt::IntegerValue value{*this, "val"};
-    Nxt::LimitedIntegerValue limValue{*this, "lVal",5};
+    Nxt::LimitedIntegerValue limValue{*this, "lVal", 5};
     Nxt::Color color{*this, "col"};
     Nxt::Alignment alignment{*this};
     Nxt::Font font{*this};
@@ -61,7 +60,6 @@ TEST(DisplayTestElements, TestPropertyBases) {
     EXPECT_EQ(lW, aESeq("eut.lVal=123"));
     eut.limValue.set(0);
     EXPECT_EQ(lW, aESeq("eut.lVal=5"));
-
 
     eut.color.get();
     EXPECT_EQ(lW, aESeq("get eut.col"));
@@ -226,3 +224,76 @@ TEST(DisplayTestElements, SliderTests) {
     eut.minValue.get();
     EXPECT_EQ(lW, aESeq("get eut.minval"));
 }
+
+TEST(DisplayTestElements, GaugeTests) {
+    nexInit(stream);
+    Nxt::Gauge eut(0, 1, "eut");
+
+    eut.value.get();
+    EXPECT_EQ(lW, aESeq("get eut.val"));
+
+    eut.background.getColor();
+    EXPECT_EQ(lW, aESeq("get eut.bco"));
+    eut.fontColor.getColor();
+    EXPECT_EQ(lW, aESeq("get eut.pco"));
+
+    eut.pointerThickness.get();
+    EXPECT_EQ(lW, aESeq("get eut.wid"));
+
+    eut.backgroundCropImage.get();
+    EXPECT_EQ(lW, aESeq("get eut.picc"));
+}
+
+TEST(DisplayTestElements, VariableTest) {
+    nexInit(stream);
+    Nxt::Variable eut(0, 1, "eut");
+
+    eut.value.get();
+    EXPECT_EQ(lW, aESeq("get eut.val"));
+    eut.text.get();
+    EXPECT_EQ(lW, aESeq("get eut.txt"));
+}
+
+TEST(DisplayTestElements, PictureTest) {
+    nexInit(stream);
+    Nxt::Picture eut(0, 1, "eut");
+
+    eut.picture.get();
+    EXPECT_EQ(lW, aESeq("get eut.pic"));
+}
+
+TEST(DisplayTestElements, CropTest) {
+    nexInit(stream);
+    Nxt::Crop eut(0, 1, "eut");
+
+    eut.cropImage.get();
+    EXPECT_EQ(lW, aESeq("get eut.picc"));
+}
+
+
+TEST(DisplayTestElements, RadioTest) {
+    nexInit(stream);
+    Nxt::Radio eut(0, 1, "eut");
+
+    eut.value.get();
+    EXPECT_EQ(lW, aESeq("get eut.val"));
+
+    eut.background.getColor();
+    EXPECT_EQ(lW, aESeq("get eut.bco"));
+    eut.fontColor.getColor();
+    EXPECT_EQ(lW, aESeq("get eut.pco"));
+}
+
+TEST(DisplayTestElements, CheckBoxTest) {
+    nexInit(stream);
+    Nxt::Checkbox eut(0, 1, "eut");
+
+    eut.value.get();
+    EXPECT_EQ(lW, aESeq("get eut.val"));
+
+    eut.background.getColor();
+    EXPECT_EQ(lW, aESeq("get eut.bco"));
+    eut.fontColor.getColor();
+    EXPECT_EQ(lW, aESeq("get eut.pco"));
+}
+

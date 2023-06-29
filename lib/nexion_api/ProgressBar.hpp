@@ -6,25 +6,26 @@
 namespace Nxt {
 
 /**
- * @addtogroup Component
- * @{
+ * @addtogroup Component 
+ * @{ 
  */
 
 /**
- * Number component.
+ * ProgressBar component. 
  */
-class Number : public NexTouch {
-  public: /* methods */
+class ProgressBar: public NexObject
+{
+public: /* methods */
     /**
      * @copydoc NexObject::NexObject(uint8_t pid, uint8_t cid, std::string name);
      */
-    Number(uint8_t pid, uint8_t cid, std::string name) : NexTouch(pid, cid, name) {}
-
+    ProgressBar(uint8_t pid, uint8_t cid, std::string name) : NexObject(pid, cid, name) {}
+    
     /**
      * Number attribute of component.
      */
     IntegerValue value{*this, "val"};
-
+	
     /**
      * Background-color (bco) attribute of component
      */
@@ -34,30 +35,10 @@ class Number : public NexTouch {
      * Font-color (pco) attribute of component
      */
     Color fontColor{*this, "pco"};
-
-    /**
-     * Text alignment
-     */
-    Alignment alignment{*this};
-
-    /**
-     * Text font
-     */
-    Font font{*this};
-
-    /**
-     * Length attribute of component
-     */
-    IntegerValue length{*this, "lenth"};
-
-    /**
-     * Background image
-     */
-    BackgroundImage backgroundImage{*this};
 };
 
 /**
  * @}
  */
 
-} // namespace Nxt
+}

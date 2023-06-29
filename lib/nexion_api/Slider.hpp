@@ -1,4 +1,5 @@
 #pragma once
+
 #include "NexHardware.h"
 #include "bases/Color.hpp"
 #include "bases/NexTouch.h"

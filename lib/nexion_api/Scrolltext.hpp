@@ -1,4 +1,5 @@
 #pragma once
+
 #include "NexHardware.h"
 #include "bases/BaseIncludes.hpp"
 #include "bases/NexTouch.h"
@@ -11,7 +12,7 @@ namespace Nxt {
  */
 
 /**
- * NexText component.
+ * ScrollText component.
  */
 class Scrolltext : public NexTouch {
   public: /* methods */
