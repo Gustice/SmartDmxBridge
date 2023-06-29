@@ -17,30 +17,24 @@
 #ifndef __NEXTION_H__
 #define __NEXTION_H__
 
-// #include "Color.h"
-// #include "Includes.h"
-// #include "Config.h"
-// #include "bases/Touch.h"
-// #include "Hardware.h"
-
 #include "Button.hpp"
 #include "Crop.hpp"
 #include "Gauge.hpp"
-// #include "Hotspot.hpp"
+#include "Hotspot.hpp"
 #include "NexPage.h"
 #include "Picture.hpp"
-// #include "ProgressBar.hpp"
+#include "ProgressBar.hpp"
 #include "Slider.hpp"
 #include "Text.hpp"
-// #include "Waveform.hpp"
-// #include "Timer.hpp"
+#include "Waveform.hpp"
+#include "Timer.hpp"
 #include "Number.hpp"
-// #include "DualStateButton.hpp"
+#include "DualStateButton.hpp"
 #include "Variable.hpp"
 #include "Checkbox.hpp"
 #include "Radio.hpp"
 #include "Scrolltext.hpp"
-// #include "Gpio.hpp"
-// #include "Rtc.hpp"
+#include "Gpio.hpp"
+#include "Rtc.hpp"
 
 #endif /* #ifndef __NEXTION_H__ */

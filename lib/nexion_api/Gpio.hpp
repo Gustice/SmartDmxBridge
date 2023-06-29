@@ -1,34 +1,20 @@
-/**
- * @file NexGpio.h
- *
- * The definition of class NexGpio. 
- *
- * @author Wu Pengfei (email:<pengfei.wu@itead.cc>)
- * @date 2015/8/13
- *
- * @copyright 
- * Copyright (C) 2014-2015 ITEAD Intelligent Systems Co., Ltd. \n
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- */
+#pragma once
 
-#ifndef _NEXGPIO_H
-#define _NEXGPIO_H
-     
-#include "NexTouch.h"
 #include "NexHardware.h"
+#include "bases/BaseIncludes.hpp"
+
+namespace Nxt {
+
 /**
  * @addtogroup Component 
  * @{ 
  */
 
 /**
- * NexGpio component.
+ * Gpio component.
  */
 
-class NexGpio
+class Gpio
 {
 public:
     /**
@@ -91,7 +77,7 @@ public:
      * @return true if success, false for failure
      */
     
-    uint32_t get_pwmfreq(uint32_t *number);
+    uint32_t get_pwmfreq();
      
 };
     
@@ -99,4 +85,4 @@ public:
  * @}
  */    
     
-#endif /* #ifndef __NEXGPIO_H__ */
+}

@@ -270,7 +270,6 @@ TEST(DisplayTestElements, CropTest) {
     EXPECT_EQ(lW, aESeq("get eut.picc"));
 }
 
-
 TEST(DisplayTestElements, RadioTest) {
     nexInit(stream);
     Nxt::Radio eut(0, 1, "eut");
@@ -297,3 +296,128 @@ TEST(DisplayTestElements, CheckBoxTest) {
     EXPECT_EQ(lW, aESeq("get eut.pco"));
 }
 
+TEST(DisplayTestElements, ProgressBarTest) {
+    nexInit(stream);
+    Nxt::ProgressBar eut(0, 1, "eut");
+
+    eut.value.get();
+    EXPECT_EQ(lW, aESeq("get eut.val"));
+
+    eut.background.getColor();
+    EXPECT_EQ(lW, aESeq("get eut.bco"));
+    eut.fontColor.getColor();
+    EXPECT_EQ(lW, aESeq("get eut.pco"));
+}
+
+TEST(DisplayTestElements, TimerTest) {
+    nexInit(stream);
+    Nxt::Timer eut(0, 1, "eut");
+
+    eut.cycleTime.get();
+    EXPECT_EQ(lW, aESeq("get eut.tim"));
+
+    eut.enable();
+    EXPECT_EQ(lW, aESeq("eut.en=1"));
+
+    eut.disable();
+    EXPECT_EQ(lW, aESeq("eut.en=0"));
+}
+
+TEST(DisplayTestElements, HotspotTest) {
+    nexInit(stream);
+    Nxt::Hotspot eut(0, 1, "eut");
+}
+
+TEST(DisplayTestElements, DualStateTest) {
+    nexInit(stream);
+    Nxt::DSButton eut(0, 1, "eut");
+
+    eut.value.get();
+    EXPECT_EQ(lW, aESeq("get eut.val"));
+    eut.text.get();
+    EXPECT_EQ(lW, aESeq("get eut.txt"));
+
+    eut.fontColor.get();
+    EXPECT_EQ(lW, aESeq("get eut.pco"));
+
+    eut.colorState0.get();
+    EXPECT_EQ(lW, aESeq("get eut.bco0"));
+    eut.colorState1.get();
+    EXPECT_EQ(lW, aESeq("get eut.bco1"));
+
+    eut.alignment.placeXcen.get();
+    EXPECT_EQ(lW, aESeq("get eut.xcen"));
+
+    eut.font.getFont();
+    EXPECT_EQ(lW, aESeq("get eut.font"));
+
+    eut.imageState1.getBackgroundCropPicc();
+    EXPECT_EQ(lW, aESeq("get eut.picc0"));
+    eut.imageState2.getBackgroundCropPicc();
+    EXPECT_EQ(lW, aESeq("get eut.picc1"));
+}
+
+
+TEST(DisplayTestElements, RtcTest) {
+    nexInit(stream);
+    Nxt::Rtc eut;
+
+    // eut.write_rtc_time("0102/03/04 05:06:07");
+    // EXPECT_EQ(lW, aESeq("rtc5=07"));
+    // uint32_t values[] = {0102, 03, 04, 05, 06, 07};
+    // eut.write_rtc_time(values);
+    // EXPECT_EQ(lW, aESeq("rtc5=07"));
+    // eut.write_rtc_time("sec", 07);
+    // EXPECT_EQ(lW, aESeq("rtc5=07"));
+
+    // char time_buf[22];
+    // eut.read_rtc_time(time_buf, 22);
+    // EXPECT_EQ(lW, aESeq("get rtc6"));
+
+    // eut.read_rtc_time(time_buf, 22);
+    // EXPECT_EQ(lW, aESeq("get rtc6"));
+}
+
+TEST(DisplayTestElements, WaveformTest) {
+    nexInit(stream);
+    Nxt::Waveform eut(0, 1, "eut");
+
+    eut.backgroundColor.get();
+    EXPECT_EQ(lW, aESeq("get eut.bco"));
+    eut.gridColor.getColor();
+    EXPECT_EQ(lW, aESeq("get eut.gdc"));
+    eut.channelColor0.get();
+    EXPECT_EQ(lW, aESeq("get eut.pco0"));
+
+
+    eut.gridWidth.get();
+    EXPECT_EQ(lW, aESeq("get eut.gdw"));
+    eut.gridHeight.get();
+    EXPECT_EQ(lW, aESeq("get eut.gdh"));
+
+    eut.addValue(2, 3);
+    EXPECT_EQ(lW, aESeq("add 1,2,3"));
+}
+
+TEST(DisplayTestElements, GpioTest) {
+    nexInit(stream);
+    Nxt::Gpio eut;
+
+    eut.pin_mode(1, 2, 3);
+    EXPECT_EQ(lW, aESeq("cfgpio 1,2,3"));
+
+    eut.digital_write(1,2);
+    EXPECT_EQ(lW, aESeq("pio1=2"));
+
+    eut.digital_read(1);
+    EXPECT_EQ(lW, aESeq("get pio1"));
+
+    eut.analog_write(1,2);
+    EXPECT_EQ(lW, aESeq("pwm1=2"));
+
+    eut.set_pwmfreq(10);
+    EXPECT_EQ(lW, aESeq("pwmf=10"));
+
+    eut.get_pwmfreq();
+    EXPECT_EQ(lW, aESeq("get pwmf"));
+}
