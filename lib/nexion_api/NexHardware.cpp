@@ -159,12 +159,11 @@ bool NxtIo::nexInit(SerialStream &port, NxtIo::LogCallback logCb)
     return ret;
 }
 
-void NxtIo::nexLoop(NexTouch *nex_listen_list[])
+void NxtIo::nexLoop(const NexTouch::SensingList & nex_listen_list)
 {
     auto input = serialPort->read(7,0);
     if (input.size() > 0)
     {
-        NxtIo::sendLog("Got data");
         if (static_cast<NxtReturn>(input[0]) == NxtReturn::EVENT_TOUCH_HEAD)
         {
             if (input.size() >= 7)

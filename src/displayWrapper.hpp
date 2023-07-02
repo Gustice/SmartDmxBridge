@@ -64,20 +64,19 @@ class Display {
     void tick() {
         switch (page) {
         case CurrentPage::WorkingPage: {
-            NexTouch *nex_listen_list[] = {
-                &bToInfoPage,   &bScheme1,  &bScheme2,  &bScheme3,
-                &bSchemeCustom, &hCustomFg, &hCustomBg, nullptr,
+            NexTouch::SensingList list = {
+                &bToInfoPage,   &bScheme1,  &bScheme2, &bScheme3,
+                &bSchemeCustom, &hCustomFg, &hCustomBg
             };
-        NxtIo::nexLoop(nex_listen_list);
+        NxtIo::nexLoop(list);
 
         } break;
 
         case CurrentPage::InfoPage: {
-            NexTouch *nex_listen_list[] = {
-                &bToWorkingPage,
-                nullptr,
+            NexTouch::SensingList list = {
+                &bToWorkingPage
             };
-        NxtIo::nexLoop(nex_listen_list);
+        NxtIo::nexLoop(list);
 
         } break;
 

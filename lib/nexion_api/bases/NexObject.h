@@ -1,20 +1,4 @@
-/**
- * @file NexObject.h
- *
- * The definition of class NexObject. 
- *
- * @author Wu Pengfei (email:<pengfei.wu@itead.cc>)
- * @date 2015/8/13
- *
- * @copyright 
- * Copyright (C) 2014-2015 ITEAD Intelligent Systems Co., Ltd. \n
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- */
-#ifndef __NEXOBJECT_H__
-#define __NEXOBJECT_H__
+#pragma once
 #include "NexIncludes.h"
 #include <sstream>
 
@@ -42,7 +26,7 @@ public: /* methods */
      * @param name - pointer to an unique name in range of all components. 
      */
     NexObject(uint8_t pid, uint8_t cid, std::string_view name) 
-    : __pid(pid), __cid(cid), __name(name) {}
+    : _pageId(pid), _componentId(cid), __name(name) {}
 
     /**
      * Print current object'address, page id, component id and name. 
@@ -51,7 +35,7 @@ public: /* methods */
      */
     void printObjInfo(void) {
         std::stringstream output;
-        output << "[" << this << ":" << __pid << "," << __cid << "," << __name << "]";
+        output << "[" << this << ":" << _pageId << "," << _componentId << "," << __name << "]";
     }
 
     /**
@@ -71,7 +55,7 @@ protected: /* methods */
      * @return the id of page.  
      */
     uint8_t getObjPid(void) {
-        return __pid;
+        return _pageId;
     }
 
     /*
@@ -80,16 +64,15 @@ protected: /* methods */
      * @return the id of component.  
      */
     uint8_t getObjCid(void) {
-        return __cid;
+        return _componentId;
     }
     
 private: /* data */ 
-    uint8_t __pid; /* Page ID */
-    uint8_t __cid; /* Component ID */
-    std::string __name; /* An unique name */
+    uint8_t _pageId;
+    uint8_t _componentId;
+    std::string __name;
 };
 /**
  * @}
  */
 
-#endif /* #ifndef __NEXOBJECT_H__ */

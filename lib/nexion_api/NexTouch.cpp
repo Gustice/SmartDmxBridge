@@ -13,63 +13,52 @@
  * the License, or (at your option) any later version.
  */
 #include "bases/NexTouch.h"
+#include <vector>
 
-NexTouch::NexTouch(uint8_t pid, uint8_t cid, std::string_view name) : NexObject(pid, cid, name) {
-    this->__cb_push = nullptr;
-    this->__cb_pop = nullptr;
-    this->__cbpop_ptr = nullptr;
-    this->__cbpush_ptr = nullptr;
-}
+NexTouch::NexTouch(uint8_t pid, uint8_t cid, std::string_view name) : NexObject(pid, cid, name) {}
 
 void NexTouch::attachPush(NexTouchEventCb push, void *ptr) {
-    this->__cb_push = push;
-    this->__cbpush_ptr = ptr;
+    this->_pushCb = push;
+    this->_ptrForPushCb = ptr;
 }
 
 void NexTouch::detachPush(void) {
-    this->__cb_push = nullptr;
-    this->__cbpush_ptr = nullptr;
+    this->_pushCb = nullptr;
+    this->_ptrForPushCb = nullptr;
 }
 
 void NexTouch::attachPop(NexTouchEventCb pop, void *ptr) {
-    this->__cb_pop = pop;
-    this->__cbpop_ptr = ptr;
+    this->_popCb = pop;
+    this->_ptrForPopCb = ptr;
 }
 
 void NexTouch::detachPop(void) {
-    this->__cb_pop = nullptr;
-    this->__cbpop_ptr = nullptr;
+    this->_popCb = nullptr;
+    this->_ptrForPopCb = nullptr;
 }
 
 void NexTouch::push(void) {
-    if (__cb_push) {
-        __cb_push(__cbpush_ptr);
+    if (_pushCb) {
+        _pushCb(_ptrForPushCb);
     }
 }
 
 void NexTouch::pop(void) {
-    if (__cb_pop) {
-        __cb_pop(__cbpop_ptr);
+    if (_popCb) {
+        _popCb(_ptrForPopCb);
     }
 }
 
-void NexTouch::iterate(NexTouch **list, uint8_t pid, uint8_t cid, int32_t event) {
-    NexTouch *e = nullptr;
-    uint16_t i = 0;
-
-    if (NULL == list) {
-        return;
-    }
-
-    for (i = 0; (e = list[i]) != nullptr; i++) {
+void NexTouch::iterate(const SensingList & list, uint8_t pid, uint8_t cid, int32_t event) {
+    for (auto &&e : list)
+    {
         if (e->getObjPid() == pid && e->getObjCid() == cid) {
             e->printObjInfo();
-            if (NEX_EVENT_PUSH == event) {
+            if (static_cast<int>(Event::Push) == event) {
                 e->push();
-            } else if (NEX_EVENT_POP == event) {
+            } else if (static_cast<int>(Event::Pop) == event) {
                 e->pop();
             }
-
             break;
         }
     }
