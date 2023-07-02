@@ -159,7 +159,7 @@ bool NxtIo::nexInit(SerialStream &port, NxtIo::LogCallback logCb)
     return ret;
 }
 
-void NxtIo::nexLoop(const NexTouch::SensingList & nex_listen_list)
+void NxtIo::nexLoop(const SensingList & nex_listen_list)
 {
     auto input = serialPort->read(7,0);
     if (input.size() > 0)
@@ -169,7 +169,7 @@ void NxtIo::nexLoop(const NexTouch::SensingList & nex_listen_list)
             if (input.size() >= 7)
             {
                 if (0xFF == (input[4] & input[5] & input[6])) {
-                    NexTouch::iterate(nex_listen_list, input[1], input[2], (int32_t)input[3]);
+                    Nxt::Touch::iterate(nex_listen_list, input[1], input[2], (int32_t)input[3]);
                 }
             }
         }

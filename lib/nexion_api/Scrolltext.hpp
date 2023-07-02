@@ -2,7 +2,8 @@
 
 #include "NexHardware.h"
 #include "bases/BaseIncludes.hpp"
-#include "bases/NexTouch.h"
+#include "bases/Touch.hpp"
+#include "bases/Elements.hpp"
 
 namespace Nxt {
 
@@ -14,12 +15,12 @@ namespace Nxt {
 /**
  * ScrollText component.
  */
-class Scrolltext : public NexTouch {
+class Scrolltext : public Touch {
   public: /* methods */
     /**
-     * @copydoc NexObject::NexObject(uint8_t pid, uint8_t cid, std::string_view name);
+     * @copydoc Object::Object(uint8_t pid, uint8_t cid, std::string_view name);
      */
-    Scrolltext(uint8_t pid, uint8_t cid, std::string_view name) : NexTouch(pid, cid, name) {}
+    Scrolltext(uint8_t pid, uint8_t cid, std::string_view name) : Touch(pid, cid, name) {}
 
     /**
      * Text attribute of component.

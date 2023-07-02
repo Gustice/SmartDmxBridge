@@ -1,16 +1,12 @@
-#include "NexHardware.h"
-#include "NexIncludes.h"
-#include <cstdint>
-#include <string>
-#include <string_view>
-
 #pragma once
+
+#include "../NexHardware.h"
 
 namespace Nxt {
 
 class Font {
   public:
-    Font(NexObject &parent) : _parent(parent) {}
+    Font(Object &parent) : _parent(parent) {}
 
     /**
      * Get font attribute of component
@@ -34,7 +30,7 @@ class Font {
     }
 
   private:
-    NexObject &_parent;
+    Object &_parent;
 };
 
 }

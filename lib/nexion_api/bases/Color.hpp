@@ -1,17 +1,13 @@
-#include "../NexHardware.h"
-#include "NexIncludes.h"
-#include "Values.hpp"
-#include <cstdint>
-#include <string>
-#include <string_view>
-
 #pragma once
+
+#include "../NexHardware.h"
+#include "Values.hpp"
 
 namespace Nxt {
 
 class Color : public IntegerValue {
   public:
-    Color(NexObject &parent, std::string_view key) : IntegerValue(parent, key) {}
+    Color(Object &parent, std::string_view key) : IntegerValue(parent, key) {}
 
     /**
      * Color-getter

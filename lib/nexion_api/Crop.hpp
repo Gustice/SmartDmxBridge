@@ -1,7 +1,8 @@
 #pragma once
 
 #include "NexHardware.h"
-#include "bases/BaseIncludes.hpp"
+#include "bases/Touch.hpp"
+#include "bases/Elements.hpp"
 
 namespace Nxt {
 
@@ -13,14 +14,14 @@ namespace Nxt {
 /**
  * Crop component. 
  */
-class Crop: public NexTouch
+class Crop: public Touch
 {
 public: /* methods */
 
     /**
-     * @copydoc NexObject::NexObject(uint8_t pid, uint8_t cid, std::string_view name);
+     * @copydoc Object::Object(uint8_t pid, uint8_t cid, std::string_view name);
      */
-    Crop(uint8_t pid, uint8_t cid, std::string_view name) : NexTouch(pid, cid, name) {}
+    Crop(uint8_t pid, uint8_t cid, std::string_view name) : Touch(pid, cid, name) {}
 
     /**
      * Image attribute of component.

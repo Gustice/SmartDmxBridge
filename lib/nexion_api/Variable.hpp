@@ -1,7 +1,8 @@
 #pragma once
 
 #include "NexHardware.h"
-#include "bases/BaseIncludes.hpp"
+#include "bases/Touch.hpp"
+#include "bases/Elements.hpp"
 
 namespace Nxt {
 /**
@@ -13,18 +14,18 @@ namespace Nxt {
  * Variable component. 
  *
  * Commonly, you want to do something after push and pop it. It is recommanded that only
- * call @ref NexTouch::attachPop to satisfy your purpose. 
+ * call @ref Touch::attachPop to satisfy your purpose. 
  * 
- * @warning Please do not call @ref NexTouch::attachPush on this component, even though you can. 
+ * @warning Please do not call @ref Touch::attachPush on this component, even though you can. 
  */
-class Variable: public NexTouch
+class Variable: public Touch
 {
 public: /* methods */
 
     /**
-     * @copydoc NexObject::NexObject(uint8_t pid, uint8_t cid, std::string_view name);
+     * @copydoc Object::Object(uint8_t pid, uint8_t cid, std::string_view name);
      */
-    Variable(uint8_t pid, uint8_t cid, std::string_view name)  : NexTouch(pid, cid, name) {}
+    Variable(uint8_t pid, uint8_t cid, std::string_view name)  : Touch(pid, cid, name) {}
 
     /**
      * Text attribute of component.

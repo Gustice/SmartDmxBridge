@@ -1,6 +1,9 @@
 #pragma once
-#include "NexIncludes.h"
+
+#include "BaseIncludes.hpp"
 #include <sstream>
+
+namespace Nxt {
 
 /**
  * @addtogroup CoreAPI 
@@ -14,7 +17,7 @@
  * them. At least, Page ID(pid), Component ID(pid) and an unique name are needed for
  * creating a component in Nexiton library. 
  */
-class NexObject 
+class Object 
 {
 public: /* methods */
 
@@ -25,17 +28,18 @@ public: /* methods */
      * @param cid - component id.    
      * @param name - pointer to an unique name in range of all components. 
      */
-    NexObject(uint8_t pid, uint8_t cid, std::string_view name) 
-    : _pageId(pid), _componentId(cid), __name(name) {}
+    Object(uint8_t pid, uint8_t cid, std::string_view name) 
+    : _pageId(pid), _componentId(cid), _name(name) {}
 
     /**
      * Print current object'address, page id, component id and name. 
      *
      * @warning this method does nothing, unless debug message enabled. 
      */
-    void printObjInfo(void) {
+    std::string printObjInfo(void) {
         std::stringstream output;
-        output << "[" << this << ":" << _pageId << "," << _componentId << "," << __name << "]";
+        output << "[" << this << ":" << _pageId << "," << _componentId << "," << _name << "]";
+        return output.str();
     }
 
     /**
@@ -44,7 +48,7 @@ public: /* methods */
      * @return the name of component. 
      */
     std::string getObjName(void) {
-        return __name;
+        return _name;
     }
 
 protected: /* methods */
@@ -70,9 +74,10 @@ protected: /* methods */
 private: /* data */ 
     uint8_t _pageId;
     uint8_t _componentId;
-    std::string __name;
+    std::string _name;
 };
 /**
  * @}
  */
 
+}

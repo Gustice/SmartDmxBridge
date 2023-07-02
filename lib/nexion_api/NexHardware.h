@@ -1,8 +1,7 @@
 #pragma once
 
-// #include "NexIncludes.h"
-#include "bases/NexTouch.h"
-#include <vector>
+#include "bases/BaseIncludes.hpp"
+#include "bases/Touch.hpp"
 
 extern const std::string EndSequence;
 
@@ -21,6 +20,7 @@ class SerialStream {
 class NxtIo {
     public:
     using LogCallback = void (*)(std::string);
+    using SensingList = Nxt::Touch::SensingList;
 
     /**
      * Init Nextion.  
@@ -40,7 +40,7 @@ class NxtIo {
      * @warning This function must be called repeatedly to response touch events
      *  from Nextion touch panel. Actually, you should place it in your loop function. 
      */
-    static void nexLoop(const NexTouch::SensingList & nex_listen_list);
+    static void nexLoop(const SensingList & nex_listen_list);
 
     static uint32_t recvRetNumber(uint32_t timeout = 100);
     static std::string recvRetString(uint32_t timeout = 100);

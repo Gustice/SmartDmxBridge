@@ -1,7 +1,6 @@
 #pragma once
 
-#include "Alignment.hpp"
-#include "BackgroundImage.hpp"
-#include "Color.hpp"
-#include "Font.hpp"
-#include "NexTouch.h"
+#include <cstdint>
+#include <string>
+#include <string_view>
+#include <vector>

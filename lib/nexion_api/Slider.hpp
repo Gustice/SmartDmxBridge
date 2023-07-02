@@ -2,7 +2,8 @@
 
 #include "NexHardware.h"
 #include "bases/Color.hpp"
-#include "bases/NexTouch.h"
+#include "bases/Touch.hpp"
+#include "bases/Elements.hpp"
 
 namespace Nxt {
 
@@ -14,12 +15,12 @@ namespace Nxt {
 /**
  * Slider component.
  */
-class Slider : public NexTouch {
+class Slider : public Touch {
   public: /* methods */
     /**
-     * @copydoc NexObject::NexObject(uint8_t pid, uint8_t cid, std::string_view name);
+     * @copydoc Object::Object(uint8_t pid, uint8_t cid, std::string_view name);
      */
-    Slider(uint8_t pid, uint8_t cid, std::string_view name) : NexTouch(pid, cid, name) {}
+    Slider(uint8_t pid, uint8_t cid, std::string_view name) : Touch(pid, cid, name) {}
 
     /**
      * Number attribute of component.

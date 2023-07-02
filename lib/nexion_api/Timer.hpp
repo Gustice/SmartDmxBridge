@@ -1,7 +1,7 @@
 #pragma once
 
 #include "NexHardware.h"
-#include "bases/BaseIncludes.hpp"
+#include "bases/Touch.hpp"
 
 namespace Nxt {
 
@@ -17,12 +17,12 @@ namespace Nxt {
  * must be greater than 50
  *
  */
-class Timer : public NexTouch {
+class Timer : public Touch {
   public: /* methods */
     /**
-     * @copydoc NexObject::NexObject(uint8_t pid, uint8_t cid, std::string_view name);
+     * @copydoc Object::Object(uint8_t pid, uint8_t cid, std::string_view name);
      */
-    Timer(uint8_t pid, uint8_t cid, std::string_view name) : NexTouch(pid, cid, name) {}
+    Timer(uint8_t pid, uint8_t cid, std::string_view name) : Touch(pid, cid, name) {}
 
     /**
      * Attach an callback function of timer respond event.
@@ -33,8 +33,8 @@ class Timer : public NexTouch {
      *
      * @note If calling this method multiply, the last call is valid.
      */
-    void attachTimer(NexTouchEventCb timer, void *ptr = NULL) {
-        NexTouch::attachPop(timer, ptr);
+    void attachTimer(Touch::eventCb timer, void *ptr = NULL) {
+        Touch::attachPop(timer, ptr);
     }
 
     /**
@@ -43,7 +43,7 @@ class Timer : public NexTouch {
      * @return none.
      */
     void detachTimer(void) {
-        NexTouch::detachPop();
+        Touch::detachPop();
     }
 
     /**

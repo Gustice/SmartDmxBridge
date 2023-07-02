@@ -1,16 +1,12 @@
-#include "../NexHardware.h"
-#include "NexIncludes.h"
-#include <cstdint>
-#include <string>
-#include <string_view>
-
 #pragma once
+
+#include "../NexHardware.h"
 
 namespace Nxt {
 
 class BackgroundImage {
   public:
-    BackgroundImage(NexObject &parent, std::string_view key = "") : _parent(parent), _key(key) {}
+    BackgroundImage(Object &parent, std::string_view key = "") : _parent(parent), _key(key) {}
 
     /**
      * Get pic attribute of component
@@ -55,7 +51,7 @@ class BackgroundImage {
     }
 
   private:
-    NexObject &_parent;
+    Object &_parent;
     std::string_view _key;
 };
 

@@ -1,17 +1,16 @@
-#include "../NexHardware.h"
-#include "NexIncludes.h"
-#include "Values.hpp"
-
 #pragma once
+
+#include "Values.hpp"
+#include "Object.hpp"
 
 namespace Nxt {
 
 class Alignment {
   private:
-    NexObject &_parent; // this member must be initialized first
+    Object &_parent; // this member must be initialized first
 
   public:
-    Alignment(NexObject &parent) : _parent(parent) {}
+    Alignment(Object &parent) : _parent(parent) {}
 
     /**
      * Xcen attribute of component.

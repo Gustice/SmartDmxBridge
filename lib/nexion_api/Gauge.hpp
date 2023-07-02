@@ -1,7 +1,8 @@
 #pragma once
 
 #include "NexHardware.h"
-#include "bases/BaseIncludes.hpp"
+#include "bases/Object.hpp"
+#include "bases/Elements.hpp"
 
 namespace Nxt {
 
@@ -13,13 +14,13 @@ namespace Nxt {
 /**
  * Gauge component.
  */
-class Gauge: public NexObject
+class Gauge: public Object
 {
 public: /* methods */
     /**
-     * @copydoc NexObject::NexObject(uint8_t pid, uint8_t cid, std::string_view name);
+     * @copydoc Object::Object(uint8_t pid, uint8_t cid, std::string_view name);
      */
-    Gauge(uint8_t pid, uint8_t cid, std::string_view name) : NexObject(pid, cid, name) {}
+    Gauge(uint8_t pid, uint8_t cid, std::string_view name) : Object(pid, cid, name) {}
 
     /**
      * Text attribute of component.

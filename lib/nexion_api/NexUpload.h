@@ -1,21 +1,5 @@
-/**
- * @file NexUpload.h
- *
- * The definition of class NexUpload. 
- *
- * @author Chen Zengpeng (email:<zengpeng.chen@itead.cc>)
- * @date 2016/3/29
- *
- * @copyright 
- * Copyright (C) 2014-2015 ITEAD Intelligent Systems Co., Ltd. \n
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- */
-#ifndef __NEXUPLOAD_H__
-#define __NEXUPLOAD_H__
-#include "NexIncludes.h"
+#pragma once 
+
 #include "NexHardware.h"
 
 /**
@@ -137,4 +121,3 @@ private: /* data */
  * @}
  */
 
-#endif /* #ifndef __NEXDOWNLOAD_H__ */

@@ -1,7 +1,8 @@
 #pragma once
 
 #include "NexHardware.h"
-#include "bases/BaseIncludes.hpp"
+#include "bases/Object.hpp"
+#include "bases/Elements.hpp"
 
 namespace Nxt {
 
@@ -13,12 +14,12 @@ namespace Nxt {
 /**
  * Waveform component.
  */
-class Waveform : public NexObject {
+class Waveform : public Object {
   public: /* methods */
     /**
-     * @copydoc NexObject::NexObject(uint8_t pid, uint8_t cid, std::string_view name);
+     * @copydoc Object::Object(uint8_t pid, uint8_t cid, std::string_view name);
      */
-    Waveform(uint8_t pid, uint8_t cid, std::string_view name) : NexObject(pid, cid, name) {}
+    Waveform(uint8_t pid, uint8_t cid, std::string_view name) : Object(pid, cid, name) {}
 
     /**
      * Add value to show.

@@ -64,7 +64,7 @@ class Display {
     void tick() {
         switch (page) {
         case CurrentPage::WorkingPage: {
-            NexTouch::SensingList list = {
+            NxtIo::SensingList list = {
                 &bToInfoPage,   &bScheme1,  &bScheme2, &bScheme3,
                 &bSchemeCustom, &hCustomFg, &hCustomBg
             };
@@ -73,7 +73,7 @@ class Display {
         } break;
 
         case CurrentPage::InfoPage: {
-            NexTouch::SensingList list = {
+            NxtIo::SensingList list = {
                 &bToWorkingPage
             };
         NxtIo::nexLoop(list);
