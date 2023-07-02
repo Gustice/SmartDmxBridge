@@ -1,58 +1,58 @@
-/**
- * @file NexHardware.h
- *
- * The definition of base API for using Nextion. 
- *
- * @author  Wu Pengfei (email:<pengfei.wu@itead.cc>)
- * @date    2015/8/11
- * @copyright 
- * Copyright (C) 2014-2015 ITEAD Intelligent Systems Co., Ltd. \n
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- */
-#ifndef __NEXHARDWARE_H__
-#define __NEXHARDWARE_H__
+#pragma once
+
 // #include "NexIncludes.h"
-// #include "NexConfig.h"
 #include "bases/NexTouch.h"
-#include "Streams.hpp"
+#include <vector>
 
 extern const std::string EndSequence;
+
+class SerialStream {
+  public:
+    virtual std::vector<uint8_t> read(size_t minSize = 0, unsigned msTimeout = 0) = 0;
+    virtual void write(char c) = 0;
+    virtual void write(std::string str) = 0;
+};
 
 /**
  * @addtogroup CoreAPI 
  * @{ 
  */
 
-/**
- * Init Nextion.  
- * 
- * @return true if success, false for failure. 
- */
-bool nexInit(CharStream &port);
+class NxtIo {
+    public:
+    using LogCallback = void (*)(std::string);
 
-/**
- * Listen touch event and calling callbacks attached before.
- * 
- * Supports push and pop at present. 
- *
- * @param nex_listen_list - index to Nextion Components list. 
- * @return none. 
- *
- * @warning This function must be called repeatedly to response touch events
- *  from Nextion touch panel. Actually, you should place it in your loop function. 
- */
-void nexLoop(NexTouch *nex_listen_list[]);
+    /**
+     * Init Nextion.  
+     * 
+     * @return true if success, false for failure. 
+     */
+    static bool nexInit(SerialStream &port, LogCallback logCb);
+
+    /**
+     * Listen touch event and calling callbacks attached before.
+     * 
+     * Supports push and pop at present. 
+     *
+     * @param nex_listen_list - index to Nextion Components list. 
+     * @return none. 
+     *
+     * @warning This function must be called repeatedly to response touch events
+     *  from Nextion touch panel. Actually, you should place it in your loop function. 
+     */
+    static void nexLoop(NexTouch *nex_listen_list[]);
+
+    static uint32_t recvRetNumber(uint32_t timeout = 100);
+    static std::string recvRetString(uint32_t timeout = 100);
+    static void sendCommand(std::string cmd);
+    static bool recvRetCommandFinished(uint32_t timeout = 100);
+
+    private:
+    static SerialStream * serialPort;
+    static LogCallback logCallback;
+    static void sendLog(std::string log);
+};
 
 /**
  * @}
  */
-
-uint32_t recvRetNumber(uint32_t timeout = 100);
-std::string recvRetString(uint32_t timeout = 100);
-void sendCommand(std::string cmd);
-bool recvRetCommandFinished(uint32_t timeout = 100);
-
-#endif /* #ifndef __NEXHARDWARE_H__ */

@@ -21,12 +21,12 @@ class TextValue : Value {
     TextValue(NexObject &parent, std::string_view key) : Value(parent, key) {}
 
     std::string get() {
-        sendCommand(std::string{"get "} + _parent.getObjName() + "." + _key.begin());
-        return recvRetString();
+        NxtIo::sendCommand(std::string{"get "} + _parent.getObjName() + "." + _key.begin());
+        return NxtIo::recvRetString();
     }
     bool set(std::string value) {
-        sendCommand(std::string{_parent.getObjName()} + "." + _key.begin() + "=\"" + value + "\"");
-        return recvRetCommandFinished();
+        NxtIo::sendCommand(std::string{_parent.getObjName()} + "." + _key.begin() + "=\"" + value + "\"");
+        return NxtIo::recvRetCommandFinished();
     }
 };
 
@@ -36,15 +36,12 @@ class IntegerValue : public Value {
         : Value(parent, key) {}
 
     uint32_t get() {
-        sendCommand(std::string{"get "} + _parent.getObjName() + "." + _key.begin());
-        return recvRetNumber();
+        NxtIo::sendCommand(std::string{"get "} + _parent.getObjName() + "." + _key.begin());
+        return NxtIo::recvRetNumber();
     }
     bool set(uint32_t value) {
-        sendCommand(_parent.getObjName() + "." + _key.begin() + "=" + std::to_string(value));
-        // std::string{"ref "}
-        // cmd += getObjName();
-        // sendCommand(cmd);
-        // return recvRetCommandFinished();
+        NxtIo::sendCommand(_parent.getObjName() + "." + _key.begin() + "=" + std::to_string(value));
+        return NxtIo::recvRetCommandFinished();
         return true;
     }
 };
@@ -55,19 +52,16 @@ class LimitedIntegerValue : public Value {
         : Value(parent, key), _min(minVal) {}
 
     uint32_t get() {
-        sendCommand(std::string{"get "} + _parent.getObjName() + "." + _key.begin());
-        return recvRetNumber();
+        NxtIo::sendCommand(std::string{"get "} + _parent.getObjName() + "." + _key.begin());
+        return NxtIo::recvRetNumber();
     }
     bool set(uint32_t value) {
         if (value < _min) {
             value = _min;
         }
 
-        sendCommand(_parent.getObjName() + "." + _key.begin() + "=" + std::to_string(value));
-        // std::string{"ref "}
-        // cmd += getObjName();
-        // sendCommand(cmd);
-        // return recvRetCommandFinished();
+        NxtIo::sendCommand(_parent.getObjName() + "." + _key.begin() + "=" + std::to_string(value));
+        return NxtIo::recvRetCommandFinished();
         return true;
     }
 

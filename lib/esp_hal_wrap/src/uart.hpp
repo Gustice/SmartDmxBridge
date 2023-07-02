@@ -9,6 +9,7 @@ class Uart : public CharStream {
   public:
     enum BaudRate {
         _9600Bd = 9600,
+        _38400Bd = 38400,
         _115200Bd = 115200,
         _250000Bd = 250000,
     };
@@ -32,6 +33,8 @@ class Uart : public CharStream {
     void write(uint8_t *b, int len);
     std::vector<uint8_t> readBytes(int byteCount);
     std::vector<uint8_t> readBytes(int byteCount, uint32_t timeout);
+
+    void changeBaud(BaudRate baud);
 
     const uart_port_t Port;
     const gpio_num_t RxdPin;

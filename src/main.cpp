@@ -22,7 +22,7 @@
 #include "nvs_flash.h"
 #include <sys/socket.h>
 
-#include "Nextion.h"
+#include "displayWrapper.hpp"
 
 extern "C" { // This switch allows the ROS C-implementation to find this main
 void app_main(void);
@@ -220,136 +220,13 @@ static void dmx_Listener(void *arg) {
 }
 
 
-
-
-
-void bScheme1Cb(void *ptr)
-{
-    // todo ERROR
-}
-void bScheme2Cb(void *ptr)
-{
-    // todo ERROR
-}
-void bScheme3Cb(void *ptr)
-{
-    // todo ERROR
-}
-void bSchemeCustomCb(void *ptr)
-{
-    // todo ERROR
-}
-
-void hCustomFgCb(void *ptr)
-{
-    // Update Display color and color
-}
-void hCustomBgCb(void *ptr)
-{
-    // Update Display color and color
-}
-
-void bToInfoPageCb (void *ptr) {
-    
-}
-void bToWorkingPageCb (void *ptr) {
-
-}
-
-uint32_t scaleColorDown(uint8_t val, uint8_t max) {
-    return (uint8_t) ((uint32_t)val*max/0xFF);
-}
-
-uint32_t calcNextionColor(uint8_t r, uint8_t g, uint8_t b) {
-    // red = 63488 / F800
-    // green = 2016 /  07E0
-    // blue = 31 / 1F
-    return scaleColorDown(b, 0x1F) 
-        & (scaleColorDown(g, 0x3F) << 5) 
-        & (scaleColorDown(r, 0x1F) << (5+6));
-}
-
 static void displayTask(void *arg) {
     ESP_LOGI(TAG, "Starting Display Task");
-    static Uart nxtPort(1, GPIO_NUM_36, GPIO_NUM_4, Uart::BaudRate::_9600Bd);
-    NexPage workingPage    = NexPage(1, 0, "workingPage");
-    NexPage infoPage    = NexPage(2, 0, "infoPage");
-
-    NexButton bScheme1 = NexButton(1, 1, "bScheme1");
-    NexButton bScheme2 = NexButton(1, 4, "bScheme2");
-    NexButton bScheme3 = NexButton(1, 7, "bScheme3");
-    NexButton bSchemeCustom = NexButton(1, 10, "bSchemeCustom");
-
-    NexButton bToInfoPage = NexButton(1, 15, "bNext");
-    NexButton bToWorkingPage = NexButton(2, 11, "bPrev");
-    NexText tHealth = NexText(0, 4, "tHealth");
-
-    NexText tScheme1Fg = NexText(1, 2, "tScheme1Fg");
-    NexText tScheme1Bg = NexText(1, 3, "tScheme1Bg");
-    NexText tScheme2Fg = NexText(1, 5, "tScheme2Fg");
-    NexText tScheme2Bg = NexText(1, 6, "tScheme2Bg");
-    NexText tScheme3Fg = NexText(1, 8, "tScheme3Fg");
-    NexText tScheme3Bg = NexText(1, 9, "tScheme3Bg");
-    NexText tCustomFg = NexText(1, 16, "tCustomFg");
-    NexText tCustomBg = NexText(1, 17, "tCustomBg");
-
-    NexSlider hCustomFg = NexSlider(1, 1, "hCustomFg");
-    NexSlider hCustomBg = NexSlider(1, 1, "hCustomBg");
-
-    NexText tName = NexText(2, 3, "tName");
-    NexText tVersion = NexText(2, 4, "tVersion");
-    NexText tAddress = NexText(2, 6, "tAddress");
-    NexText tInfo = NexText(2, 8, "tInfo");
-    NexText tStatus = NexText(2, 10, "tStatus");
-
-    NexTouch *nex_listen_list[] = 
-    {
-        &bToInfoPage,
-        &bToWorkingPage,
-        &bScheme1,
-        &bScheme2,
-        &bScheme3,
-        &bSchemeCustom,
-        &hCustomFg,
-        &hCustomBg,
-        nullptr
-    };
-
-    nexInit(nxtPort);
-    tHealth.setText("Setup Image");
-    ESP_LOGI("DISP", "begin setup");
-
-    workingPage.show();
+    static Uart nxtPort(1, GPIO_NUM_36, GPIO_NUM_4, Uart::BaudRate::_38400Bd);
+    static Display display(nxtPort);
     
-    bScheme1.attachPop(bScheme1Cb, &bScheme1);
-    bScheme2.attachPop(bScheme2Cb, &bScheme2);
-    bScheme3.attachPop(bScheme3Cb, &bScheme3);
-    bSchemeCustom.attachPop(bSchemeCustomCb, &bSchemeCustom);
-    hCustomFg.attachPop(hCustomFgCb, &hCustomFg);
-    hCustomBg.attachPop(hCustomBgCb, &hCustomBg);
-
-    bToInfoPage.attachPop(bToInfoPageCb, &bToInfoPage);
-    bToWorkingPage.attachPop(bToWorkingPageCb, &bToWorkingPage);
-
-
-    tScheme1Fg.Set_background_color_bco(calcNextionColor(0xFF,0,0));
-    tScheme2Fg.Set_background_color_bco(calcNextionColor(0,0xFF,0));
-    tScheme3Fg.Set_background_color_bco(calcNextionColor(0,0,0xFF));
-
-    infoPage.show();
-    tName.setText("DMX-Bridge");
-    tVersion.setText("T 0.0.0");
-    tAddress.setText("0.0.0.0");
-    tInfo.setText("Device Info");
-    tStatus.setText("Device Status");
-
-    ESP_LOGI("DISP", "setup finished");
-
-    vTaskDelay(pdMS_TO_TICKS(1000));
-    workingPage.show();
-
     while (1) {
-        nexLoop(nex_listen_list);
+        display.tick();
         vTaskDelay(pdMS_TO_TICKS(50));
     }
 }

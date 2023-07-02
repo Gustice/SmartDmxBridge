@@ -1,5 +1,4 @@
 #include "Nextion.h"
-#include "Streams.hpp"
 #include "fakes/streamDummy.hpp"
 #include <gtest/gtest.h>
 
@@ -11,7 +10,7 @@ std::string aESeq(std::string_view sv) {
 }
 
 TEST(DisplayTestElements, PageTests) {
-    nexInit(stream);
+    NxtIo::nexInit(stream, nullptr);
     NexPage eut{0, 1, "eut"};
 
     eut.show();
@@ -41,7 +40,7 @@ class Pseudo : public NexTouch {
 };
 
 TEST(DisplayTestElements, TestPropertyBases) {
-    nexInit(stream);
+    NxtIo::nexInit(stream, nullptr);
     Pseudo eut(0, 1, "eut");
 
     eut.text.get();
@@ -95,7 +94,7 @@ TEST(DisplayTestElements, TestPropertyBases) {
 }
 
 TEST(DisplayTestElements, TextTests) {
-    nexInit(stream);
+    NxtIo::nexInit(stream, nullptr);
     Nxt::Text eut(0, 1, "eut");
 
     // Testing only Getter
@@ -118,7 +117,7 @@ TEST(DisplayTestElements, TextTests) {
 }
 
 TEST(DisplayTestElements, NumberTests) {
-    nexInit(stream);
+    NxtIo::nexInit(stream, nullptr);
     Nxt::Number eut(0, 1, "eut");
 
     eut.value.get();
@@ -140,7 +139,7 @@ TEST(DisplayTestElements, NumberTests) {
 }
 
 TEST(DisplayTestElements, ScrollTextTests) {
-    nexInit(stream);
+    NxtIo::nexInit(stream, nullptr);
     Nxt::Scrolltext eut(0, 1, "eut");
 
     eut.text.get();
@@ -174,7 +173,7 @@ TEST(DisplayTestElements, ScrollTextTests) {
 }
 
 TEST(DisplayTestElements, ButtonTests) {
-    nexInit(stream);
+    NxtIo::nexInit(stream, nullptr);
     Nxt::Button eut(0, 1, "eut");
 
     eut.text.get();
@@ -204,7 +203,7 @@ TEST(DisplayTestElements, ButtonTests) {
 }
 
 TEST(DisplayTestElements, SliderTests) {
-    nexInit(stream);
+    NxtIo::nexInit(stream, nullptr);
     Nxt::Slider eut(0, 1, "eut");
 
     eut.value.get();
@@ -226,7 +225,7 @@ TEST(DisplayTestElements, SliderTests) {
 }
 
 TEST(DisplayTestElements, GaugeTests) {
-    nexInit(stream);
+    NxtIo::nexInit(stream, nullptr);
     Nxt::Gauge eut(0, 1, "eut");
 
     eut.value.get();
@@ -245,7 +244,7 @@ TEST(DisplayTestElements, GaugeTests) {
 }
 
 TEST(DisplayTestElements, VariableTest) {
-    nexInit(stream);
+    NxtIo::nexInit(stream, nullptr);
     Nxt::Variable eut(0, 1, "eut");
 
     eut.value.get();
@@ -255,7 +254,7 @@ TEST(DisplayTestElements, VariableTest) {
 }
 
 TEST(DisplayTestElements, PictureTest) {
-    nexInit(stream);
+    NxtIo::nexInit(stream, nullptr);
     Nxt::Picture eut(0, 1, "eut");
 
     eut.picture.get();
@@ -263,7 +262,7 @@ TEST(DisplayTestElements, PictureTest) {
 }
 
 TEST(DisplayTestElements, CropTest) {
-    nexInit(stream);
+    NxtIo::nexInit(stream, nullptr);
     Nxt::Crop eut(0, 1, "eut");
 
     eut.cropImage.get();
@@ -271,7 +270,7 @@ TEST(DisplayTestElements, CropTest) {
 }
 
 TEST(DisplayTestElements, RadioTest) {
-    nexInit(stream);
+    NxtIo::nexInit(stream, nullptr);
     Nxt::Radio eut(0, 1, "eut");
 
     eut.value.get();
@@ -284,7 +283,7 @@ TEST(DisplayTestElements, RadioTest) {
 }
 
 TEST(DisplayTestElements, CheckBoxTest) {
-    nexInit(stream);
+    NxtIo::nexInit(stream, nullptr);
     Nxt::Checkbox eut(0, 1, "eut");
 
     eut.value.get();
@@ -297,7 +296,7 @@ TEST(DisplayTestElements, CheckBoxTest) {
 }
 
 TEST(DisplayTestElements, ProgressBarTest) {
-    nexInit(stream);
+    NxtIo::nexInit(stream, nullptr);
     Nxt::ProgressBar eut(0, 1, "eut");
 
     eut.value.get();
@@ -310,7 +309,7 @@ TEST(DisplayTestElements, ProgressBarTest) {
 }
 
 TEST(DisplayTestElements, TimerTest) {
-    nexInit(stream);
+    NxtIo::nexInit(stream, nullptr);
     Nxt::Timer eut(0, 1, "eut");
 
     eut.cycleTime.get();
@@ -324,12 +323,12 @@ TEST(DisplayTestElements, TimerTest) {
 }
 
 TEST(DisplayTestElements, HotspotTest) {
-    nexInit(stream);
+    NxtIo::nexInit(stream, nullptr);
     Nxt::Hotspot eut(0, 1, "eut");
 }
 
 TEST(DisplayTestElements, DualStateTest) {
-    nexInit(stream);
+    NxtIo::nexInit(stream, nullptr);
     Nxt::DSButton eut(0, 1, "eut");
 
     eut.value.get();
@@ -359,7 +358,7 @@ TEST(DisplayTestElements, DualStateTest) {
 
 
 TEST(DisplayTestElements, RtcTest) {
-    nexInit(stream);
+    NxtIo::nexInit(stream, nullptr);
     Nxt::Rtc eut;
 
     // eut.write_rtc_time("0102/03/04 05:06:07");
@@ -379,7 +378,7 @@ TEST(DisplayTestElements, RtcTest) {
 }
 
 TEST(DisplayTestElements, WaveformTest) {
-    nexInit(stream);
+    NxtIo::nexInit(stream, nullptr);
     Nxt::Waveform eut(0, 1, "eut");
 
     eut.backgroundColor.get();
@@ -400,7 +399,7 @@ TEST(DisplayTestElements, WaveformTest) {
 }
 
 TEST(DisplayTestElements, GpioTest) {
-    nexInit(stream);
+    NxtIo::nexInit(stream, nullptr);
     Nxt::Gpio eut;
 
     eut.pin_mode(1, 2, 3);

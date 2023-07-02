@@ -17,9 +17,9 @@ class ProgressBar: public NexObject
 {
 public: /* methods */
     /**
-     * @copydoc NexObject::NexObject(uint8_t pid, uint8_t cid, std::string name);
+     * @copydoc NexObject::NexObject(uint8_t pid, uint8_t cid, std::string_view name);
      */
-    ProgressBar(uint8_t pid, uint8_t cid, std::string name) : NexObject(pid, cid, name) {}
+    ProgressBar(uint8_t pid, uint8_t cid, std::string_view name) : NexObject(pid, cid, name) {}
     
     /**
      * Number attribute of component.

@@ -20,9 +20,9 @@ namespace Nxt {
 class Timer : public NexTouch {
   public: /* methods */
     /**
-     * @copydoc NexObject::NexObject(uint8_t pid, uint8_t cid, std::string name);
+     * @copydoc NexObject::NexObject(uint8_t pid, uint8_t cid, std::string_view name);
      */
-    Timer(uint8_t pid, uint8_t cid, std::string name) : NexTouch(pid, cid, name) {}
+    Timer(uint8_t pid, uint8_t cid, std::string_view name) : NexTouch(pid, cid, name) {}
 
     /**
      * Attach an callback function of timer respond event.
@@ -58,8 +58,8 @@ class Timer : public NexTouch {
      * @retval false - failed.
      */
     bool enable(void) {
-        sendCommand(std::string{getObjName()} + ".en=1");
-        return recvRetCommandFinished();
+        NxtIo::sendCommand(std::string{getObjName()} + ".en=1");
+        return NxtIo::recvRetCommandFinished();
     }
 
     /**
@@ -69,8 +69,8 @@ class Timer : public NexTouch {
      * @retval false - failed.
      */
     bool disable(void) {
-        sendCommand(std::string{getObjName()} + ".en=0");
-        return recvRetCommandFinished();
+        NxtIo::sendCommand(std::string{getObjName()} + ".en=0");
+        return NxtIo::recvRetCommandFinished();
     }
 };
 /**

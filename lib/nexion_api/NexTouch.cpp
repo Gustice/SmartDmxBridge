@@ -14,7 +14,7 @@
  */
 #include "bases/NexTouch.h"
 
-NexTouch::NexTouch(uint8_t pid, uint8_t cid, std::string name) : NexObject(pid, cid, name) {
+NexTouch::NexTouch(uint8_t pid, uint8_t cid, std::string_view name) : NexObject(pid, cid, name) {
     this->__cb_push = nullptr;
     this->__cb_pop = nullptr;
     this->__cbpop_ptr = nullptr;

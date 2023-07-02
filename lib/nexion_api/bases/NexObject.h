@@ -41,7 +41,7 @@ public: /* methods */
      * @param cid - component id.    
      * @param name - pointer to an unique name in range of all components. 
      */
-    NexObject(uint8_t pid, uint8_t cid, std::string name) 
+    NexObject(uint8_t pid, uint8_t cid, std::string_view name) 
     : __pid(pid), __cid(cid), __name(name) {}
 
     /**

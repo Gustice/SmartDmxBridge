@@ -51,38 +51,38 @@ bool Rtc::write_rtc_time(char *time) {
     std::string cmd;
     cmd = "rtc0=";
     cmd += year;
-    sendCommand(cmd);
-    recvRetCommandFinished();
+    NxtIo::sendCommand(cmd);
+    NxtIo::recvRetCommandFinished();
 
     cmd = "";
     cmd += "rtc1=";
     cmd += mon;
-    sendCommand(cmd);
-    recvRetCommandFinished();
+    NxtIo::sendCommand(cmd);
+    NxtIo::recvRetCommandFinished();
 
     cmd = "";
     cmd += "rtc2=";
     cmd += day;
-    sendCommand(cmd);
-    recvRetCommandFinished();
+    NxtIo::sendCommand(cmd);
+    NxtIo::recvRetCommandFinished();
 
     cmd = "";
     cmd += "rtc3=";
     cmd += hour;
-    sendCommand(cmd);
-    recvRetCommandFinished();
+    NxtIo::sendCommand(cmd);
+    NxtIo::recvRetCommandFinished();
 
     cmd = "";
     cmd += "rtc4=";
     cmd += min;
-    sendCommand(cmd);
-    recvRetCommandFinished();
+    NxtIo::sendCommand(cmd);
+    NxtIo::recvRetCommandFinished();
 
     cmd = "";
     cmd += "rtc5=";
     cmd += sec;
-    sendCommand(cmd);
-    recvRetCommandFinished();
+    NxtIo::sendCommand(cmd);
+    NxtIo::recvRetCommandFinished();
 
     return true;
 }
@@ -94,38 +94,38 @@ bool Rtc::write_rtc_time(uint32_t time[6]) {
 
     cmd += "0=";
     cmd += std::to_string(time[0]);
-    sendCommand(cmd);
-    ret &= recvRetCommandFinished();
+    NxtIo::sendCommand(cmd);
+    ret &= NxtIo::recvRetCommandFinished();
 
     cmd = "";
     cmd += "rtc1=";
     cmd += std::to_string(time[1]);
-    sendCommand(cmd);
-    ret &= recvRetCommandFinished();
+    NxtIo::sendCommand(cmd);
+    ret &= NxtIo::recvRetCommandFinished();
 
     cmd = "";
     cmd += "rtc2=";
     cmd += std::to_string(time[2]);
-    sendCommand(cmd);
-    ret &= recvRetCommandFinished();
+    NxtIo::sendCommand(cmd);
+    ret &= NxtIo::recvRetCommandFinished();
 
     cmd = "";
     cmd += "rtc3=";
     cmd += std::to_string(time[3]);
-    sendCommand(cmd);
-    ret &= recvRetCommandFinished();
+    NxtIo::sendCommand(cmd);
+    ret &= NxtIo::recvRetCommandFinished();
 
     cmd = "";
     cmd += "rtc4=";
     cmd += std::to_string(time[4]);
-    sendCommand(cmd);
-    ret &= recvRetCommandFinished();
+    NxtIo::sendCommand(cmd);
+    ret &= NxtIo::recvRetCommandFinished();
 
     cmd = "";
     cmd += "rtc5=";
     cmd += std::to_string(time[5]);
-    sendCommand(cmd);
-    ret &= recvRetCommandFinished();
+    NxtIo::sendCommand(cmd);
+    ret &= NxtIo::recvRetCommandFinished();
     return ret;
 }
 
@@ -156,42 +156,42 @@ bool Rtc::write_rtc_time(char *time_type, uint32_t number) {
         cmd += std::to_string(number);
     }
 
-    sendCommand(cmd);
-    return recvRetCommandFinished();
+    NxtIo::sendCommand(cmd);
+    return NxtIo::recvRetCommandFinished();
 }
 
 bool Rtc::read_rtc_time(char *time, uint32_t len) {
     char time_buf[22] = {"0000/00/00 00:00:00 0"};
     uint32_t year, mon, day, hour, min, sec, week;
     std::string cmd;
-    bool ret = true;
+
     cmd = "get rtc0";
-    sendCommand(cmd);
-    ret &= recvRetNumber(year);
+    NxtIo::sendCommand(cmd);
+    year = NxtIo::recvRetNumber();
 
     cmd = "get rtc1";
-    sendCommand(cmd);
-    ret &= recvRetNumber(mon);
+    NxtIo::sendCommand(cmd);
+    mon = NxtIo::recvRetNumber();
 
     cmd = "get rtc2";
-    sendCommand(cmd);
-    ret &= recvRetNumber(day);
+    NxtIo::sendCommand(cmd);
+    day = NxtIo::recvRetNumber();
 
     cmd = "get rtc3";
-    sendCommand(cmd);
-    ret &= recvRetNumber(hour);
+    NxtIo::sendCommand(cmd);
+    hour = NxtIo::recvRetNumber();
 
     cmd = "get rtc4";
-    sendCommand(cmd);
-    ret &= recvRetNumber(min);
+    NxtIo::sendCommand(cmd);
+    min = NxtIo::recvRetNumber();
 
     cmd = "get rtc5";
-    sendCommand(cmd);
-    ret &= recvRetNumber(sec);
+    NxtIo::sendCommand(cmd);
+    sec = NxtIo::recvRetNumber();
 
     cmd = "get rtc6";
-    sendCommand(cmd);
-    ret &= recvRetNumber(week);
+    NxtIo::sendCommand(cmd);
+    week = NxtIo::recvRetNumber();
 
     time_buf[0] = year / 1000 + '0';
     time_buf[1] = (year / 100) % 10 + '0';
@@ -219,7 +219,7 @@ bool Rtc::read_rtc_time(char *time, uint32_t len) {
             time[i] = time_buf[i];
         }
     }
-    return ret;
+    return true;
 }
 
 bool Rtc::read_rtc_time(uint32_t *time, uint32_t len) {
@@ -228,32 +228,32 @@ bool Rtc::read_rtc_time(uint32_t *time, uint32_t len) {
     bool ret = true;
 
     cmd = "get rtc0";
-    sendCommand(cmd);
-    ret &= recvRetNumber(time_buf[0]);
+    NxtIo::sendCommand(cmd);
+    ret &= NxtIo::recvRetNumber(time_buf[0]);
 
     cmd = "get rtc1";
-    sendCommand(cmd);
-    ret &= recvRetNumber(time_buf[1]);
+    NxtIo::sendCommand(cmd);
+    ret &= NxtIo::recvRetNumber(time_buf[1]);
 
     cmd = "get rtc2";
-    sendCommand(cmd);
-    ret &= recvRetNumber(time_buf[2]);
+    NxtIo::sendCommand(cmd);
+    ret &= NxtIo::recvRetNumber(time_buf[2]);
 
     cmd = "get rtc3";
-    sendCommand(cmd);
-    ret &= recvRetNumber(time_buf[3]);
+    NxtIo::sendCommand(cmd);
+    ret &= NxtIo::recvRetNumber(time_buf[3]);
 
     cmd = "get rtc4";
-    sendCommand(cmd);
-    ret &= recvRetNumber(time_buf[4]);
+    NxtIo::sendCommand(cmd);
+    ret &= NxtIo::recvRetNumber(time_buf[4]);
 
     cmd = "get rtc5";
-    sendCommand(cmd);
-    ret &= recvRetNumber(time_buf[5]);
+    NxtIo::sendCommand(cmd);
+    ret &= NxtIo::recvRetNumber(time_buf[5]);
 
     cmd = "get rtc6";
-    sendCommand(cmd);
-    ret &= recvRetNumber(time_buf[6]);
+    NxtIo::sendCommand(cmd);
+    ret &= NxtIo::recvRetNumber(time_buf[6]);
 
     for (int i = 0; i < len; i++) {
         time[i] = time_buf[i];
@@ -282,7 +282,7 @@ uint32_t Rtc::read_rtc_time(std::string type) {
         return -1;
     }
 
-    sendCommand(cmd);
-    return recvRetNumber();
+    NxtIo::sendCommand(cmd);
+    return NxtIo::recvRetNumber();
 }
 } // namespace Nxt

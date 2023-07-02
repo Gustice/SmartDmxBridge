@@ -18,7 +18,6 @@ class CharStream {
     virtual std::string read() = 0;
     virtual void write(char c) = 0;
     virtual void write(std::string str) = 0;
-
 };
 
 class ByteStream {

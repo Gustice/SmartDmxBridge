@@ -4,26 +4,30 @@
 #include "esp_log.h"
 #include "uart.hpp"
 
-uint32_t scaleColorDown(uint8_t val, uint8_t max) {
-    return (uint8_t) ((uint32_t)val*max/0xFF);
-}
+class UartWrapper : public SerialStream {
+    public:
+    UartWrapper(Uart & port) : _port(port) {}
 
-uint32_t calcNextionColor(uint8_t r, uint8_t g, uint8_t b) {
-    // red = 63488 / F800
-    // green = 2016 /  07E0
-    // blue = 31 / 1F
-    return scaleColorDown(b, 0x1F) 
-        & (scaleColorDown(g, 0x3F) << 5) 
-        & (scaleColorDown(r, 0x1F) << (5+6));
-}
+    std::vector<uint8_t> read(size_t minSize = 0, unsigned msTimeout = 0) override {
+        return _port.readBytes(minSize, msTimeout);
+    }
+    virtual void write(char c) override {
+        _port.write(c);
+    }
+    virtual void write(std::string str) override {
+        _port.write(str);
+    }
+
+    private:
+    Uart &_port;
+};
 
 class Display {
   public:
     Display(Uart &port) : _port(port) {
-        nexInit(port);
-
+        NxtIo::nexInit(_port, dumpLog);
         ESP_LOGI("DISP", "begin setup");
-        tHealth.setText("Setup Image");
+        tHealth.text.set("Setup Image");
 
         bScheme1.attachPop(bScheme1Cb, &bScheme1);
         bScheme2.attachPop(bScheme2Cb, &bScheme2);
@@ -38,6 +42,18 @@ class Display {
         switchToWorkingPage(this);
         ESP_LOGI("DISP", "setup finished");
 
+        page = CurrentPage::InfoPage;
+        tName.text.set("DMX-Bridge");
+        tVersion.text.set("T 0.0.0");
+        tAddress.text.set("0.0.0.0");
+        tInfo.text.set("Device Info");
+        tStatus.text.set("Device Status");
+
+        page = CurrentPage::WorkingPage;
+        workingPage.show();
+        tScheme1Fg.background.set(Nxt::Color::calcNextionColor(0xFF,0,0));
+        tScheme2Fg.background.set(Nxt::Color::calcNextionColor(0,0xFF,0));
+        tScheme3Fg.background.set(Nxt::Color::calcNextionColor(0,0,0xFF));
     }
 
     void tick() {
@@ -47,7 +63,7 @@ class Display {
                 &bToInfoPage,   &bScheme1,  &bScheme2,  &bScheme3,
                 &bSchemeCustom, &hCustomFg, &hCustomBg, nullptr,
             };
-        nexLoop(nex_listen_list);
+        NxtIo::nexLoop(nex_listen_list);
 
         } break;
 
@@ -56,7 +72,7 @@ class Display {
                 &bToWorkingPage,
                 nullptr,
             };
-        nexLoop(nex_listen_list);
+        NxtIo::nexLoop(nex_listen_list);
 
         } break;
 
@@ -68,59 +84,45 @@ class Display {
   private:
     enum CurrentPage { WorkingPage = 1, InfoPage, Pages };
 
-    Uart _port;
+    UartWrapper _port;
     CurrentPage page = CurrentPage::WorkingPage;
 
     NexPage workingPage{1, 0, "workingPage"};
     NexPage infoPage{2, 0, "infoPage"};
 
-    NexButton bScheme1{1, 1, "bScheme1"};
-    NexButton bScheme2{1, 4, "bScheme2"};
-    NexButton bScheme3{1, 7, "bScheme3"};
-    NexButton bSchemeCustom{1, 10, "bSchemeCustom"};
+    Nxt::Button bScheme1{1, 1, "bScheme1"};
+    Nxt::Button bScheme2{1, 4, "bScheme2"};
+    Nxt::Button bScheme3{1, 7, "bScheme3"};
+    Nxt::Button bSchemeCustom{1, 10, "bSchemeCustom"};
 
-    NexButton bToInfoPage{1, 15, "bNext"};
-    NexButton bToWorkingPage{2, 11, "bPrev"};
+    Nxt::Button bToInfoPage{1, 15, "bNext"};
+    Nxt::Button bToWorkingPage{2, 11, "bPrev"};
 
-    NexText tHealth{0, 4, "tHealth"};
-    NexText tScheme1Fg{1, 2, "tScheme1Fg"};
-    NexText tScheme1Bg{1, 3, "tScheme1Bg"};
-    NexText tScheme2Fg{1, 5, "tScheme2Fg"};
-    NexText tScheme2Bg{1, 6, "tScheme2Bg"};
-    NexText tScheme3Fg{1, 8, "tScheme3Fg"};
-    NexText tScheme3Bg{1, 9, "tScheme3Bg"};
-    NexText tCustomFg{1, 16, "tCustomFg"};
-    NexText tCustomBg{1, 17, "tCustomBg"};
+    Nxt::Text tHealth{0, 4, "tHealth"};
+    Nxt::Text tScheme1Fg{1, 2, "tScheme1Fg"};
+    Nxt::Text tScheme1Bg{1, 3, "tScheme1Bg"};
+    Nxt::Text tScheme2Fg{1, 5, "tScheme2Fg"};
+    Nxt::Text tScheme2Bg{1, 6, "tScheme2Bg"};
+    Nxt::Text tScheme3Fg{1, 8, "tScheme3Fg"};
+    Nxt::Text tScheme3Bg{1, 9, "tScheme3Bg"};
+    Nxt::Text tCustomFg{1, 16, "tCustomFg"};
+    Nxt::Text tCustomBg{1, 17, "tCustomBg"};
 
-    NexSlider hCustomFg{1, 1, "hCustomFg"};
-    NexSlider hCustomBg{1, 1, "hCustomBg"};
+    Nxt::Slider hCustomFg{1, 1, "hCustomFg"};
+    Nxt::Slider hCustomBg{1, 1, "hCustomBg"};
 
-    NexText tName{2, 3, "tName"};
-    NexText tVersion{2, 4, "tVersion"};
-    NexText tAddress{2, 6, "tAddress"};
-    NexText tInfo{2, 8, "tInfo"};
-    NexText tStatus{2, 10, "tStatus"};
-
+    Nxt::Text tName{2, 3, "tName"};
+    Nxt::Text tVersion{2, 4, "tVersion"};
+    Nxt::Text tAddress{2, 6, "tAddress"};
+    Nxt::Text tInfo{2, 8, "tInfo"};
+    Nxt::Text tStatus{2, 10, "tStatus"};
 
     static void switchToWorkingPage(void *ptr) {
         Display * display = (Display*) ptr;
 
-        display->workingPage.show();
-        display->page = CurrentPage::WorkingPage;
-        display->tScheme1Fg.Set_background_color_bco(calcNextionColor(0xFF,0,0));
-        display->tScheme2Fg.Set_background_color_bco(calcNextionColor(0,0xFF,0));
-        display->tScheme3Fg.Set_background_color_bco(calcNextionColor(0,0,0xFF));
     }
     static void switchToInfoPage(void *ptr) {
         Display * display = (Display*) ptr;
-
-        display->infoPage.show();
-        display->page = CurrentPage::InfoPage;
-        display->tName.setText("DMX-Bridge");
-        display->tVersion.setText("T 0.0.0");
-        display->tAddress.setText("0.0.0.0");
-        display->tInfo.setText("Device Info");
-        display->tStatus.setText("Device Status");
     }
 
     static void bScheme1Cb(void *ptr)
@@ -147,5 +149,10 @@ class Display {
     static void hCustomBgCb(void *ptr)
     {
         // Update Display color and color
+    }
+
+    static void dumpLog(std::string msg) {
+        auto output = msg.c_str();
+        ESP_LOGD("DISP", "Log: %s", output);
     }
 };

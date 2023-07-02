@@ -17,8 +17,8 @@ class Color : public IntegerValue {
      * Color-getter
      */
     uint32_t getColor() {
-        sendCommand(std::string{"get "} + _parent.getObjName() + "." + _key.begin());
-        return recvRetNumber();
+        NxtIo::sendCommand(std::string{"get "} + _parent.getObjName() + "." + _key.begin());
+        return NxtIo::recvRetNumber();
     }
 
     /**
@@ -26,13 +26,8 @@ class Color : public IntegerValue {
      * @return true if success, false for failure
      */
     bool setColor(uint32_t number) {
-        sendCommand(_parent.getObjName() + "." + _key.begin() + "=" + std::to_string(number));
-        // cmd = "";
-        // cmd += "ref ";
-        // cmd += getObjName();
-        // sendCommand(cmd);
-        // return recvRetCommandFinished();
-        return true;
+        NxtIo::sendCommand(_parent.getObjName() + "." + _key.begin() + "=" + std::to_string(number));
+        return NxtIo::recvRetCommandFinished();
     }
 
     static uint32_t calcNextionColor(uint8_t r, uint8_t g, uint8_t b) {

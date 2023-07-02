@@ -14,8 +14,8 @@ bool Gpio::pin_mode(uint32_t port,uint32_t mode,uint32_t control_id)
     cmd += ',';
     cmd += control_id + '0';
 
-    sendCommand(cmd);
-    return recvRetCommandFinished();
+    NxtIo::sendCommand(cmd);
+    return NxtIo::recvRetCommandFinished();
 }
 
 bool Gpio::digital_write(uint32_t port,uint32_t value)
@@ -26,8 +26,8 @@ bool Gpio::digital_write(uint32_t port,uint32_t value)
     cmd += '=';
     cmd += value + '0';
     
-    sendCommand(cmd);
-    return recvRetCommandFinished();
+    NxtIo::sendCommand(cmd);
+    return NxtIo::recvRetCommandFinished();
 }
 
 uint32_t Gpio::digital_read(uint32_t port)
@@ -36,8 +36,8 @@ uint32_t Gpio::digital_read(uint32_t port)
     cmd += "pio";
     cmd += port + '0';
     
-    sendCommand(cmd);
-    return recvRetNumber();
+    NxtIo::sendCommand(cmd);
+    return NxtIo::recvRetNumber();
 }
 
 bool Gpio::analog_write(uint32_t port,uint32_t value)
@@ -47,20 +47,20 @@ bool Gpio::analog_write(uint32_t port,uint32_t value)
     cmd += '=';
     cmd += std::to_string(value);
     
-    sendCommand(cmd);
-    return recvRetCommandFinished();   
+    NxtIo::sendCommand(cmd);
+    return NxtIo::recvRetCommandFinished();   
 }
 
 bool Gpio::set_pwmfreq(uint32_t value)
 {
-    sendCommand(std::string{"pwmf="} + std::to_string(value));
-    return recvRetCommandFinished();
+    NxtIo::sendCommand(std::string{"pwmf="} + std::to_string(value));
+    return NxtIo::recvRetCommandFinished();
 }
 
 uint32_t Gpio::get_pwmfreq()
 {
-    sendCommand(std::string{"get pwmf"});
-    return recvRetNumber();
+    NxtIo::sendCommand(std::string{"get pwmf"});
+    return NxtIo::recvRetNumber();
 }
 
 }

@@ -22,9 +22,9 @@ class DSButton: public NexTouch
 {
 public: /* methods */
     /**
-     * @copydoc NexObject::NexObject(uint8_t pid, uint8_t cid, std::string name);
+     * @copydoc NexObject::NexObject(uint8_t pid, uint8_t cid, std::string_view name);
      */
-    DSButton(uint8_t pid, uint8_t cid, std::string name) : NexTouch(pid, cid, name) {}
+    DSButton(uint8_t pid, uint8_t cid, std::string_view name) : NexTouch(pid, cid, name) {}
     
     /**
      * Number attribute of component.

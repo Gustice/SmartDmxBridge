@@ -29,6 +29,10 @@ Uart::Uart(uart_port_t port, gpio_num_t rxd, gpio_num_t txd, BaudRate rate, uint
     data = (uint8_t *)malloc(BufferSize);
 }
 
+void Uart::changeBaud(BaudRate baud) {
+    uart_set_baudrate(Port, static_cast<uint32_t>(baud));
+}
+
 Uart::~Uart() {
     free(data);
 }

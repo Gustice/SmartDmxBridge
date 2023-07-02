@@ -16,9 +16,9 @@ namespace Nxt {
 class Waveform : public NexObject {
   public: /* methods */
     /**
-     * @copydoc NexObject::NexObject(uint8_t pid, uint8_t cid, std::string name);
+     * @copydoc NexObject::NexObject(uint8_t pid, uint8_t cid, std::string_view name);
      */
-    Waveform(uint8_t pid, uint8_t cid, std::string name) : NexObject(pid, cid, name) {}
+    Waveform(uint8_t pid, uint8_t cid, std::string_view name) : NexObject(pid, cid, name) {}
 
     /**
      * Add value to show.
@@ -37,7 +37,7 @@ class Waveform : public NexObject {
         char buf[15] = {0};
         sprintf(buf, "add %u,%u,%u", getObjCid(), ch, number);
 
-        sendCommand(buf);
+        NxtIo::sendCommand(buf);
         return true;
     }
 

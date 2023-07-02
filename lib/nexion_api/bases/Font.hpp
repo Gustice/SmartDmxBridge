@@ -18,8 +18,8 @@ class Font {
      * @return returns value
      */
     uint32_t getFont() {
-        sendCommand(std::string{"get "} + _parent.getObjName() + ".font");
-        return recvRetNumber();
+        NxtIo::sendCommand(std::string{"get "} + _parent.getObjName() + ".font");
+        return NxtIo::recvRetNumber();
     }
 
     /**
@@ -29,12 +29,8 @@ class Font {
      * @return true if success, false for failure
      */
     bool setFont(uint32_t number) {
-        sendCommand(_parent.getObjName() + ".font=" + std::to_string(number));
-        // cmd = "";
-        // cmd += "ref ";
-        // cmd += getObjName();
-        // sendCommand(cmd);
-        // return recvRetCommandFinished();
+        NxtIo::sendCommand(_parent.getObjName() + ".font=" + std::to_string(number));
+        return NxtIo::recvRetCommandFinished();
     }
 
   private:

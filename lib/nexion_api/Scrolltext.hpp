@@ -17,9 +17,9 @@ namespace Nxt {
 class Scrolltext : public NexTouch {
   public: /* methods */
     /**
-     * @copydoc NexObject::NexObject(uint8_t pid, uint8_t cid, std::string name);
+     * @copydoc NexObject::NexObject(uint8_t pid, uint8_t cid, std::string_view name);
      */
-    Scrolltext(uint8_t pid, uint8_t cid, std::string name) : NexTouch(pid, cid, name) {}
+    Scrolltext(uint8_t pid, uint8_t cid, std::string_view name) : NexTouch(pid, cid, name) {}
 
     /**
      * Text attribute of component.
@@ -70,16 +70,16 @@ class Scrolltext : public NexTouch {
      * Enable scrolling
      */
     bool enable(void) {
-        sendCommand(std::string{getObjName()} + ".en=1");
-        return recvRetCommandFinished();
+        NxtIo::sendCommand(std::string{getObjName()} + ".en=1");
+        return NxtIo::recvRetCommandFinished();
     }
 
     /**
      * Disable scrolling
      */
     bool disable(void) {
-        sendCommand(std::string{getObjName()} + ".en=0");
-        return recvRetCommandFinished();
+        NxtIo::sendCommand(std::string{getObjName()} + ".en=0");
+        return NxtIo::recvRetCommandFinished();
     }
 };
 

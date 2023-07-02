@@ -18,8 +18,8 @@ class BackgroundImage {
      * @return return value
      */
     uint32_t getImagePic() {
-        sendCommand(std::string{"get "} + _parent.getObjName() + ".pic" + _key.begin());
-        return recvRetNumber();
+        NxtIo::sendCommand(std::string{"get "} + _parent.getObjName() + ".pic" + _key.begin());
+        return NxtIo::recvRetNumber();
     }
 
     /**
@@ -29,8 +29,8 @@ class BackgroundImage {
      * @return true if success, false for failure
      */
     bool setImagePic(uint32_t number) {
-        sendCommand(_parent.getObjName() + ".pic" + _key.begin() + "=" + std::to_string(number));
-        return recvRetCommandFinished();
+        NxtIo::sendCommand(_parent.getObjName() + ".pic" + _key.begin() + "=" + std::to_string(number));
+        return NxtIo::recvRetCommandFinished();
     }
 
     /**
@@ -39,8 +39,8 @@ class BackgroundImage {
      * @return return value
      */
     uint32_t getBackgroundCropPicc() {
-        sendCommand(std::string{"get "} + _parent.getObjName() + ".picc" + _key.begin());
-        return recvRetNumber();
+        NxtIo::sendCommand(std::string{"get "} + _parent.getObjName() + ".picc" + _key.begin());
+        return NxtIo::recvRetNumber();
     }
 
     /**
@@ -50,12 +50,8 @@ class BackgroundImage {
      * @return true if success, false for failure
      */
     bool setBackgroundCropPicc(uint32_t number) {
-        sendCommand(_parent.getObjName() + ".picc" + _key.begin() + "=" + std::to_string(number));
-        // cmd = "";
-        // cmd += "ref ";
-        // cmd += getObjName();
-        // sendCommand(cmd);
-        // return recvRetCommandFinished();
+        NxtIo::sendCommand(_parent.getObjName() + ".picc" + _key.begin() + "=" + std::to_string(number));
+        return NxtIo::recvRetCommandFinished();
     }
 
   private:

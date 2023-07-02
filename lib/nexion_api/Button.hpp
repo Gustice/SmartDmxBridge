@@ -21,9 +21,9 @@ namespace Nxt {
 class Button : public NexTouch {
   public: /* methods */
     /**
-     * @copydoc NexObject::NexObject(uint8_t pid, uint8_t cid, std::string name);
+     * @copydoc NexObject::NexObject(uint8_t pid, uint8_t cid, std::string_view name);
      */
-    Button(uint8_t pid, uint8_t cid, std::string name) : NexTouch(pid, cid, name) {}
+    Button(uint8_t pid, uint8_t cid, std::string_view name) : NexTouch(pid, cid, name) {}
 
     /**
      * Text attribute of component.

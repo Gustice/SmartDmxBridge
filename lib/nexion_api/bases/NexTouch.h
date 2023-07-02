@@ -57,9 +57,9 @@ public: /* static methods */
 public: /* methods */
 
     /**
-     * @copydoc NexObject::NexObject(uint8_t pid, uint8_t cid, std::string name);
+     * @copydoc NexObject::NexObject(uint8_t pid, uint8_t cid, std::string_view name);
      */
-    NexTouch(uint8_t pid, uint8_t cid, std::string name);
+    NexTouch(uint8_t pid, uint8_t cid, std::string_view name);
 
     /**
      * Attach an callback function of push touch event. 
