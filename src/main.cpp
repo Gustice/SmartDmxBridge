@@ -28,6 +28,46 @@ extern "C" { // This switch allows the ROS C-implementation to find this main
 void app_main(void);
 }
 
+
+enum class DeviceMode {
+    StandAlone,
+    Remote,
+    TestMode,
+};
+
+static StageConfig stage {
+    .weightsLights {
+        /*AmbienteGrp 1*/ 0,0,0, 
+        /*Empty*/ 0,0, 
+        /*AmbienteGrp 2*/ 0,0,0, 
+        /*Front-Colored */ 0,0,0,255,125,0,
+        /*Empty*/ 0,0,
+        /*Lights*/ 255,0, 255,0,
+        /*Halogen*/ 255,255, 255,255,
+        },
+    .channelsForeground {1,2,3},
+    .channelsBackground {6,7,8},
+    .colors{
+        .foregroundColor{255,64,0},
+        .backgroundColor{0,64,255}
+    }
+};
+
+ColorPresets stagePresets {
+    .preset1 {
+        .foregroundColor{255,0,0},
+        .backgroundColor{0,127,127},
+    },
+    .preset2 {
+        .foregroundColor{0,255,0},
+        .backgroundColor{127,0,127},
+    },
+    .preset3 {
+        .foregroundColor{0,0,255},
+        .backgroundColor{127,127,0},
+    },
+};
+
 OtaHandler ota("http://192.168.178.10:8070/dmx_bridge.bin");
 static const char *TAG = "dmx-bridge";
 
@@ -223,7 +263,7 @@ static void dmx_Listener(void *arg) {
 static void displayTask(void *arg) {
     ESP_LOGI(TAG, "Starting Display Task");
     static Uart nxtPort(1, GPIO_NUM_36, GPIO_NUM_4, Uart::BaudRate::_38400Bd);
-    static Display display(nxtPort);
+    static Display display(nxtPort, stagePresets);
     
     while (1) {
         display.tick();

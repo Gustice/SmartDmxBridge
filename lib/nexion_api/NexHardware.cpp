@@ -35,7 +35,7 @@ const std::string EndSequence = "\xFF\xFF\xFF";
  */
 uint32_t NxtIo::recvRetNumber(uint32_t timeout)
 {
-    auto read = serialPort->read(8);
+    auto read = serialPort->read(8, timeout);
     if (8 != read.size()) {
         NxtIo::sendLog("recvRetNumber err");
         return false;
@@ -48,7 +48,7 @@ uint32_t NxtIo::recvRetNumber(uint32_t timeout)
         ) {
         auto number = ((uint32_t)read[4] << 24) | ((uint32_t)read[3] << 16) | (read[2] << 8) | (read[1]);
         NxtIo::sendLog("recvRetNumber :" + std::to_string(number));
-        return true;
+        return number;
     }
 
     NxtIo::sendLog("recvRetNumber err");
@@ -74,7 +74,7 @@ std::string NxtIo::recvRetString(uint32_t timeout)
     std::string temp = lastRead;
     lastRead = "";
     
-    auto read = serialPort->read();
+    auto read = serialPort->read(3, timeout);
     for (auto &&c : read)
     {
         if (str_start_flag) {
@@ -161,12 +161,13 @@ bool NxtIo::nexInit(SerialStream &port, NxtIo::LogCallback logCb)
 
 void NxtIo::nexLoop(NexTouch *nex_listen_list[])
 {
-    auto input = serialPort->read(6);
+    auto input = serialPort->read(7,0);
     if (input.size() > 0)
     {
+        NxtIo::sendLog("Got data");
         if (static_cast<NxtReturn>(input[0]) == NxtReturn::EVENT_TOUCH_HEAD)
         {
-            if (input.size() >= 6)
+            if (input.size() >= 7)
             {
                 if (0xFF == (input[4] & input[5] & input[6])) {
                     NexTouch::iterate(nex_listen_list, input[1], input[2], (int32_t)input[3]);

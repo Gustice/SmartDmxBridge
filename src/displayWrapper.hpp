@@ -3,6 +3,7 @@
 #include "Nextion.h"
 #include "esp_log.h"
 #include "uart.hpp"
+#include "configModel.hpp"
 
 class UartWrapper : public SerialStream {
     public:
@@ -24,36 +25,40 @@ class UartWrapper : public SerialStream {
 
 class Display {
   public:
-    Display(Uart &port) : _port(port) {
+    Display(Uart &port, ColorPresets & initialColors) : _port(port), _colorPresets(initialColors) {
         NxtIo::nexInit(_port, dumpLog);
         ESP_LOGI("DISP", "begin setup");
         tHealth.text.set("Setup Image");
 
-        bScheme1.attachPop(bScheme1Cb, &bScheme1);
-        bScheme2.attachPop(bScheme2Cb, &bScheme2);
-        bScheme3.attachPop(bScheme3Cb, &bScheme3);
-        bSchemeCustom.attachPop(bSchemeCustomCb, &bSchemeCustom);
-        hCustomFg.attachPop(hCustomFgCb, &hCustomFg);
-        hCustomBg.attachPop(hCustomBgCb, &hCustomBg);
+        bScheme1.attachPush(bScheme1Cb, &bScheme1);
+        bScheme2.attachPush(bScheme2Cb, &bScheme2);
+        bScheme3.attachPush(bScheme3Cb, &bScheme3);
+        bSchemeCustom.attachPush(bSchemeCustomCb, &bSchemeCustom);
+        hCustomFg.attachPop(hCustomFgCb, this);
+        hCustomBg.attachPop(hCustomBgCb, this);
 
-        bToInfoPage.attachPop(switchToInfoPage, this);
-        bToWorkingPage.attachPop(switchToWorkingPage, this);
+        bToInfoPage.attachPush(switchToInfoPage, this);
+        bToWorkingPage.attachPush(switchToWorkingPage, this);
 
         switchToWorkingPage(this);
         ESP_LOGI("DISP", "setup finished");
 
-        page = CurrentPage::InfoPage;
-        tName.text.set("DMX-Bridge");
-        tVersion.text.set("T 0.0.0");
-        tAddress.text.set("0.0.0.0");
-        tInfo.text.set("Device Info");
-        tStatus.text.set("Device Status");
-
         page = CurrentPage::WorkingPage;
         workingPage.show();
-        tScheme1Fg.background.set(Nxt::Color::calcNextionColor(0xFF,0,0));
-        tScheme2Fg.background.set(Nxt::Color::calcNextionColor(0,0xFF,0));
-        tScheme3Fg.background.set(Nxt::Color::calcNextionColor(0,0,0xFF));
+        {
+            auto & ic = initialColors;
+            tScheme1Fg.background.set(calcColor(ic.preset1.foregroundColor));
+            tScheme1Bg.background.set(calcColor(ic.preset1.backgroundColor));
+            tScheme2Fg.background.set(calcColor(ic.preset2.foregroundColor));
+            tScheme2Bg.background.set(calcColor(ic.preset2.backgroundColor));
+            tScheme3Fg.background.set(calcColor(ic.preset3.foregroundColor));
+            tScheme3Bg.background.set(calcColor(ic.preset3.backgroundColor));
+
+            auto fg = hCustomFg.value.get();
+            tCustomFg.background.set(calcColor(hueToRgb(fg)));
+            auto bg = hCustomBg.value.get();
+            tCustomBg.background.set(calcColor(hueToRgb(bg)));
+        }
     }
 
     void tick() {
@@ -82,9 +87,14 @@ class Display {
     }
 
   private:
+    static uint32_t calcColor (Color col) {
+        return Nxt::Color::calcNextionColor(col.red, col.green, col.blue);
+    }
+
     enum CurrentPage { WorkingPage = 1, InfoPage, Pages };
 
     UartWrapper _port;
+    ColorPresets & _colorPresets;
     CurrentPage page = CurrentPage::WorkingPage;
 
     NexPage workingPage{1, 0, "workingPage"};
@@ -108,8 +118,11 @@ class Display {
     Nxt::Text tCustomFg{1, 16, "tCustomFg"};
     Nxt::Text tCustomBg{1, 17, "tCustomBg"};
 
-    Nxt::Slider hCustomFg{1, 1, "hCustomFg"};
-    Nxt::Slider hCustomBg{1, 1, "hCustomBg"};
+    Nxt::Slider hCustomFg{1, 13, "hCustomFg"};
+    Nxt::Slider hCustomBg{1, 14, "hCustomBg"};
+    Nxt::ProgressBar jLight{2, 13, "jLight"};
+    Nxt::ProgressBar jAmbient{2, 12, "jAmbient"};
+
 
     Nxt::Text tName{2, 3, "tName"};
     Nxt::Text tVersion{2, 4, "tVersion"};
@@ -119,10 +132,20 @@ class Display {
 
     static void switchToWorkingPage(void *ptr) {
         Display * display = (Display*) ptr;
-
+        display->page = CurrentPage::WorkingPage;
+        //display->workingPage.show(); // already set by display
     }
+
     static void switchToInfoPage(void *ptr) {
+        ESP_LOGW("DISP", "To Info-Page");
         Display * display = (Display*) ptr;
+        display->page = CurrentPage::InfoPage;
+        //display->infoPage.show(); // already set by display
+        display->tName.text.set("DMX-Bridge");
+        display->tVersion.text.set("T 0.0.0");
+        display->tAddress.text.set("0.0.0.0");
+        display->tInfo.text.set("Device Info");
+        display->tStatus.text.set("Device Status");
     }
 
     static void bScheme1Cb(void *ptr)
@@ -144,15 +167,68 @@ class Display {
 
     static void hCustomFgCb(void *ptr)
     {
-        // Update Display color and color
+        Display * display = (Display*) ptr;
+        auto fg = display->hCustomFg.value.get();
+        display->tCustomFg.background.set(calcColor(hueToRgb(fg)));
     }
     static void hCustomBgCb(void *ptr)
     {
-        // Update Display color and color
+        Display * display = (Display*) ptr;
+        auto bg = display->hCustomBg.value.get();
+        display->tCustomBg.background.set(calcColor(hueToRgb(bg)));
     }
 
     static void dumpLog(std::string msg) {
         auto output = msg.c_str();
         ESP_LOGD("DISP", "Log: %s", output);
     }
+
+    static Color hueToRgb(uint8_t hue)
+    {
+        Color rgb;
+        unsigned char region, remainder, q, t;
+        region = hue / 43;
+        remainder = (hue - (region * 43)) * 6; 
+        q = (255 * (255 - ((255 * remainder) >> 8))) >> 8;
+        t = (255 * (255 - ((255 * (255 - remainder)) >> 8))) >> 8;
+        
+        switch (region)
+        {
+            case 0:
+                rgb.red = 255; rgb.green = t; rgb.blue = 0;
+                break;
+            case 1:
+                rgb.red = q; rgb.green = 255; rgb.blue = 0;
+                break;
+            case 2:
+                rgb.red = 0; rgb.green = 255; rgb.blue = t;
+                break;
+            case 3:
+                rgb.red = 0; rgb.green = q; rgb.blue = 255;
+                break;
+            case 4:
+                rgb.red = t; rgb.green = 0; rgb.blue = 255;
+                break;
+            default:
+                rgb.red = 255; rgb.green = 0; rgb.blue = q;
+                break;
+        }
+        
+        return rgb;
+    }
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
