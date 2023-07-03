@@ -1,7 +1,7 @@
 #pragma once
 
 #include "NexHardware.h"
-#include "bases/Touch.hpp"
+#include "Touch.hpp"
 #include "bases/Elements.hpp"
 
 namespace Nxt {
@@ -24,7 +24,7 @@ class Button : public Touch {
     /**
      * @copydoc Object::Object(uint8_t pid, uint8_t cid, std::string_view name);
      */
-    Button(uint8_t pid, uint8_t cid, std::string_view name) : Touch(pid, cid, name) {}
+    Button(Nxt::Page & pid, uint8_t cid, std::string_view name) : Touch(pid, cid, name) {}
 
     /**
      * Text attribute of component.

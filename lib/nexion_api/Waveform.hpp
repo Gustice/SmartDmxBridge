@@ -19,7 +19,7 @@ class Waveform : public Object {
     /**
      * @copydoc Object::Object(uint8_t pid, uint8_t cid, std::string_view name);
      */
-    Waveform(uint8_t pid, uint8_t cid, std::string_view name) : Object(pid, cid, name) {}
+    Waveform(Nxt::Page & pid, uint8_t cid, std::string_view name) : Object(pid, cid, name) {}
 
     /**
      * Add value to show.

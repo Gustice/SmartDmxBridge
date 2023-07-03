@@ -14,7 +14,7 @@
  */
 #include "Rtc.hpp"
 #include "NexHardware.h"
-#include "bases/Touch.hpp"
+#include "Touch.hpp"
 
 #include <cstring>
 

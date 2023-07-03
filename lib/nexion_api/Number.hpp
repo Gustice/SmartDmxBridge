@@ -1,7 +1,7 @@
 #pragma once
 
 #include "NexHardware.h"
-#include "bases/Touch.hpp"
+#include "Touch.hpp"
 #include "bases/Elements.hpp"
 
 namespace Nxt {
@@ -19,7 +19,7 @@ class Number : public Touch {
     /**
      * @copydoc Object::Object(uint8_t pid, uint8_t cid, std::string_view name);
      */
-    Number(uint8_t pid, uint8_t cid, std::string_view name) : Touch(pid, cid, name) {}
+    Number(Nxt::Page & pid, uint8_t cid, std::string_view name) : Touch(pid, cid, name) {}
 
     /**
      * Number attribute of component.

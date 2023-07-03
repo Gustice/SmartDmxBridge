@@ -1,11 +1,12 @@
 #pragma once 
 
 #include "NexHardware.h"
+#include "Touch.hpp"
 #include "Button.hpp"
 #include "Crop.hpp"
 #include "Gauge.hpp"
 #include "Hotspot.hpp"
-#include "NexPage.h"
+#include "Page.hpp"
 #include "Picture.hpp"
 #include "ProgressBar.hpp"
 #include "Slider.hpp"

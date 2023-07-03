@@ -1,7 +1,7 @@
 #pragma once
 
 #include "NexHardware.h"
-#include "bases/Touch.hpp"
+#include "Touch.hpp"
 
 namespace Nxt {
 
@@ -19,7 +19,7 @@ public: /* methods */
     /**
      * @copydoc Object::Object(uint8_t pid, uint8_t cid, std::string_view name);
      */
-    Hotspot(uint8_t pid, uint8_t cid, std::string_view name) : Touch(pid, cid, name) {}
+    Hotspot(Nxt::Page & pid, uint8_t cid, std::string_view name) : Touch(pid, cid, name) {}
 };
 /**
  * @}

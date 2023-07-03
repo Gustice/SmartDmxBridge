@@ -1,9 +1,8 @@
-#include "bases/Touch.hpp"
+#include "Touch.hpp"
 #include <vector>
+#include "Page.hpp"
 
 namespace Nxt {
-
-Touch::Touch(uint8_t pid, uint8_t cid, std::string_view name) : Object(pid, cid, name) {}
 
 void Touch::attachPush(eventCb push, void *ptr) {
     this->_pushCb = push;
@@ -39,7 +38,7 @@ void Touch::pop(void) {
 
 void Touch::iterate(const SensingList &elements, uint8_t pid, uint8_t cid, int32_t event) {
     for (auto &&e : elements) {
-        if (e->getObjPid() == pid && e->getObjCid() == cid) {
+        if (e->pageRef.getId() == pid && e->getObjCid() == cid) {
             e->printObjInfo();
             if (static_cast<int>(Event::Push) == event) {
                 e->push();

@@ -1,9 +1,11 @@
 #pragma once
 
-#include "Object.hpp"
+#include "bases/Object.hpp"
 #include <vector>
 
 namespace Nxt {
+
+class Page;
 
 /**
  * @addtogroup TouchEvent
@@ -39,7 +41,13 @@ class Touch : public Object {
     /**
      * @copydoc Object::Object(uint8_t pid, uint8_t cid, std::string_view name);
      */
-    Touch(uint8_t pid, uint8_t cid, std::string_view name);
+    Touch(Nxt::Page & pid, uint8_t cid, std::string_view name) : Object(pid, cid, name) {
+      
+    }
+
+    Touch(std::string_view name) : Object(name) {
+      
+    }
 
     /**
      * Attach an callback function of push touch event.

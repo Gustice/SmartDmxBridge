@@ -11,7 +11,7 @@ std::string aESeq(std::string_view sv) {
 
 TEST(DisplayTestElements, PageTests) {
     NxtIo::nexInit(stream, nullptr);
-    NexPage eut{0, 1, "eut"};
+    Nxt::Page eut{0, "eut"};
 
     eut.show();
     EXPECT_EQ(lW, aESeq("page eut"));
@@ -26,9 +26,9 @@ TEST(DisplayTestElements, ColorTests) {
     EXPECT_EQ(b, 31);
 }
 
-class Pseudo : public NexTouch {
+class Pseudo : public Nxt::Touch {
   public:
-    Pseudo(uint8_t pid, uint8_t cid, const char *name) : NexTouch(pid, cid, name) {}
+    Pseudo(Nxt::Page & pid, uint8_t cid, const char *name) : Nxt::Touch(pid, cid, name) {}
 
     Nxt::TextValue text{*this, "txt"};
     Nxt::IntegerValue value{*this, "val"};
@@ -41,7 +41,8 @@ class Pseudo : public NexTouch {
 
 TEST(DisplayTestElements, TestPropertyBases) {
     NxtIo::nexInit(stream, nullptr);
-    Pseudo eut(0, 1, "eut");
+    Nxt::Page page{0, "page"};
+    Pseudo eut(page, 1, "eut");
 
     eut.text.get();
     EXPECT_EQ(lW, aESeq("get eut.txt"));
@@ -95,7 +96,8 @@ TEST(DisplayTestElements, TestPropertyBases) {
 
 TEST(DisplayTestElements, TextTests) {
     NxtIo::nexInit(stream, nullptr);
-    Nxt::Text eut(0, 1, "eut");
+    Nxt::Page page{0, "page"};
+    Nxt::Text eut(page, 1, "eut");
 
     // Testing only Getter
     eut.text.get();
@@ -118,7 +120,8 @@ TEST(DisplayTestElements, TextTests) {
 
 TEST(DisplayTestElements, NumberTests) {
     NxtIo::nexInit(stream, nullptr);
-    Nxt::Number eut(0, 1, "eut");
+    Nxt::Page page{0, "page"};
+    Nxt::Number eut(page, 1, "eut");
 
     eut.value.get();
     EXPECT_EQ(lW, aESeq("get eut.val"));
@@ -140,7 +143,8 @@ TEST(DisplayTestElements, NumberTests) {
 
 TEST(DisplayTestElements, ScrollTextTests) {
     NxtIo::nexInit(stream, nullptr);
-    Nxt::Scrolltext eut(0, 1, "eut");
+    Nxt::Page page{0, "page"};
+    Nxt::Scrolltext eut(page, 1, "eut");
 
     eut.text.get();
     EXPECT_EQ(lW, aESeq("get eut.txt"));
@@ -174,7 +178,8 @@ TEST(DisplayTestElements, ScrollTextTests) {
 
 TEST(DisplayTestElements, ButtonTests) {
     NxtIo::nexInit(stream, nullptr);
-    Nxt::Button eut(0, 1, "eut");
+    Nxt::Page page{0, "page"};
+    Nxt::Button eut(page, 1, "eut");
 
     eut.text.get();
     EXPECT_EQ(lW, aESeq("get eut.txt"));
@@ -204,7 +209,8 @@ TEST(DisplayTestElements, ButtonTests) {
 
 TEST(DisplayTestElements, SliderTests) {
     NxtIo::nexInit(stream, nullptr);
-    Nxt::Slider eut(0, 1, "eut");
+    Nxt::Page page{0, "page"};
+    Nxt::Slider eut(page, 1, "eut");
 
     eut.value.get();
     EXPECT_EQ(lW, aESeq("get eut.val"));
@@ -226,7 +232,8 @@ TEST(DisplayTestElements, SliderTests) {
 
 TEST(DisplayTestElements, GaugeTests) {
     NxtIo::nexInit(stream, nullptr);
-    Nxt::Gauge eut(0, 1, "eut");
+    Nxt::Page page{0, "page"};
+    Nxt::Gauge eut(page, 1, "eut");
 
     eut.value.get();
     EXPECT_EQ(lW, aESeq("get eut.val"));
@@ -245,7 +252,8 @@ TEST(DisplayTestElements, GaugeTests) {
 
 TEST(DisplayTestElements, VariableTest) {
     NxtIo::nexInit(stream, nullptr);
-    Nxt::Variable eut(0, 1, "eut");
+    Nxt::Page page{0, "page"};
+    Nxt::Variable eut(page, 1, "eut");
 
     eut.value.get();
     EXPECT_EQ(lW, aESeq("get eut.val"));
@@ -255,7 +263,8 @@ TEST(DisplayTestElements, VariableTest) {
 
 TEST(DisplayTestElements, PictureTest) {
     NxtIo::nexInit(stream, nullptr);
-    Nxt::Picture eut(0, 1, "eut");
+    Nxt::Page page{0, "page"};
+    Nxt::Picture eut(page, 1, "eut");
 
     eut.picture.get();
     EXPECT_EQ(lW, aESeq("get eut.pic"));
@@ -263,7 +272,8 @@ TEST(DisplayTestElements, PictureTest) {
 
 TEST(DisplayTestElements, CropTest) {
     NxtIo::nexInit(stream, nullptr);
-    Nxt::Crop eut(0, 1, "eut");
+    Nxt::Page page{0, "page"};
+    Nxt::Crop eut(page, 1, "eut");
 
     eut.cropImage.get();
     EXPECT_EQ(lW, aESeq("get eut.picc"));
@@ -271,7 +281,8 @@ TEST(DisplayTestElements, CropTest) {
 
 TEST(DisplayTestElements, RadioTest) {
     NxtIo::nexInit(stream, nullptr);
-    Nxt::Radio eut(0, 1, "eut");
+    Nxt::Page page{0, "page"};
+    Nxt::Radio eut(page, 1, "eut");
 
     eut.value.get();
     EXPECT_EQ(lW, aESeq("get eut.val"));
@@ -284,7 +295,8 @@ TEST(DisplayTestElements, RadioTest) {
 
 TEST(DisplayTestElements, CheckBoxTest) {
     NxtIo::nexInit(stream, nullptr);
-    Nxt::Checkbox eut(0, 1, "eut");
+    Nxt::Page page{0, "page"};
+    Nxt::Checkbox eut(page, 1, "eut");
 
     eut.value.get();
     EXPECT_EQ(lW, aESeq("get eut.val"));
@@ -297,7 +309,8 @@ TEST(DisplayTestElements, CheckBoxTest) {
 
 TEST(DisplayTestElements, ProgressBarTest) {
     NxtIo::nexInit(stream, nullptr);
-    Nxt::ProgressBar eut(0, 1, "eut");
+    Nxt::Page page{0, "page"};
+    Nxt::ProgressBar eut(page, 1, "eut");
 
     eut.value.get();
     EXPECT_EQ(lW, aESeq("get eut.val"));
@@ -310,7 +323,8 @@ TEST(DisplayTestElements, ProgressBarTest) {
 
 TEST(DisplayTestElements, TimerTest) {
     NxtIo::nexInit(stream, nullptr);
-    Nxt::Timer eut(0, 1, "eut");
+    Nxt::Page page{0, "page"};
+    Nxt::Timer eut(page, 1, "eut");
 
     eut.cycleTime.get();
     EXPECT_EQ(lW, aESeq("get eut.tim"));
@@ -324,12 +338,14 @@ TEST(DisplayTestElements, TimerTest) {
 
 TEST(DisplayTestElements, HotspotTest) {
     NxtIo::nexInit(stream, nullptr);
-    Nxt::Hotspot eut(0, 1, "eut");
+    Nxt::Page page{0, "page"};
+    Nxt::Hotspot eut(page, 1, "eut");
 }
 
 TEST(DisplayTestElements, DualStateTest) {
     NxtIo::nexInit(stream, nullptr);
-    Nxt::DSButton eut(0, 1, "eut");
+    Nxt::Page page{0, "page"};
+    Nxt::DSButton eut(page, 1, "eut");
 
     eut.value.get();
     EXPECT_EQ(lW, aESeq("get eut.val"));
@@ -379,7 +395,8 @@ TEST(DisplayTestElements, RtcTest) {
 
 TEST(DisplayTestElements, WaveformTest) {
     NxtIo::nexInit(stream, nullptr);
-    Nxt::Waveform eut(0, 1, "eut");
+    Nxt::Page page{0, "page"};
+    Nxt::Waveform eut(page, 1, "eut");
 
     eut.backgroundColor.get();
     EXPECT_EQ(lW, aESeq("get eut.bco"));
@@ -419,4 +436,31 @@ TEST(DisplayTestElements, GpioTest) {
 
     eut.get_pwmfreq();
     EXPECT_EQ(lW, aESeq("get pwmf"));
+}
+
+TEST(DisplayTestElements, GLobalScopeTest) {
+    NxtIo::nexInit(stream, nullptr);
+    Nxt::Page pageVisible{0, "PageVis"};
+    Nxt::Page pageHidden{1, "PageHid"};
+
+    Nxt::Text txtOnVisiblePage{pageVisible, 1, "TxtVis"};
+    Nxt::Text txtOnHiddenPage{pageHidden, 1, "TxtHid"};
+
+    txtOnVisiblePage.text.set("Test");
+    EXPECT_EQ(lW, aESeq("TxtVis.txt=\"Test\""));
+    txtOnVisiblePage.text.get();
+    EXPECT_EQ(lW, aESeq("get TxtVis.txt"));
+
+    txtOnHiddenPage.text.set("Test");
+    EXPECT_EQ(lW, aESeq("PageHid.TxtHid.txt=\"Test\""));
+    txtOnHiddenPage.text.get();
+    EXPECT_EQ(lW, aESeq("get PageHid.TxtHid.txt"));
+
+    
+    pageHidden.show();
+    // txtOnHiddenPage.text.set("Test");
+    // EXPECT_EQ(lW, aESeq("TxtHid.txt=\"Test\""));
+    // txtOnVisiblePage.text.set("Test");
+    // EXPECT_EQ(lW, aESeq("PageVis.TxtVis.txt=\"Test\""));
+
 }

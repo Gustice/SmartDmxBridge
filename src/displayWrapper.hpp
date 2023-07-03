@@ -43,6 +43,12 @@ class Display {
         switchToWorkingPage(this);
         ESP_LOGI("DISP", "setup finished");
 
+        tName.text.set("DMX-Bridge");
+        tVersion.text.set("T 0.0.0");
+        tAddress.text.set("0.0.0.0");
+        tInfo.text.set("Device Info");
+        tStatus.text.set("Device Status");
+
         page = CurrentPage::WorkingPage;
         workingPage.show();
         {
@@ -96,38 +102,38 @@ class Display {
     ColorPresets & _colorPresets;
     CurrentPage page = CurrentPage::WorkingPage;
 
-    NexPage workingPage{1, 0, "workingPage"};
-    NexPage infoPage{2, 0, "infoPage"};
+    Nxt::Page splashScreen{0, "splashScreen"};
+    Nxt::Page workingPage{1, "workingPage"};
+    Nxt::Page infoPage{2, "infoPage"};
 
-    Nxt::Button bScheme1{1, 1, "bScheme1"};
-    Nxt::Button bScheme2{1, 4, "bScheme2"};
-    Nxt::Button bScheme3{1, 7, "bScheme3"};
-    Nxt::Button bSchemeCustom{1, 10, "bSchemeCustom"};
+    Nxt::Button bScheme1{workingPage, 1, "bScheme1"};
+    Nxt::Button bScheme2{workingPage, 4, "bScheme2"};
+    Nxt::Button bScheme3{workingPage, 7, "bScheme3"};
+    Nxt::Button bSchemeCustom{workingPage, 10, "bSchemeCustom"};
 
-    Nxt::Button bToInfoPage{1, 15, "bNext"};
-    Nxt::Button bToWorkingPage{2, 11, "bPrev"};
+    Nxt::Button bToInfoPage{workingPage, 15, "bNext"};
+    Nxt::Button bToWorkingPage{infoPage, 11, "bPrev"};
 
-    Nxt::Text tHealth{0, 4, "tHealth"};
-    Nxt::Text tScheme1Fg{1, 2, "tScheme1Fg"};
-    Nxt::Text tScheme1Bg{1, 3, "tScheme1Bg"};
-    Nxt::Text tScheme2Fg{1, 5, "tScheme2Fg"};
-    Nxt::Text tScheme2Bg{1, 6, "tScheme2Bg"};
-    Nxt::Text tScheme3Fg{1, 8, "tScheme3Fg"};
-    Nxt::Text tScheme3Bg{1, 9, "tScheme3Bg"};
-    Nxt::Text tCustomFg{1, 16, "tCustomFg"};
-    Nxt::Text tCustomBg{1, 17, "tCustomBg"};
+    Nxt::Text tHealth{splashScreen, 4, "tHealth"};
+    Nxt::Text tScheme1Fg{workingPage, 2, "tScheme1Fg"};
+    Nxt::Text tScheme1Bg{workingPage, 3, "tScheme1Bg"};
+    Nxt::Text tScheme2Fg{workingPage, 5, "tScheme2Fg"};
+    Nxt::Text tScheme2Bg{workingPage, 6, "tScheme2Bg"};
+    Nxt::Text tScheme3Fg{workingPage, 8, "tScheme3Fg"};
+    Nxt::Text tScheme3Bg{workingPage, 9, "tScheme3Bg"};
+    Nxt::Text tCustomFg{workingPage, 16, "tCustomFg"};
+    Nxt::Text tCustomBg{workingPage, 17, "tCustomBg"};
 
-    Nxt::Slider hCustomFg{1, 13, "hCustomFg"};
-    Nxt::Slider hCustomBg{1, 14, "hCustomBg"};
-    Nxt::ProgressBar jLight{2, 13, "jLight"};
-    Nxt::ProgressBar jAmbient{2, 12, "jAmbient"};
+    Nxt::Slider hCustomFg{workingPage, 13, "hCustomFg"};
+    Nxt::Slider hCustomBg{workingPage, 14, "hCustomBg"};
+    Nxt::ProgressBar jLight{infoPage, 13, "jLight"};
+    Nxt::ProgressBar jAmbient{infoPage, 12, "jAmbient"};
 
-
-    Nxt::Text tName{2, 3, "tName"};
-    Nxt::Text tVersion{2, 4, "tVersion"};
-    Nxt::Text tAddress{2, 6, "tAddress"};
-    Nxt::Text tInfo{2, 8, "tInfo"};
-    Nxt::Text tStatus{2, 10, "tStatus"};
+    Nxt::Text tName{infoPage, 3, "tName"};
+    Nxt::Text tVersion{infoPage, 4, "tVersion"};
+    Nxt::Text tAddress{infoPage, 6, "tAddress"};
+    Nxt::Text tInfo{infoPage, 8, "tInfo"};
+    Nxt::Text tStatus{infoPage, 10, "tStatus"};
 
     static void switchToWorkingPage(void *ptr) {
         Display * display = (Display*) ptr;
@@ -140,11 +146,6 @@ class Display {
         Display * display = (Display*) ptr;
         display->page = CurrentPage::InfoPage;
         //display->infoPage.show(); // already set by display
-        display->tName.text.set("DMX-Bridge");
-        display->tVersion.text.set("T 0.0.0");
-        display->tAddress.text.set("0.0.0.0");
-        display->tInfo.text.set("Device Info");
-        display->tStatus.text.set("Device Status");
     }
 
     static void bScheme1Cb(void *ptr)

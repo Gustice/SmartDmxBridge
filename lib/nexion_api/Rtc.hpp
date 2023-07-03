@@ -2,7 +2,7 @@
 
 #include "NexHardware.h"
 #include "bases/Color.hpp"
-#include "bases/Touch.hpp"
+#include "Touch.hpp"
 
 namespace Nxt {
 

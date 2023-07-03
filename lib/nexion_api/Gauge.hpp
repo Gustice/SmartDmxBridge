@@ -20,7 +20,7 @@ public: /* methods */
     /**
      * @copydoc Object::Object(uint8_t pid, uint8_t cid, std::string_view name);
      */
-    Gauge(uint8_t pid, uint8_t cid, std::string_view name) : Object(pid, cid, name) {}
+    Gauge(Nxt::Page & pid, uint8_t cid, std::string_view name) : Object(pid, cid, name) {}
 
     /**
      * Text attribute of component.

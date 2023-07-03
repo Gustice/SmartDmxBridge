@@ -1,5 +1,5 @@
 #include "NexHardware.h"
-#include <cstring>
+#include "Page.hpp"
 
 enum class NxtReturn {
     CMD_FINISHED = 0x01,
@@ -185,3 +185,4 @@ void NxtIo::sendLog(std::string log) {
 
 NxtIo::LogCallback NxtIo::logCallback;
 SerialStream * NxtIo::serialPort;
+

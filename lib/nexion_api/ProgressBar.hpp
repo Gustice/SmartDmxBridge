@@ -20,7 +20,7 @@ public: /* methods */
     /**
      * @copydoc Object::Object(uint8_t pid, uint8_t cid, std::string_view name);
      */
-    ProgressBar(uint8_t pid, uint8_t cid, std::string_view name) : Object(pid, cid, name) {}
+    ProgressBar(Nxt::Page & pid, uint8_t cid, std::string_view name) : Object(pid, cid, name) {}
     
     /**
      * Number attribute of component.
