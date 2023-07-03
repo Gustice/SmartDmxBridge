@@ -28,6 +28,9 @@ extern "C" { // This switch allows the ROS C-implementation to find this main
 void app_main(void);
 }
 
+const std::string StationName = "DMX-Bridge";
+const std::string StationVersion = "T 0.0.0";
+
 
 enum class DeviceMode {
     StandAlone,
@@ -157,8 +160,11 @@ IpInfo deviceInfo;
 
 static xSemaphoreHandle s_semph_get_ip_addrs =
     xSemaphoreCreateCounting(NR_OF_IP_ADDRESSES_TO_WAIT_FOR, 0);
-void gotIpCallback(IpInfo deviceInfo) {
+bool notifyDisplay = false;
+void gotIpCallback(IpInfo defInfo) {
     xSemaphoreGive(s_semph_get_ip_addrs);
+    notifyDisplay = true;
+    deviceInfo = defInfo;
 }
 
 /**
@@ -259,13 +265,30 @@ static void dmx_Listener(void *arg) {
     }
 }
 
+void newColorScheme(AmbientColorSet color) {
+    auto fg = color.foregroundColor;
+    auto bg = color.backgroundColor;
+
+    ESP_LOGI(TAG, "Setting color to fg r=%d g=%d b=%d   bg r=%d g=%d b=%d ", fg.red, fg.green, fg.blue, bg.red, bg.green, bg.blue);
+}
+
 
 static void displayTask(void *arg) {
     ESP_LOGI(TAG, "Starting Display Task");
     static Uart nxtPort(1, GPIO_NUM_36, GPIO_NUM_4, Uart::BaudRate::_38400Bd);
-    static Display display(nxtPort, stagePresets);
-    
-    while (1) {
+    static Display display(nxtPort, StationName, StationVersion, stagePresets, newColorScheme);
+
+    while (!notifyDisplay) {
+        display.tick();
+        vTaskDelay(pdMS_TO_TICKS(50));
+    }
+
+    {
+        auto & ip = deviceInfo.address;
+        display.setIp(std::to_string(ip[0]) + "." + std::to_string(ip[1]) + "." + std::to_string(ip[2]) + "." + std::to_string(ip[3]) );
+    }
+
+    while (true) {
         display.tick();
         vTaskDelay(pdMS_TO_TICKS(50));
     }
@@ -276,7 +299,7 @@ void app_main(void) {
     ESP_ERROR_CHECK(esp_event_loop_create_default());
     initEthernetHardware(etherPins, gotIpCallback);
     // xTaskCreate(interfaceTask, "uart_interfaceTask", ECHO_TASK_STACK_SIZE, NULL, 10, NULL);
-    xTaskCreate(displayTask, "displayTask", 4096, NULL, 10, NULL);
+    xTaskCreate(displayTask, "displayTask", 8192, NULL, 10, NULL);
 
     // Initialize NVS.
     esp_err_t err = nvs_flash_init();

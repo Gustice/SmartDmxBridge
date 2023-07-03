@@ -25,15 +25,18 @@ class UartWrapper : public SerialStream {
 
 class Display {
   public:
-    Display(Uart &port, ColorPresets & initialColors) : _port(port), _colorPresets(initialColors) {
+    using setColorCallback = void(*)(AmbientColorSet);
+
+    Display(Uart &port, std::string name, std::string version, ColorPresets & initialColors, setColorCallback colorSetCb) 
+        : _port(port), _colorPresets(initialColors), _colorSetCb(colorSetCb) {
         NxtIo::nexInit(_port, dumpLog);
         ESP_LOGI("DISP", "begin setup");
         tHealth.text.set("Setup Image");
 
-        bScheme1.attachPush(bScheme1Cb, &bScheme1);
-        bScheme2.attachPush(bScheme2Cb, &bScheme2);
-        bScheme3.attachPush(bScheme3Cb, &bScheme3);
-        bSchemeCustom.attachPush(bSchemeCustomCb, &bSchemeCustom);
+        bScheme1.attachPush(bScheme1Cb, this);
+        bScheme2.attachPush(bScheme2Cb, this);
+        bScheme3.attachPush(bScheme3Cb, this);
+        bSchemeCustom.attachPush(bSchemeCustomCb, this);
         hCustomFg.attachPop(hCustomFgCb, this);
         hCustomBg.attachPop(hCustomBgCb, this);
 
@@ -43,8 +46,8 @@ class Display {
         switchToWorkingPage(this);
         ESP_LOGI("DISP", "setup finished");
 
-        tName.text.set("DMX-Bridge");
-        tVersion.text.set("T 0.0.0");
+        tName.text.set(name);
+        tVersion.text.set(version);
         tAddress.text.set("0.0.0.0");
         tInfo.text.set("Device Info");
         tStatus.text.set("Device Status");
@@ -89,9 +92,41 @@ class Display {
         default:
             break;
         }
+
+        if (_ip.isNew()) {
+            tAddress.text.set(_ip.getValue());
+        }
+        if (_status.isNew()) {
+            tStatus.text.set(_status.getValue());
+        }
+        if (_info.isNew()) {
+            tInfo.text.set(_info.getValue());
+        }
+        
+    }
+
+    void setIp(std::string ip) {
+        _ip.setValue(ip);
+    }
+    void setInfo(std::string info) {
+        _info.setValue(info);
+    }
+    void setStatus(std::string status) {
+        _status.setValue(status);
     }
 
   private:
+    struct ValueBuffer {
+        bool isNew() {return _new; }
+
+        std::string & getValue() { _new = false; return _value;}
+        void setValue(std::string value) { _new = true; _value = value;}
+
+        private:
+        bool _new;
+        std::string _value;
+    };
+
     static uint32_t calcColor (Color col) {
         return Nxt::Color::calcNextionColor(col.red, col.green, col.blue);
     }
@@ -135,6 +170,12 @@ class Display {
     Nxt::Text tInfo{infoPage, 8, "tInfo"};
     Nxt::Text tStatus{infoPage, 10, "tStatus"};
 
+    ValueBuffer _ip;
+    ValueBuffer _status;
+    ValueBuffer _info;
+    setColorCallback _colorSetCb;
+    AmbientColorSet _customPreset;
+
     static void switchToWorkingPage(void *ptr) {
         Display * display = (Display*) ptr;
         display->page = CurrentPage::WorkingPage;
@@ -150,32 +191,40 @@ class Display {
 
     static void bScheme1Cb(void *ptr)
     {
-        // todo ERROR
+        Display * display = (Display*) ptr;
+        display->_colorSetCb(display->_colorPresets.preset1);
     }
     static void bScheme2Cb(void *ptr)
     {
-        // todo ERROR
+        Display * display = (Display*) ptr;
+        display->_colorSetCb(display->_colorPresets.preset2);
     }
     static void bScheme3Cb(void *ptr)
     {
-        // todo ERROR
+        Display * display = (Display*) ptr;
+        display->_colorSetCb(display->_colorPresets.preset3);
     }
     static void bSchemeCustomCb(void *ptr)
     {
-        // todo ERROR
+        Display * display = (Display*) ptr;
+        display->_colorSetCb(display->_customPreset);
     }
 
     static void hCustomFgCb(void *ptr)
     {
         Display * display = (Display*) ptr;
         auto fg = display->hCustomFg.value.get();
-        display->tCustomFg.background.set(calcColor(hueToRgb(fg)));
+        auto color = hueToRgb(fg);
+        display->_customPreset.foregroundColor = color;
+        display->tCustomFg.background.set(calcColor(color));
     }
     static void hCustomBgCb(void *ptr)
     {
         Display * display = (Display*) ptr;
         auto bg = display->hCustomBg.value.get();
-        display->tCustomBg.background.set(calcColor(hueToRgb(bg)));
+        auto color = hueToRgb(bg);
+        display->_customPreset.backgroundColor = color;
+        display->tCustomBg.background.set(calcColor(color));
     }
 
     static void dumpLog(std::string msg) {
