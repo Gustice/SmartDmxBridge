@@ -32,12 +32,6 @@ const std::string StationName = "DMX-Bridge";
 const std::string StationVersion = "T 0.0.0";
 
 
-enum class DeviceMode {
-    StandAlone,
-    Remote,
-    TestMode,
-};
-
 static StageConfig stage {
     .weightsLights {
         /*AmbienteGrp 1*/ 0,0,0, 
@@ -73,37 +67,12 @@ ColorPresets stagePresets {
 
 OtaHandler ota("http://192.168.178.10:8070/dmx_bridge.bin");
 static const char *TAG = "dmx-bridge";
-
-void onCommand(EmbeddedCli *embeddedCli, CliCommand *command);
-void startUpdate(EmbeddedCli *cli, char *args, void *context);
-void getDmxLayout(EmbeddedCli *cli, char *args, void *context);
-void getDmxChannel(EmbeddedCli *cli, char *args, void *context);
-void setDmxChannel(EmbeddedCli *cli, char *args, void *context);
-void onHello(EmbeddedCli *cli, char *args, void *context);
-
-static const char *welcomeString = "\
-** Smart-DMX-Bridge **\n\
-* \n\
-* \n\
-";
-
-void AppendCallbackToShell(Cli &shell) {
-    shell.addBinding({"hello", "Print Welcome Stream", true, (void *)welcomeString, onHello});
-    shell.addBinding({"update", "Start OTA-Update-Process", true, nullptr, startUpdate});
-    shell.addBinding({"get-layout", "Get channel info", false, nullptr, getDmxLayout});
-    shell.addBinding(
-        {"set-ch", "'c v' Set DMX-Channel c to value v", false, nullptr, setDmxChannel});
-    shell.addBinding(
-        {"get-ch", "'c' Get DMX-Channel c (omit c for all)", false, nullptr, getDmxChannel});
-}
-
-static Uart dmxPort(2, GPIO_NUM_32, GPIO_NUM_33, Uart::BaudRate::_250000Bd, 128, Uart::StopBits::_2sb);
+DmxChannels channels;
 
 static void interfaceTask(void *arg) {
     static Uart mntPort(1, GPIO_NUM_36, GPIO_NUM_4, Uart::BaudRate::_115200Bd);
-    Cli shell(mntPort, onCommand);
-
-    AppendCallbackToShell(shell);
+    Cli shell(mntPort, Ui::onCommand);
+    Ui ui(shell, stage, channels, ota);
     while (1) {
         shell.process();
     }
@@ -112,47 +81,6 @@ static void interfaceTask(void *arg) {
 void startUpdate(EmbeddedCli *cli, char *args, void *context) {
     ota.enableUpdateTask();
 }
-
-uint8_t dmxChannels[24];
-void getDmxLayout(EmbeddedCli *cli, char *args, void *context) {
-    auto &port = static_cast<Cli *>(cli->appContext)->_port;
-    port.write("This will be the layout\n");
-}
-
-void getDmxChannel(EmbeddedCli *cli, char *args, void *context) {
-    auto &port = static_cast<Cli *>(cli->appContext)->_port;
-    port.write(std::string("get channel : ") + args + "\n");
-}
-
-void setDmxChannel(EmbeddedCli *cli, char *args, void *context) {
-    auto &port = static_cast<Cli *>(cli->appContext)->_port;
-    port.write(std::string("set channel : ") + args + "\n");
-}
-void onCommand(EmbeddedCli *embeddedCli, CliCommand *command) {
-    ESP_LOGI(TAG, "Received command: %s", command->name);
-    embeddedCliTokenizeArgs(command->args);
-    for (int i = 1; i <= embeddedCliGetTokenCount(command->args); ++i) {
-        ESP_LOGI(TAG, "    arg %d : %s", i, embeddedCliGetToken(command->args, i));
-    }
-}
-
-void onHello(EmbeddedCli *cli, char *args, void *context) {
-    ESP_LOGI(TAG, "Hello ");
-    auto &port = static_cast<Cli *>(cli->appContext)->_port;
-    port.write((const char *)context);
-    if (embeddedCliGetTokenCount(args) == 0)
-        ESP_LOGI(TAG, "%s", (const char *)context);
-    else
-        ESP_LOGI(TAG, "%s", embeddedCliGetToken(args, 1));
-}
-
-EtherPins_t etherPins = {
-    .ethPhyAddr = GPIO_NUM_0,
-    .ethPhyRst = GPIO_NUM_NC,
-    .ethPhyMdc = GPIO_NUM_23,
-    .ethPhyMdio = GPIO_NUM_18,
-    .ethPhyPower = GPIO_NUM_12,
-};
 
 #define NR_OF_IP_ADDRESSES_TO_WAIT_FOR (2)
 
@@ -238,8 +166,8 @@ static void tcp_server_task(void *arg) {
         while (socket.isActive()) {
             ESP_LOGI(TAG, "Socket waiting for connect");
             TcpSession session(config, socket);
-            Cli shell(session, onCommand);
-            AppendCallbackToShell(shell);
+            Cli shell(session, Ui::onCommand);
+            Ui ui(shell, stage, channels, ota);
             if (!session.isActive())
                 break;
 
