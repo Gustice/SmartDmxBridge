@@ -42,7 +42,7 @@ class Display {
 
         bToInfoPage.attachPush(switchToInfoPage, this);
         bToWorkingPage.attachPush(switchToWorkingPage, this);
-
+        
         switchToWorkingPage(this);
         ESP_LOGI("DISP", "setup finished");
 
@@ -67,6 +67,9 @@ class Display {
             tCustomFg.background.set(calcColor(hueToRgb(fg)));
             auto bg = hCustomBg.value.get();
             tCustomBg.background.set(calcColor(hueToRgb(bg)));
+
+            jLight.value.set(0);
+            jAmbient.value.set(0);
         }
     }
 
@@ -115,6 +118,11 @@ class Display {
         _status.setValue(status);
     }
 
+    void setValues(std::array<uint8_t,2> intensities) {
+        jLight.value.set(intensities[0]);
+        jAmbient.value.set(intensities[1]);
+    }
+
   private:
     struct ValueBuffer {
         bool isNew() {return _new; }
@@ -161,8 +169,8 @@ class Display {
 
     Nxt::Slider hCustomFg{workingPage, 13, "hCustomFg"};
     Nxt::Slider hCustomBg{workingPage, 14, "hCustomBg"};
-    Nxt::ProgressBar jLight{infoPage, 13, "jLight"};
-    Nxt::ProgressBar jAmbient{infoPage, 12, "jAmbient"};
+    Nxt::ProgressBar jLight{workingPage, 21, "jLight"};
+    Nxt::ProgressBar jAmbient{workingPage, 20, "jAmbient"};
 
     Nxt::Text tName{infoPage, 3, "tName"};
     Nxt::Text tVersion{infoPage, 4, "tVersion"};

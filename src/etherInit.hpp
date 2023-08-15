@@ -27,3 +27,4 @@ struct EtherPins_t {
 
 using GotIpHandler = void(*)(IpInfo);
 void initEthernetHardware(EtherPins_t etherPins, void(*)(IpInfo));
+bool is_our_netif(const char *prefix, esp_netif_t *netif);

@@ -21,6 +21,8 @@ enum class AnsiColor : char {
     Bright_white = 67,
 };
 
+constexpr std::string_view EscapeSequence {"\033["};
+
 class EscapeCodes {
   public:
     static std::string home() {
@@ -86,7 +88,7 @@ class EscapeCodes {
 
   protected:
     static std::string escape() {
-        return std::string("\033[");
+        return {EscapeSequence.begin()};
     }
     static std::string escapeSequence(int x, char v) {
         std::stringstream ret(escape());

@@ -13,6 +13,7 @@
 #include "tcpSocket.hpp"
 #include "udpSocket.hpp"
 #include "uart.hpp"
+#include "adc.hpp"
 
 #include <Artnet.h>
 #include <lwip/netdb.h>
@@ -23,13 +24,16 @@
 #include <sys/socket.h>
 
 #include "displayWrapper.hpp"
+#include "ScaledValue.hpp"
 
 extern "C" { // This switch allows the ROS C-implementation to find this main
 void app_main(void);
 }
 
 const std::string StationName = "DMX-Bridge";
-const std::string StationVersion = "T 0.0.0";
+const std::string StationVersion = "T 0.5.0";
+
+std::array<uint8_t,2> intensities;
 
 
 static StageConfig stage {
@@ -65,6 +69,15 @@ ColorPresets stagePresets {
     },
 };
 
+EtherPins_t etherPins = {
+    .ethPhyAddr = GPIO_NUM_0,
+    .ethPhyRst = GPIO_NUM_NC,
+    .ethPhyMdc = GPIO_NUM_23,
+    .ethPhyMdio = GPIO_NUM_18,
+    .ethPhyPower = GPIO_NUM_12,
+};
+
+
 OtaHandler ota("http://192.168.178.10:8070/dmx_bridge.bin");
 static const char *TAG = "dmx-bridge";
 DmxChannels channels;
@@ -78,9 +91,6 @@ static void interfaceTask(void *arg) {
     }
 }
 
-void startUpdate(EmbeddedCli *cli, char *args, void *context) {
-    ota.enableUpdateTask();
-}
 
 #define NR_OF_IP_ADDRESSES_TO_WAIT_FOR (2)
 
@@ -93,15 +103,6 @@ void gotIpCallback(IpInfo defInfo) {
     xSemaphoreGive(s_semph_get_ip_addrs);
     notifyDisplay = true;
     deviceInfo = defInfo;
-}
-
-/**
- * @brief Checks the netif description if it contains specified prefix.
- * All netifs created withing common connect component are prefixed with the module TAG,
- * so it returns true if the specified netif is owned by this module
- */
-static bool is_our_netif(const char *prefix, esp_netif_t *netif) {
-    return strncmp(prefix, esp_netif_get_desc(netif), strlen(prefix) - 1) == 0;
 }
 
 uint32_t universe1 = 1; // 0 - 15
@@ -219,6 +220,9 @@ static void displayTask(void *arg) {
     while (true) {
         display.tick();
         vTaskDelay(pdMS_TO_TICKS(50));
+        display.tick();
+        display.setValues(intensities);
+        vTaskDelay(pdMS_TO_TICKS(50));
     }
 }
 
@@ -259,10 +263,17 @@ void app_main(void) {
     }
 
     xTaskCreate(tcp_server_task, "tcp_server", 4096, nullptr, 5, NULL);
+    
+    static Uart dmxPort(2, GPIO_NUM_32, GPIO_NUM_33, Uart::BaudRate::_250000Bd, 128, Uart::StopBits::_2sb);
     static DmxInterface dmxInterface(dmxPort);
     xTaskCreate(dmxSocket, "dmxSocket", 4096, &dmxInterface, 5, NULL);
     xTaskCreate(dmx_Listener, "dmx_Listener", 4096, &dmxInterface, 5, NULL);
 
+    Adc adcLight{adc_unit_t::ADC_UNIT_1, adc1_channel_t::ADC1_CHANNEL_0};
+    Adc adcAmbiente{adc_unit_t::ADC_UNIT_1, adc1_channel_t::ADC1_CHANNEL_3};
+
+    ScaledValue intensityScale{ScaledValue::Range{0,4095}, ScaledValue::Range{0,255}};
+    
     {
         uint8_t data[dmxInterface.Size];
         for (size_t i = 0; i < dmxInterface.Size; i++) {
@@ -271,10 +282,10 @@ void app_main(void) {
         dmxInterface.set(data);
     }
 
-    static int cnt;
     while (true) {
-        vTaskDelay(5000 / portTICK_PERIOD_MS);
-        std::cout << "Cnt" << cnt++ << "\n";
+        vTaskDelay(100 / portTICK_PERIOD_MS);
         dmxInterface.send();
+        intensities[0] = intensityScale.scale(adcLight.readValue());
+        intensities[1] = intensityScale.scale(adcAmbiente.readValue());
     }
 }

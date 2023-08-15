@@ -134,3 +134,12 @@ void initEthernetHardware(EtherPins_t etherPins, GotIpHandler gotIpCb) {
     ESP_ERROR_CHECK(esp_eth_start(eth_handle));
     ESP_ERROR_CHECK(esp_register_shutdown_handler(&eth_stop));
 }
+
+/**
+ * @brief Checks the netif description if it contains specified prefix.
+ * All netifs created withing common connect component are prefixed with the module TAG,
+ * so it returns true if the specified netif is owned by this module
+ */
+bool is_our_netif(const char *prefix, esp_netif_t *netif) {
+    return strncmp(prefix, esp_netif_get_desc(netif), strlen(prefix) - 1) == 0;
+}
