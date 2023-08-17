@@ -272,7 +272,7 @@ void app_main(void) {
     Adc adcLight{adc_unit_t::ADC_UNIT_1, adc1_channel_t::ADC1_CHANNEL_0};
     Adc adcAmbiente{adc_unit_t::ADC_UNIT_1, adc1_channel_t::ADC1_CHANNEL_3};
 
-    ScaledValue intensityScale{ScaledValue::Range{0,4095}, ScaledValue::Range{0,255}};
+    ScaledValue<int> intensityScale{ScaledValue<int>::Range{0,4095}, ScaledValue<int>::Range{0,255}};
     
     {
         uint8_t data[dmxInterface.Size];

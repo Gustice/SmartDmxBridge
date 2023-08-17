@@ -4,6 +4,7 @@
 #include "esp_log.h"
 #include "uart.hpp"
 #include "configModel.hpp"
+#include "ValueCache.hpp"
 
 class UartWrapper : public SerialStream {
     public:
@@ -124,17 +125,6 @@ class Display {
     }
 
   private:
-    struct ValueBuffer {
-        bool isNew() {return _new; }
-
-        std::string & getValue() { _new = false; return _value;}
-        void setValue(std::string value) { _new = true; _value = value;}
-
-        private:
-        bool _new;
-        std::string _value;
-    };
-
     static uint32_t calcColor (Color col) {
         return Nxt::Color::calcNextionColor(col.red, col.green, col.blue);
     }
@@ -178,9 +168,9 @@ class Display {
     Nxt::Text tInfo{infoPage, 8, "tInfo"};
     Nxt::Text tStatus{infoPage, 10, "tStatus"};
 
-    ValueBuffer _ip;
-    ValueBuffer _status;
-    ValueBuffer _info;
+    ValueCache<std::string> _ip;
+    ValueCache<std::string> _status;
+    ValueCache<std::string> _info;
     setColorCallback _colorSetCb;
     AmbientColorSet _customPreset;
 
@@ -274,18 +264,3 @@ class Display {
         return rgb;
     }
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
