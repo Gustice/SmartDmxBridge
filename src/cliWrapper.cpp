@@ -5,6 +5,6 @@ const std::string_view WelcomeString {
     "  send 'help' for help-page\n"
 };
 
-StageConfig * Ui::_stage;
-DmxChannels * Ui::_channels;
-OtaHandler * Ui::_ota;
+Ui::Config * Ui::_config;
+Cli * Ui::_rShell = nullptr;
+Ui::abortCallback Ui::_abortCbk = nullptr;

@@ -25,6 +25,7 @@
 
 #include "displayWrapper.hpp"
 #include "ScaledValue.hpp"
+#include "BinDiff.hpp"
 
 extern "C" { // This switch allows the ROS C-implementation to find this main
 void app_main(void);
@@ -82,12 +83,29 @@ OtaHandler ota("http://192.168.178.10:8070/dmx_bridge.bin");
 static const char *TAG = "dmx-bridge";
 DmxChannels channels;
 
+void startDmxMonitor(std::function<void(std::string&)>);
+void stopDmxMonitor();
+
+void showSystemHealth() {
+    ESP_LOGI(TAG, "System-Stats");
+    ESP_LOGI(TAG, "Heap-Info:");
+    ESP_LOGI(TAG, " .. free %d / minimum %d", heap_caps_get_free_size(MALLOC_CAP_8BIT), heap_caps_get_minimum_free_size(MALLOC_CAP_8BIT));
+}
+
+Ui::Config uiConfig {
+    .stage = stage,
+    .channels = channels,
+    .ota = ota,
+    .startMonitor = startDmxMonitor,
+    .stopMonitor = stopDmxMonitor,
+    .showHealth = showSystemHealth,
+};
+
 static void interfaceTask(void *arg) {
     static Uart mntPort(1, GPIO_NUM_36, GPIO_NUM_4, Uart::BaudRate::_115200Bd);
-    Cli shell(mntPort, Ui::onCommand);
-    Ui ui(shell, stage, channels, ota);
+    Ui ui(mntPort, uiConfig);
     while (1) {
-        shell.process();
+        ui.process();
     }
 }
 
@@ -167,13 +185,12 @@ static void tcp_server_task(void *arg) {
         while (socket.isActive()) {
             ESP_LOGI(TAG, "Socket waiting for connect");
             TcpSession session(config, socket);
-            Cli shell(session, Ui::onCommand);
-            Ui ui(shell, stage, channels, ota);
+            Ui ui(session, uiConfig);
             if (!session.isActive())
                 break;
 
             while (session.isActive()) {
-                shell.process();
+                ui.process();
             }
         }
     }
@@ -226,6 +243,61 @@ static void displayTask(void *arg) {
     }
 }
 
+
+struct MonitorConfig {
+    DmxInterface & dmx;
+    std::function<void(std::string &)> onWrite;
+};
+
+bool stopRequested = false;
+static void dmx_Monitor(void *arg) {
+    MonitorConfig *config = (MonitorConfig *)arg;
+    DmxInterface &dmx = config->dmx;
+    
+    BinDiff differ(24);
+    std::vector<uint8_t> sent(49, 0);
+    while (true) {
+        dmx.set(channels.values.data(), channels.values.size());
+        dmx.send();
+
+        std::vector<uint8_t> sent(channels.values.cbegin() + 1, channels.values.cend());
+        auto received = dmx.receive(); 
+        
+        std::copy(channels.values.cbegin(), channels.values.cend(), sent.begin() + 1) ;
+
+        if (received.size() < channels.values.size()) {
+            ESP_LOGW(TAG, "DMX-Monitor, incomplete data received (%d received):", received.size());
+        }
+        ESP_LOGI(TAG, "DMX-Monitor, sent -> %d e: %s ..", sent.size(), differ.stringify_list(sent.cbegin(), sent.cbegin() + 13).c_str());
+        ESP_LOGI(TAG, "DMX-Monitor, got  <- %d e: %s ..", received.size(),  differ.stringify_list(received.cbegin(), received.cbegin() + std::min(12u,received.size()) ).c_str());
+
+        auto res =  differ.compare(sent, received);
+        if (!res.areSame) {
+            ESP_LOGE(TAG, "DMX-Monitor, error in transmit :\n %s", res.diff.c_str());
+        }
+      
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        if (stopRequested) {break;}
+    }
+    stopRequested = false;
+}
+
+
+void startDmxMonitor(std::function<void(std::string&)> onWrite) {
+    ESP_LOGI(TAG, "Starting Monitor task");
+    MonitorConfig config {
+        .dmx = *dmxInterface,
+        .onWrite = onWrite,
+    };
+
+    xTaskCreate(dmx_Monitor, "dmx_Monitor", 4096, &config, 5, NULL);
+}
+void stopDmxMonitor() {
+    ESP_LOGI(TAG, "Stopping Monitor task");
+    stopRequested = true;
+}
+
+
 void app_main(void) {
     // Create default event loop that running in background
     ESP_ERROR_CHECK(esp_event_loop_create_default());
@@ -267,7 +339,7 @@ void app_main(void) {
     static Uart dmxPort(2, GPIO_NUM_32, GPIO_NUM_33, Uart::BaudRate::_250000Bd, 128, Uart::StopBits::_2sb);
     static DmxInterface dmxInterface(dmxPort);
     xTaskCreate(dmxSocket, "dmxSocket", 4096, &dmxInterface, 5, NULL);
-    xTaskCreate(dmx_Listener, "dmx_Listener", 4096, &dmxInterface, 5, NULL);
+    //xTaskCreate(dmx_Listener, "dmx_Listener", 4096, &dmxInterface, 5, NULL);
 
     Adc adcLight{adc_unit_t::ADC_UNIT_1, adc1_channel_t::ADC1_CHANNEL_0};
     Adc adcAmbiente{adc_unit_t::ADC_UNIT_1, adc1_channel_t::ADC1_CHANNEL_3};
@@ -288,4 +360,8 @@ void app_main(void) {
         intensities[0] = intensityScale.scale(adcLight.readValue());
         intensities[1] = intensityScale.scale(adcAmbiente.readValue());
     }
+
+        // ESP_LOGI(TAG, "free %d", heap_caps_get_free_size(MALLOC_CAP_8BIT));
+        // ESP_LOGI(TAG, "min %d", heap_caps_get_minimum_free_size(MALLOC_CAP_8BIT));
+
 }

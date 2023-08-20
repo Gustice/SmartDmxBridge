@@ -111,7 +111,7 @@ class DmxInterface {
     }
 
     void set(const uint8_t *dmx, int size) {
-        memcpy(&sendBuffer[1], dmx, DmxChannelCount);
+        memcpy(&sendBuffer[1], dmx, size);
     }
 
     void send() {
