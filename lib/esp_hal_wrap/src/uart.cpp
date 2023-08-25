@@ -6,10 +6,12 @@
 constexpr int StdBufferSize = 128;
 
 Uart::Uart(uart_port_t port, gpio_num_t rxd, gpio_num_t txd, BaudRate rate)
-: Uart(port, rxd, txd, rate, StdBufferSize, _1sb) { }
+    : Uart(port, rxd, txd, rate, StdBufferSize, _1sb) {
+    ESP_ERROR_CHECK(uart_driver_install(Port, BufferSize * 2, 0, 0, nullptr, 0));
+}
 
-
-Uart::Uart(uart_port_t port, gpio_num_t rxd, gpio_num_t txd, BaudRate rate, uint16_t bufferSize, StopBits stopBits)
+Uart::Uart(uart_port_t port, gpio_num_t rxd, gpio_num_t txd, BaudRate rate, uint16_t bufferSize,
+           StopBits stopBits)
     : Port(port), RxdPin(rxd), TxdPin(txd), BufferSize(bufferSize), _baudRate(rate) {
     uart_config_t uart_config = {
         .baud_rate = (int)_baudRate,
@@ -20,12 +22,9 @@ Uart::Uart(uart_port_t port, gpio_num_t rxd, gpio_num_t txd, BaudRate rate, uint
         .source_clk = UART_SCLK_APB,
     };
 
-    int intr_alloc_flags = 0;
-    ESP_ERROR_CHECK(uart_driver_install(Port, BufferSize * 2, 0, 2, &RxQueue, intr_alloc_flags));
     ESP_ERROR_CHECK(uart_param_config(Port, &uart_config));
     ESP_ERROR_CHECK(uart_set_pin(Port, TxdPin, RxdPin, _rtsPin, _ctsPin));
-
-    // Configure a temporary buffer for the incoming data
+    // NOTE: "uart_driver_install" is not called here
     data = (uint8_t *)malloc(BufferSize);
 }
 

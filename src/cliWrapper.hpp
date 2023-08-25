@@ -80,7 +80,7 @@ class Ui {
         
     Ui(CharStream &port, Config &config) : _shell(port, onCommand) {
         _config = &config;
-        _shell.addBinding({"help", "Print Welcome Stream", false, (void *)WelcomeString.begin(), onWelcome});
+        // _shell.addBinding({"help", "Print Welcome Stream", false, (void *)WelcomeString.begin(), onWelcome});
         _shell.addBinding({"update", "Start OTA-Update-Process", false, nullptr, startUpdate});
         _shell.addBinding({"get-layout", "Get channel info", false, nullptr, getDmxLayout});
         _shell.addBinding(
@@ -138,7 +138,7 @@ class Ui {
     
     static void showHealth(EmbeddedCli *cli, char *args, void *context) {
         auto &port = static_cast<Cli *>(cli->appContext)->_port;
-        port.write("Calling system stats output\n");
+        port.write("Calling system stats output (will be dumped in Log interface)\n");
         _config->showHealth();
     }
 

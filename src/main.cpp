@@ -1,3 +1,6 @@
+
+#include "main.hpp"
+
 #include "etherInit.hpp"
 #include "otaUpdate.hpp"
 
@@ -6,14 +9,11 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "driver/gpio.h"
-#include "driver/uart.h"
 #include "cliWrapper.hpp"
-#include "dmxInterface.hpp"
 #include "tcpSocket.hpp"
 #include "udpSocket.hpp"
-#include "uart.hpp"
 #include "adc.hpp"
+#include "dmx_uart.hpp"
 
 #include <Artnet.h>
 #include <lwip/netdb.h>
@@ -35,6 +35,20 @@ const std::string StationName = "DMX-Bridge";
 const std::string StationVersion = "T 0.5.0";
 
 std::array<uint8_t,2> intensities;
+
+
+constexpr DeviceIoMap ioMap {
+    .dmx {
+        .port = 2,
+        .rxPin = GPIO_NUM_32,
+        .txPin = GPIO_NUM_33,
+    },
+    .display {
+        .port = 1,
+        .rxPin = GPIO_NUM_36,
+        .txPin =  GPIO_NUM_4,
+    },
+};
 
 
 static StageConfig stage {
@@ -83,6 +97,8 @@ OtaHandler ota("http://192.168.178.10:8070/dmx_bridge.bin");
 static const char *TAG = "dmx-bridge";
 DmxChannels channels;
 
+static Dmx512 dmxPort(ioMap.dmx.port, ioMap.dmx.rxPin , ioMap.dmx.txPin);
+
 void startDmxMonitor(std::function<void(std::string&)>);
 void stopDmxMonitor();
 
@@ -101,15 +117,6 @@ Ui::Config uiConfig {
     .showHealth = showSystemHealth,
 };
 
-static void interfaceTask(void *arg) {
-    static Uart mntPort(1, GPIO_NUM_36, GPIO_NUM_4, Uart::BaudRate::_115200Bd);
-    Ui ui(mntPort, uiConfig);
-    while (1) {
-        ui.process();
-    }
-}
-
-
 #define NR_OF_IP_ADDRESSES_TO_WAIT_FOR (2)
 
 IpInfo deviceInfo;
@@ -126,18 +133,16 @@ void gotIpCallback(IpInfo defInfo) {
 uint32_t universe1 = 1; // 0 - 15
 uint32_t universe2 = 2; // 0 - 15
 
-DmxInterface * dmxInterface;
 void Universe1Callback(const uint8_t *data, const uint16_t size) {
     int len = size;
     if (len > DmxChannelCount)
         len = DmxChannelCount;
     
-    dmxInterface->set(data, size);
-    dmxInterface->send();
+    dmxPort.set(data, size);
+    dmxPort.send();
 }
 
 static void dmxSocket(void *args) {
-    dmxInterface = (DmxInterface *)args;
     while (true) {
         struct sockaddr_in dest_addr_ip4 {
             .sin_len = sizeof(sockaddr_in), .sin_family = AF_INET,
@@ -198,9 +203,9 @@ static void tcp_server_task(void *arg) {
 }
 
 static void dmx_Listener(void *arg) {
-    DmxInterface *dmx = (DmxInterface *)arg;
+    Dmx512 *dmx = (Dmx512 *)arg;
     while (1) {
-        auto bytes = dmx->receive();
+        auto bytes = dmx->get();
 
         if (bytes.size() > 0) {
         ESP_LOGI(TAG, "DMX-Data received (%d bytes): %d %d %d %d .. %d", bytes.size(), bytes[0],
@@ -219,9 +224,10 @@ void newColorScheme(AmbientColorSet color) {
 }
 
 
+
 static void displayTask(void *arg) {
     ESP_LOGI(TAG, "Starting Display Task");
-    static Uart nxtPort(1, GPIO_NUM_36, GPIO_NUM_4, Uart::BaudRate::_38400Bd);
+    static Uart nxtPort(ioMap.display.port, ioMap.display.rxPin, ioMap.display.txPin, Uart::BaudRate::_38400Bd);
     static Display display(nxtPort, StationName, StationVersion, stagePresets, newColorScheme);
 
     while (!notifyDisplay) {
@@ -245,35 +251,32 @@ static void displayTask(void *arg) {
 
 
 struct MonitorConfig {
-    DmxInterface & dmx;
+    Dmx512 & dmx;
     std::function<void(std::string &)> onWrite;
 };
 
 bool stopRequested = false;
 static void dmx_Monitor(void *arg) {
     MonitorConfig *config = (MonitorConfig *)arg;
-    DmxInterface &dmx = config->dmx;
+    Dmx512 &dmx = config->dmx;
     
     BinDiff differ(24);
     std::vector<uint8_t> sent(49, 0);
     while (true) {
         dmx.set(channels.values.data(), channels.values.size());
         dmx.send();
-
-        std::vector<uint8_t> sent(channels.values.cbegin() + 1, channels.values.cend());
-        auto received = dmx.receive(); 
+        auto received = dmx.get(); 
         
         std::copy(channels.values.cbegin(), channels.values.cend(), sent.begin() + 1) ;
 
         if (received.size() < channels.values.size()) {
             ESP_LOGW(TAG, "DMX-Monitor, incomplete data received (%d received):", received.size());
         }
-        ESP_LOGI(TAG, "DMX-Monitor, sent -> %d e: %s ..", sent.size(), differ.stringify_list(sent.cbegin(), sent.cbegin() + 13).c_str());
-        ESP_LOGI(TAG, "DMX-Monitor, got  <- %d e: %s ..", received.size(),  differ.stringify_list(received.cbegin(), received.cbegin() + std::min(12u,received.size()) ).c_str());
-
         auto res =  differ.compare(sent, received);
         if (!res.areSame) {
             ESP_LOGE(TAG, "DMX-Monitor, error in transmit :\n %s", res.diff.c_str());
+            ESP_LOGI(TAG, "DMX-Monitor, sent -> %d e: %s ..", sent.size(), differ.stringify_list(sent.cbegin(), sent.cbegin() + 13).c_str());
+            ESP_LOGI(TAG, "DMX-Monitor, got  <- %d e: %s ..", received.size(),  differ.stringify_list(received.cbegin(), received.cbegin() + std::min(13u,received.size()) ).c_str());
         }
       
         vTaskDelay(1000 / portTICK_PERIOD_MS);
@@ -286,7 +289,7 @@ static void dmx_Monitor(void *arg) {
 void startDmxMonitor(std::function<void(std::string&)> onWrite) {
     ESP_LOGI(TAG, "Starting Monitor task");
     MonitorConfig config {
-        .dmx = *dmxInterface,
+        .dmx = dmxPort,
         .onWrite = onWrite,
     };
 
@@ -336,32 +339,18 @@ void app_main(void) {
 
     xTaskCreate(tcp_server_task, "tcp_server", 4096, nullptr, 5, NULL);
     
-    static Uart dmxPort(2, GPIO_NUM_32, GPIO_NUM_33, Uart::BaudRate::_250000Bd, 128, Uart::StopBits::_2sb);
-    static DmxInterface dmxInterface(dmxPort);
-    xTaskCreate(dmxSocket, "dmxSocket", 4096, &dmxInterface, 5, NULL);
-    //xTaskCreate(dmx_Listener, "dmx_Listener", 4096, &dmxInterface, 5, NULL);
+    xTaskCreate(dmxSocket, "dmxSocket", 4096, nullptr, 5, NULL);
+    //xTaskCreate(dmx_Listener, "dmx_Listener", 4096, nullptr, 5, NULL);
 
     Adc adcLight{adc_unit_t::ADC_UNIT_1, adc1_channel_t::ADC1_CHANNEL_0};
     Adc adcAmbiente{adc_unit_t::ADC_UNIT_1, adc1_channel_t::ADC1_CHANNEL_3};
 
     ScaledValue<int> intensityScale{ScaledValue<int>::Range{0,4095}, ScaledValue<int>::Range{0,255}};
     
-    {
-        uint8_t data[dmxInterface.Size];
-        for (size_t i = 0; i < dmxInterface.Size; i++) {
-            data[i] = i + 1;
-        }
-        dmxInterface.set(data);
-    }
-
     while (true) {
         vTaskDelay(100 / portTICK_PERIOD_MS);
-        dmxInterface.send();
+        dmxPort.send();
         intensities[0] = intensityScale.scale(adcLight.readValue());
         intensities[1] = intensityScale.scale(adcAmbiente.readValue());
     }
-
-        // ESP_LOGI(TAG, "free %d", heap_caps_get_free_size(MALLOC_CAP_8BIT));
-        // ESP_LOGI(TAG, "min %d", heap_caps_get_minimum_free_size(MALLOC_CAP_8BIT));
-
 }

@@ -32,8 +32,8 @@ class BinDiff {
                 o << "Blk " << i++ << ": ";
                 auto b = _blockSize;
                 while (--b >= 0 && s1 < end) {
-                    o << "0x" << *s1++ << "/"
-                      << "0x" << *s2++ << ", ";
+                    o << "0x" << static_cast<unsigned>(*s1++) << "/"
+                      << "0x" << static_cast<unsigned>(*s2++) << ", ";
                 }
                 o << "\n";
             }

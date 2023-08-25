@@ -21,9 +21,7 @@ class Uart : public CharStream {
     };
 
     Uart(uart_port_t port, gpio_num_t rxd, gpio_num_t txd, BaudRate rate);
-    Uart(uart_port_t port, gpio_num_t rxd, gpio_num_t txd, BaudRate rate, uint16_t bufferSize,
-         StopBits stopBits);
-    ~Uart();
+    virtual ~Uart();
 
     std::string read() override;
     void write(char c) override;
@@ -41,7 +39,9 @@ class Uart : public CharStream {
     const gpio_num_t TxdPin;
     const uint16_t BufferSize;
 
-    QueueHandle_t RxQueue;
+  protected:
+  Uart(uart_port_t port, gpio_num_t rxd, gpio_num_t txd, BaudRate rate, uint16_t bufferSize,
+          StopBits stopBits);
 
   private:
     BaudRate _baudRate;
@@ -49,5 +49,4 @@ class Uart : public CharStream {
     gpio_num_t _ctsPin = gpio_num_t::GPIO_NUM_NC;
 
     uint8_t *data;
-    QueueHandle_t *rxQueue;
 };
