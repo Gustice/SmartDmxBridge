@@ -30,7 +30,9 @@ class Display {
 
     Display(Uart &port, std::string name, std::string version, ColorPresets & initialColors, setColorCallback colorSetCb) 
         : _port(port), _colorPresets(initialColors), _colorSetCb(colorSetCb) {
-        NxtIo::nexInit(_port, dumpLog);
+        if (!NxtIo::nexInit(_port, dumpLog)) {
+            dumpLog("Init failed");
+        }
         ESP_LOGI("DISP", "begin setup");
         tHealth.text.set("Setup Image");
 
@@ -81,16 +83,14 @@ class Display {
                 &bToInfoPage,   &bScheme1,  &bScheme2, &bScheme3,
                 &bSchemeCustom, &hCustomFg, &hCustomBg
             };
-        NxtIo::nexLoop(list);
-
+            NxtIo::nexLoop(list);
         } break;
 
         case CurrentPage::InfoPage: {
             NxtIo::SensingList list = {
                 &bToWorkingPage
             };
-        NxtIo::nexLoop(list);
-
+            NxtIo::nexLoop(list);
         } break;
 
         default:
@@ -227,7 +227,7 @@ class Display {
 
     static void dumpLog(std::string msg) {
         auto output = msg.c_str();
-        ESP_LOGD("DISP", "Log: %s", output);
+        ESP_LOGI("DISP", "Log: %s", output);
     }
 
     static Color hueToRgb(uint8_t hue)

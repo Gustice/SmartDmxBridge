@@ -69,6 +69,7 @@
         "future": "cpp",
         "*.ipp": "cpp",
         "bitset": "cpp",
-        "regex": "cpp"
+        "regex": "cpp",
+        "span": "cpp"
     }
 }

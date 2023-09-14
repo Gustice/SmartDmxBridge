@@ -24,29 +24,26 @@ enum class NxtReturn {
 const std::string EndSequence = "\xFF\xFF\xFF";
 
 /*
- * Receive uint32_t data. 
- * 
- * @param number - save uint32_t data. 
- * @param timeout - set timeout time. 
+ * Receive uint32_t data.
  *
- * @retval true - success. 
+ * @param number - save uint32_t data.
+ * @param timeout - set timeout time.
+ *
+ * @retval true - success.
  * @retval false - failed.
  *
  */
-uint32_t NxtIo::recvRetNumber(uint32_t timeout)
-{
+uint32_t NxtIo::recvRetNumber(uint32_t timeout) {
     auto read = serialPort->read(8, timeout);
     if (8 != read.size()) {
-        NxtIo::sendLog("recvRetNumber err");
+        NxtIo::sendLog("recvRetNumber timeout");
         return false;
     }
 
-    if ( static_cast<NxtReturn>(read[0]) == NxtReturn::NUMBER_HEAD
-        && read[5] == 0xFF
-        && read[6] == 0xFF
-        && read[7] == 0xFF
-        ) {
-        auto number = ((uint32_t)read[4] << 24) | ((uint32_t)read[3] << 16) | (read[2] << 8) | (read[1]);
+    if (static_cast<NxtReturn>(read[0]) == NxtReturn::NUMBER_HEAD && read[5] == 0xFF &&
+        read[6] == 0xFF && read[7] == 0xFF) {
+        auto number =
+            ((uint32_t)read[4] << 24) | ((uint32_t)read[3] << 16) | (read[2] << 8) | (read[1]);
         NxtIo::sendLog("recvRetNumber :" + std::to_string(number));
         return number;
     }
@@ -55,47 +52,41 @@ uint32_t NxtIo::recvRetNumber(uint32_t timeout)
     return 0;
 }
 
-
 /*
- * Receive string data. 
- * 
- * @param buffer - save string data. 
- * @param len - string buffer length. 
- * @param timeout - set timeout time. 
+ * Receive string data.
+ *
+ * @param buffer - save string data.
+ * @param len - string buffer length.
+ * @param timeout - set timeout time.
  *
  * @return the length of string buffer.
  *
  */
-std::string NxtIo::recvRetString(uint32_t timeout)
-{
+std::string NxtIo::recvRetString(uint32_t timeout) {
     static std::string lastRead;
     bool str_start_flag = false;
     static uint8_t cnt_0xff = 0;
     std::string temp = lastRead;
     lastRead = "";
-    
+
     auto read = serialPort->read(3, timeout);
-    for (auto &&c : read)
-    {
+    for (auto &&c : read) {
         if (str_start_flag) {
             if (0xFF == c) {
                 cnt_0xff++;
                 if (cnt_0xff >= 3) {
                     break;
                 }
-            }
-            else {
+            } else {
                 temp += (char)c;
             }
-        }
-        else if (static_cast<NxtReturn>(c) == NxtReturn::STRING_HEAD)
-        {
+        } else if (static_cast<NxtReturn>(c) == NxtReturn::STRING_HEAD) {
             str_start_flag = true;
         }
     }
 
-    if (cnt_0xff < 3)
-    {   lastRead += temp;
+    if (cnt_0xff < 3) {
+        lastRead += temp;
         return {};
     }
     cnt_0xff = 0;
@@ -107,35 +98,29 @@ std::string NxtIo::recvRetString(uint32_t timeout)
  *
  * @param cmd - the string of command.
  */
-void NxtIo::sendCommand(std::string cmd)
-{
+void NxtIo::sendCommand(std::string cmd) {
     cmd += "\xFF\xFF\xFF";
     serialPort->write(cmd);
 }
 
-
 /*
- * Command is executed successfully. 
+ * Command is executed successfully.
  *
  * @param timeout - set timeout time.
  *
  * @retval true - success.
- * @retval false - failed. 
+ * @retval false - failed.
  *
  */
-bool NxtIo::recvRetCommandFinished(uint32_t timeout)
-{    
+bool NxtIo::recvRetCommandFinished(uint32_t timeout) {
     auto read = serialPort->read(4, timeout);
     if (4 != read.size()) {
+        NxtIo::sendLog("recvRetCommandFinished timeout");
         return false;
     }
 
-    if (static_cast<NxtReturn>(read[0]) == NxtReturn::CMD_FINISHED
-        && read[1] == 0xFF
-        && read[2] == 0xFF
-        && read[3] == 0xFF
-        )
-    {
+    if (static_cast<NxtReturn>(read[0]) == NxtReturn::CMD_FINISHED && read[1] == 0xFF &&
+        read[2] == 0xFF && read[3] == 0xFF) {
         NxtIo::sendLog("recvRetCommandFinished ok");
         return true;
     }
@@ -144,9 +129,7 @@ bool NxtIo::recvRetCommandFinished(uint32_t timeout)
     return false;
 }
 
-
-bool NxtIo::nexInit(SerialStream &port, NxtIo::LogCallback logCb)
-{
+bool NxtIo::nexInit(SerialStream &port, NxtIo::LogCallback logCb) {
     serialPort = &port;
     logCallback = logCb;
 
@@ -159,23 +142,29 @@ bool NxtIo::nexInit(SerialStream &port, NxtIo::LogCallback logCb)
     return ret;
 }
 
-void NxtIo::nexLoop(const SensingList & nex_listen_list)
-{
-    auto input = serialPort->read(7,0);
-    if (input.size() > 0)
-    {
-        if (static_cast<NxtReturn>(input[0]) == NxtReturn::EVENT_TOUCH_HEAD)
-        {
-            if (input.size() >= 7)
-            {
+void NxtIo::nexLoop(const SensingList &nex_listen_list) {
+    auto input = serialPort->read(7, 0);
+    if (input.size() > 0) {
+        if (static_cast<NxtReturn>(input[0]) == NxtReturn::EVENT_TOUCH_HEAD) {
+            if (input.size() >= 7) {
                 if (0xFF == (input[4] & input[5] & input[6])) {
-                    Nxt::Touch::iterate(nex_listen_list, input[1], input[2], (int32_t)input[3]);
+                    uint8_t page = input[1];
+                    uint8_t component = input[2];
+                    int32_t event = (int32_t)input[3];
+
+                    NxtIo::sendLog(std::string{"TouchEvent: "} +
+                                   std::to_string(static_cast<int>(input[1])) + " " +
+                                   std::to_string(static_cast<int>(input[2])) + " " +
+                                   std::to_string(static_cast<int>(input[3])));
+
+                    if (!Nxt::Touch::iterate(nex_listen_list, page, component, event)) {
+                        NxtIo::sendLog("TouchEvent ignored");
+                    }
                 }
             }
         }
     }
 }
-
 
 void NxtIo::sendLog(std::string log) {
     if (logCallback != nullptr) {
@@ -184,5 +173,4 @@ void NxtIo::sendLog(std::string log) {
 }
 
 NxtIo::LogCallback NxtIo::logCallback;
-SerialStream * NxtIo::serialPort;
-
+SerialStream *NxtIo::serialPort;

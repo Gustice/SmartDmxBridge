@@ -36,17 +36,19 @@ void Touch::pop(void) {
     }
 }
 
-void Touch::iterate(const SensingList &elements, uint8_t pid, uint8_t cid, int32_t event) {
+bool Touch::iterate(const SensingList &elements, uint8_t pid, uint8_t cid, int32_t event) {
     for (auto &&e : elements) {
         if (e->pageRef.getId() == pid && e->getObjCid() == cid) {
             e->printObjInfo();
             if (static_cast<int>(Event::Push) == event) {
                 e->push();
+
             } else if (static_cast<int>(Event::Pop) == event) {
                 e->pop();
             }
-            break;
+            return true;
         }
     }
+    return false;
 }
 } // namespace Nxt

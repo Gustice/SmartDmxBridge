@@ -35,7 +35,8 @@ class Touch : public Object {
     /// @param pid propagated page id
     /// @param cid propagated component id
     /// @param event propagated event
-    static void iterate(const SensingList &elements, uint8_t pid, uint8_t cid,
+    /// @return true if successful, false if not found
+    static bool iterate(const SensingList &elements, uint8_t pid, uint8_t cid,
                         int32_t event);
 
     /**

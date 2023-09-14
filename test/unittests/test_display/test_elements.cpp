@@ -2,7 +2,7 @@
 #include "fakes/streamDummy.hpp"
 #include <gtest/gtest.h>
 
-StreamDummy stream;
+static StreamDummy stream;
 auto &lW = stream.lastWrite;
 
 std::string aESeq(std::string_view sv) {

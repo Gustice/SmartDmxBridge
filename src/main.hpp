@@ -3,6 +3,8 @@
 #include "driver/gpio.h"
 #include "driver/uart.h"
 #include "uart.hpp"
+#include <array>
+#include <algorithm>
 
 struct DeviceIoMap
 {
