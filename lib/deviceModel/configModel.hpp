@@ -6,6 +6,9 @@
 #include <cstdint>
 #include <string>
 
+constexpr int StageChannelsCount = 24;
+using StageValues = std::array<uint8_t, StageChannelsCount>;
+
 struct DmxChannels {
     std::array<uint8_t, 24> values;
     std::string getValuesStr();
@@ -32,15 +35,48 @@ struct StageConfig {
     std::string getStageConfigStr();
 };
 
+struct StageIntensity {
+    uint8_t illumination = 0;
+    uint8_t ambiente = 0;
+};
+
 struct ColorPresets {
     AmbientColorSet preset1;
     AmbientColorSet preset2;
     AmbientColorSet preset3;
 };
 
-enum class DeviceMode {
-    StandAlone,
-    Remote,
-    Manual,
-    TestMode,
+class DeviceState {
+  public:
+    enum class Mode {
+        StandAlone,
+        Remote,
+        Manual,
+        TestRing,
+        Sensing,
+    };
+
+    DeviceState(Mode init) : _default(init), _last(init) {}
+
+    bool stateIs(Mode mode) {
+        return _current == mode;
+    }
+
+    Mode getState() {
+        return _current;
+    }
+
+    void setNewState(Mode mode) {
+        _last = _current;
+        _current = mode;
+    }
+
+    void fallbackToLast() {
+        _current = _last;
+    }
+
+  private:
+    const Mode _default;
+    Mode _current;
+    Mode _last;
 };

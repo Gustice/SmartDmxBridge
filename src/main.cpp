@@ -9,11 +9,11 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "adc.hpp"
 #include "cliWrapper.hpp"
+#include "dmx_uart.hpp"
 #include "tcpSocket.hpp"
 #include "udpSocket.hpp"
-#include "adc.hpp"
-#include "dmx_uart.hpp"
 
 #include <Artnet.h>
 #include <lwip/netdb.h>
@@ -23,9 +23,10 @@
 #include "nvs_flash.h"
 #include <sys/socket.h>
 
-#include "displayWrapper.hpp"
-#include "ScaledValue.hpp"
 #include "BinDiff.hpp"
+#include "ScaledValue.hpp"
+#include "displayWrapper.hpp"
+#include "ratioControl.hpp"
 
 extern "C" { // This switch allows the ROS C-implementation to find this main
 void app_main(void);
@@ -34,53 +35,44 @@ void app_main(void);
 const std::string StationName = "DMX-Bridge";
 const std::string StationVersion = "T 0.5.0";
 
-std::array<uint8_t,2> intensities;
-
-
-constexpr DeviceIoMap ioMap {
-    .dmx {
+constexpr DeviceIoMap ioMap{
+    .dmx{
         .port = 2,
         .rxPin = GPIO_NUM_32,
         .txPin = GPIO_NUM_33,
     },
-    .display {
+    .display{
         .port = 1,
         .rxPin = GPIO_NUM_36,
-        .txPin =  GPIO_NUM_4,
+        .txPin = GPIO_NUM_4,
     },
 };
 
+static StageConfig stage{.weightsLights{
+                             /*AmbienteGrp 1*/ 0,  0,   0,
+                             /*Empty*/ 0,          0,
+                             /*AmbienteGrp 2*/ 0,  0,   0,
+                             /*Front-Colored */ 0, 0,   0,   255, 125, 0,
+                             /*Empty*/ 0,          0,
+                             /*Lights*/ 255,       0,   255, 0,
+                             /*Halogen*/ 255,      255, 255, 255,
+                         },
+                         .channelsForeground{1, 2, 3},
+                         .channelsBackground{6, 7, 8},
+                         .colors{.foregroundColor{255, 64, 0}, .backgroundColor{0, 64, 255}}};
 
-static StageConfig stage {
-    .weightsLights {
-        /*AmbienteGrp 1*/ 0,0,0, 
-        /*Empty*/ 0,0, 
-        /*AmbienteGrp 2*/ 0,0,0, 
-        /*Front-Colored */ 0,0,0,255,125,0,
-        /*Empty*/ 0,0,
-        /*Lights*/ 255,0, 255,0,
-        /*Halogen*/ 255,255, 255,255,
-        },
-    .channelsForeground {1,2,3},
-    .channelsBackground {6,7,8},
-    .colors{
-        .foregroundColor{255,64,0},
-        .backgroundColor{0,64,255}
-    }
-};
-
-ColorPresets stagePresets {
-    .preset1 {
-        .foregroundColor{255,0,0},
-        .backgroundColor{0,127,127},
+ColorPresets stagePresets{
+    .preset1{
+        .foregroundColor{255, 0, 0},
+        .backgroundColor{0, 127, 127},
     },
-    .preset2 {
-        .foregroundColor{0,255,0},
-        .backgroundColor{127,0,127},
+    .preset2{
+        .foregroundColor{0, 255, 0},
+        .backgroundColor{127, 0, 127},
     },
-    .preset3 {
-        .foregroundColor{0,0,255},
-        .backgroundColor{127,127,0},
+    .preset3{
+        .foregroundColor{0, 0, 255},
+        .backgroundColor{127, 127, 0},
     },
 };
 
@@ -92,23 +84,26 @@ EtherPins_t etherPins = {
     .ethPhyPower = GPIO_NUM_12,
 };
 
+DeviceState deviceState(DeviceState::Mode::StandAlone);
+std::array<uint8_t, 2> intensities;
 
 OtaHandler ota("http://192.168.178.10:8070/dmx_bridge.bin");
 static const char *TAG = "dmx-bridge";
 DmxChannels channels;
 
-static Dmx512 dmxPort(ioMap.dmx.port, ioMap.dmx.rxPin , ioMap.dmx.txPin);
+static Dmx512 dmxPort(ioMap.dmx.port, ioMap.dmx.rxPin, ioMap.dmx.txPin);
 
-void startDmxMonitor(std::function<void(std::string&)>);
+void startDmxMonitor(std::function<void(std::string &)>);
 void stopDmxMonitor();
 
 void showSystemHealth() {
     ESP_LOGI(TAG, "System-Stats");
     ESP_LOGI(TAG, "Heap-Info:");
-    ESP_LOGI(TAG, " .. free %d / minimum %d", heap_caps_get_free_size(MALLOC_CAP_8BIT), heap_caps_get_minimum_free_size(MALLOC_CAP_8BIT));
+    ESP_LOGI(TAG, " .. free %d / minimum %d", heap_caps_get_free_size(MALLOC_CAP_8BIT),
+             heap_caps_get_minimum_free_size(MALLOC_CAP_8BIT));
 }
 
-Ui::Config uiConfig {
+Ui::Config uiConfig{
     .stage = stage,
     .channels = channels,
     .ota = ota,
@@ -130,15 +125,11 @@ void gotIpCallback(IpInfo defInfo) {
     deviceInfo = defInfo;
 }
 
-uint32_t universe1 = 1; // 0 - 15
-uint32_t universe2 = 2; // 0 - 15
+std::array<uint32_t, 2> dmxUniverses{1, 2};
 
 void Universe1Callback(const uint8_t *data, const uint16_t size) {
-    int len = size;
-    if (len > DmxChannelCount)
-        len = DmxChannelCount;
-    
-    dmxPort.set(data, size);
+    int len = std::min(static_cast<int>(size), DmxChannelCount);
+    dmxPort.set(data, len);
     dmxPort.send();
 }
 
@@ -156,13 +147,17 @@ static void dmxSocket(void *args) {
         };
 
         UdpSocket socket(dest_addr_ip4, deviceInfo);
+        // Note: The constructor actually blocks until the socket is established
+        // Todo: Change constructor to non blocking and blocking part
+        deviceState.setNewState(DeviceState::Mode::Remote);
         ArtnetReceiver artnet(socket);
-        artnet.subscribe(universe1, Universe1Callback);
+        artnet.subscribe(dmxUniverses[0], Universe1Callback);
 
         while (socket.isActive()) {
             ESP_LOGD(TAG, "Waiting for data");
             artnet.parse();
         }
+        deviceState.fallbackToLast();
     }
     vTaskDelete(NULL);
 }
@@ -202,32 +197,21 @@ static void tcp_server_task(void *arg) {
     vTaskDelete(NULL);
 }
 
-static void dmx_Listener(void *arg) {
-    Dmx512 *dmx = (Dmx512 *)arg;
-    while (1) {
-        auto bytes = dmx->get();
-
-        if (bytes.size() > 0) {
-        ESP_LOGI(TAG, "DMX-Data received (%d bytes): %d %d %d %d .. %d", bytes.size(), bytes[0],
-                 bytes[1], bytes[2], bytes[3], bytes.back());
-        }
-       
-        vTaskDelay(100 / portTICK_PERIOD_MS);
-    }
-}
-
 void newColorScheme(AmbientColorSet color) {
     auto fg = color.foregroundColor;
     auto bg = color.backgroundColor;
 
-    ESP_LOGI(TAG, "Setting color to fg r=%d g=%d b=%d   bg r=%d g=%d b=%d ", fg.red, fg.green, fg.blue, bg.red, bg.green, bg.blue);
+    stage.colors.backgroundColor = color.foregroundColor;
+    stage.colors.foregroundColor = color.backgroundColor;
+
+    ESP_LOGI(TAG, "Setting color to fg r=%d g=%d b=%d   bg r=%d g=%d b=%d ", fg.red, fg.green,
+             fg.blue, bg.red, bg.green, bg.blue);
 }
-
-
 
 static void displayTask(void *arg) {
     ESP_LOGI(TAG, "Starting Display Task");
-    static Uart nxtPort(ioMap.display.port, ioMap.display.rxPin, ioMap.display.txPin, Uart::BaudRate::_38400Bd);
+    static Uart nxtPort(ioMap.display.port, ioMap.display.rxPin, ioMap.display.txPin,
+                        Uart::BaudRate::_38400Bd);
     static Display display(nxtPort, StationName, StationVersion, stagePresets, newColorScheme);
 
     while (!notifyDisplay) {
@@ -236,8 +220,9 @@ static void displayTask(void *arg) {
     }
 
     {
-        auto & ip = deviceInfo.address;
-        display.setIp(std::to_string(ip[0]) + "." + std::to_string(ip[1]) + "." + std::to_string(ip[2]) + "." + std::to_string(ip[3]) );
+        auto &ip = deviceInfo.address;
+        display.setIp(std::to_string(ip[0]) + "." + std::to_string(ip[1]) + "." +
+                      std::to_string(ip[2]) + "." + std::to_string(ip[3]));
     }
 
     while (true) {
@@ -249,9 +234,8 @@ static void displayTask(void *arg) {
     }
 }
 
-
 struct MonitorConfig {
-    Dmx512 & dmx;
+    Dmx512 &dmx;
     std::function<void(std::string &)> onWrite;
 };
 
@@ -259,36 +243,42 @@ bool stopRequested = false;
 static void dmx_Monitor(void *arg) {
     MonitorConfig *config = (MonitorConfig *)arg;
     Dmx512 &dmx = config->dmx;
-    
+
     BinDiff differ(24);
     std::vector<uint8_t> sent(49, 0);
     while (true) {
         dmx.set(channels.values.data(), channels.values.size());
         dmx.send();
-        auto received = dmx.get(); 
-        
-        std::copy(channels.values.cbegin(), channels.values.cend(), sent.begin() + 1) ;
+        auto received = dmx.get();
+
+        std::copy(channels.values.cbegin(), channels.values.cend(), sent.begin() + 1);
 
         if (received.size() < channels.values.size()) {
             ESP_LOGW(TAG, "DMX-Monitor, incomplete data received (%d received):", received.size());
         }
-        auto res =  differ.compare(sent, received);
+        auto res = differ.compare(sent, received);
         if (!res.areSame) {
             ESP_LOGE(TAG, "DMX-Monitor, error in transmit :\n %s", res.diff.c_str());
-            ESP_LOGI(TAG, "DMX-Monitor, sent -> %d e: %s ..", sent.size(), differ.stringify_list(sent.cbegin(), sent.cbegin() + 13).c_str());
-            ESP_LOGI(TAG, "DMX-Monitor, got  <- %d e: %s ..", received.size(),  differ.stringify_list(received.cbegin(), received.cbegin() + std::min(13u,received.size()) ).c_str());
+            ESP_LOGI(TAG, "DMX-Monitor, sent -> %d e: %s ..", sent.size(),
+                     differ.stringify_list(sent.cbegin(), sent.cbegin() + 13).c_str());
+            ESP_LOGI(TAG, "DMX-Monitor, got  <- %d e: %s ..", received.size(),
+                     differ
+                         .stringify_list(received.cbegin(),
+                                         received.cbegin() + std::min(13u, received.size()))
+                         .c_str());
         }
-      
+
         vTaskDelay(1000 / portTICK_PERIOD_MS);
-        if (stopRequested) {break;}
+        if (stopRequested) {
+            break;
+        }
     }
     stopRequested = false;
 }
 
-
-void startDmxMonitor(std::function<void(std::string&)> onWrite) {
+void startDmxMonitor(std::function<void(std::string &)> onWrite) {
     ESP_LOGI(TAG, "Starting Monitor task");
-    MonitorConfig config {
+    MonitorConfig config{
         .dmx = dmxPort,
         .onWrite = onWrite,
     };
@@ -300,27 +290,25 @@ void stopDmxMonitor() {
     stopRequested = true;
 }
 
-
 void app_main(void) {
     // Create default event loop that running in background
     ESP_ERROR_CHECK(esp_event_loop_create_default());
     initEthernetHardware(etherPins, gotIpCallback);
-    // xTaskCreate(interfaceTask, "uart_interfaceTask", ECHO_TASK_STACK_SIZE, NULL, 10, NULL);
-    xTaskCreate(displayTask, "displayTask", 8192, NULL, 10, NULL);
 
     // Initialize NVS.
     esp_err_t err = nvs_flash_init();
     if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
         // 1.OTA app partition table has a smaller NVS partition size than the non-OTA
         // partition table. This size mismatch may cause NVS initialization to fail.
-        // 2.NVS partition contains data in new format and cannot be recognized by this version of code.
-        // If this happens, we erase NVS partition and initialize NVS again.
+        // 2.NVS partition contains data in new format and cannot be recognized by this version of
+        // code. If this happens, we erase NVS partition and initialize NVS again.
         ESP_ERROR_CHECK(nvs_flash_erase());
         err = nvs_flash_init();
     }
     ESP_ERROR_CHECK(err);
 
     ota.get_sha256_of_partitions();
+    xTaskCreate(displayTask, "displayTask", 8192, NULL, 10, NULL);
 
     ESP_LOGI(TAG, "Waiting for IP(s)");
     xSemaphoreTake(s_semph_get_ip_addrs, portMAX_DELAY);
@@ -338,19 +326,34 @@ void app_main(void) {
     }
 
     xTaskCreate(tcp_server_task, "tcp_server", 4096, nullptr, 5, NULL);
-    
     xTaskCreate(dmxSocket, "dmxSocket", 4096, nullptr, 5, NULL);
-    //xTaskCreate(dmx_Listener, "dmx_Listener", 4096, nullptr, 5, NULL);
 
     Adc adcLight{adc_unit_t::ADC_UNIT_1, adc1_channel_t::ADC1_CHANNEL_0};
     Adc adcAmbiente{adc_unit_t::ADC_UNIT_1, adc1_channel_t::ADC1_CHANNEL_3};
 
-    ScaledValue<int> intensityScale{ScaledValue<int>::Range{0,4095}, ScaledValue<int>::Range{0,255}};
-    
+    ScaledValue<int> intensityScale{{0, 4095}, {0, 255}};
+    RatiometricLightControl lights(stage);
+    StageIntensity intensity;
+
     while (true) {
-        vTaskDelay(100 / portTICK_PERIOD_MS);
-        dmxPort.send();
-        intensities[0] = intensityScale.scale(adcLight.readValue());
-        intensities[1] = intensityScale.scale(adcAmbiente.readValue());
+        intensity.illumination = intensityScale.scale(adcLight.readValue());
+        intensity.ambiente = intensityScale.scale(adcAmbiente.readValue());
+
+        intensities[0] = intensity.illumination;
+        intensities[1] = intensity.ambiente;
+
+        auto values = lights.update(intensity);
+
+        // if (deviceState.stateIs(DeviceState::Mode::StandAlone)) {
+            dmxPort.set(values.data(), StageChannelsCount);
+            dmxPort.send();
+
+            // ESP_LOGI(TAG, "Dmx Data: %02x%02x%02x %02x%02x %02x%02x%02x %02x%02x%02x%02x%02x%02x %02x%02x %02x%02x%02x%02x %02x%02x%02x%02x", 
+            // values[0],values[1],values[2],values[3],values[4],values[5],values[6],values[7],values[8],values[9],values[10],
+            // values[11],values[12],values[13],values[14],values[15],values[16],values[17],values[18],values[19],values[20],
+            // values[21],values[22],values[23]);
+        // }
+
+        vTaskDelay(50 / portTICK_PERIOD_MS);
     }
 }
