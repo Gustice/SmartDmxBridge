@@ -36,7 +36,7 @@ const std::string EndSequence = "\xFF\xFF\xFF";
 uint32_t NxtIo::recvRetNumber(uint32_t timeout) {
     auto read = serialPort->read(8, timeout);
     if (8 != read.size()) {
-        NxtIo::sendLog("recvRetNumber timeout");
+        NxtIo::sendLog(NxtLogSeverity::Warning, "recvRetNumber timeout");
         return false;
     }
 
@@ -44,11 +44,11 @@ uint32_t NxtIo::recvRetNumber(uint32_t timeout) {
         read[6] == 0xFF && read[7] == 0xFF) {
         auto number =
             ((uint32_t)read[4] << 24) | ((uint32_t)read[3] << 16) | (read[2] << 8) | (read[1]);
-        NxtIo::sendLog("recvRetNumber :" + std::to_string(number));
+        NxtIo::sendLog(NxtLogSeverity::Debug, "recvRetNumber :" + std::to_string(number));
         return number;
     }
 
-    NxtIo::sendLog("recvRetNumber err");
+    NxtIo::sendLog(NxtLogSeverity::Warning, "recvRetNumber err");
     return 0;
 }
 
@@ -115,17 +115,17 @@ void NxtIo::sendCommand(std::string cmd) {
 bool NxtIo::recvRetCommandFinished(uint32_t timeout) {
     auto read = serialPort->read(4, timeout);
     if (4 != read.size()) {
-        NxtIo::sendLog("recvRetCommandFinished timeout");
+        NxtIo::sendLog(NxtLogSeverity::Warning, "recvRetCommandFinished timeout");
         return false;
     }
 
     if (static_cast<NxtReturn>(read[0]) == NxtReturn::CMD_FINISHED && read[1] == 0xFF &&
         read[2] == 0xFF && read[3] == 0xFF) {
-        NxtIo::sendLog("recvRetCommandFinished ok");
+        NxtIo::sendLog(NxtLogSeverity::Debug, "recvRetCommandFinished ok");
         return true;
     }
 
-    NxtIo::sendLog("recvRetCommandFinished err");
+    NxtIo::sendLog(NxtLogSeverity::Warning, "recvRetCommandFinished err");
     return false;
 }
 
@@ -152,13 +152,13 @@ void NxtIo::nexLoop(const SensingList &nex_listen_list) {
                     uint8_t component = input[2];
                     int32_t event = (int32_t)input[3];
 
-                    NxtIo::sendLog(std::string{"TouchEvent: "} +
+                    NxtIo::sendLog(NxtLogSeverity::Debug, std::string{"TouchEvent: "} +
                                    std::to_string(static_cast<int>(input[1])) + " " +
                                    std::to_string(static_cast<int>(input[2])) + " " +
                                    std::to_string(static_cast<int>(input[3])));
 
                     if (!Nxt::Touch::iterate(nex_listen_list, page, component, event)) {
-                        NxtIo::sendLog("TouchEvent ignored");
+                        NxtIo::sendLog(NxtLogSeverity::Warning, "TouchEvent ignored");
                     }
                 }
             }
@@ -166,9 +166,9 @@ void NxtIo::nexLoop(const SensingList &nex_listen_list) {
     }
 }
 
-void NxtIo::sendLog(std::string log) {
+void NxtIo::sendLog(NxtLogSeverity level, std::string log) {
     if (logCallback != nullptr) {
-        logCallback(log);
+        logCallback(level, log);
     }
 }
 

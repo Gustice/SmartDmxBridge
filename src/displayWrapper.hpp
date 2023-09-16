@@ -31,7 +31,7 @@ class Display {
     Display(Uart &port, std::string name, std::string version, ColorPresets & initialColors, setColorCallback colorSetCb) 
         : _port(port), _colorPresets(initialColors), _colorSetCb(colorSetCb) {
         if (!NxtIo::nexInit(_port, dumpLog)) {
-            dumpLog("Init failed");
+            dumpLog(NxtLogSeverity::Error, "Init failed");
         }
         ESP_LOGI("DISP", "begin setup");
         tHealth.text.set("Setup Image");
@@ -225,9 +225,20 @@ class Display {
         display->tCustomBg.background.set(calcColor(color));
     }
 
-    static void dumpLog(std::string msg) {
+    static void dumpLog(NxtLogSeverity level, std::string msg) {
         auto output = msg.c_str();
-        ESP_LOGI("DISP", "Log: %s", output);
+        switch (level)
+        {
+        case NxtLogSeverity::Debug:
+            ESP_LOGD("DISP", "Log: %s", output);
+            break;
+        case NxtLogSeverity::Warning:
+            ESP_LOGW("DISP", "Log: %s", output);
+            break;
+        case NxtLogSeverity::Error:
+            ESP_LOGE("DISP", "Log: %s", output);
+            break;
+        }
     }
 
     static Color hueToRgb(uint8_t hue)

@@ -12,14 +12,21 @@ class SerialStream {
     virtual void write(std::string str) = 0;
 };
 
+enum class NxtLogSeverity {
+    Debug,
+    Warning,
+    Error
+};
+
 /**
  * @addtogroup CoreAPI 
  * @{ 
  */
 
+
 class NxtIo {
     public:
-    using LogCallback = void (*)(std::string);
+    using LogCallback = void (*)(NxtLogSeverity, std::string);
     using SensingList = Nxt::Touch::SensingList;
 
     /**
@@ -50,7 +57,7 @@ class NxtIo {
     private:
     static SerialStream * serialPort;
     static LogCallback logCallback;
-    static void sendLog(std::string log);
+    static void sendLog(NxtLogSeverity level, std::string log);
 };
 
 /**

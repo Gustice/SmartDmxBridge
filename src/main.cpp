@@ -46,7 +46,16 @@ constexpr DeviceIoMap ioMap{
         .rxPin = GPIO_NUM_36,
         .txPin = GPIO_NUM_4,
     },
+    .intensity {
+        .unit = adc_unit_t::ADC_UNIT_2,
+        .port = adc_channel_t::ADC_CHANNEL_3 // => GPIO 15
+    },
+    .ambiente {
+        .unit = adc_unit_t::ADC_UNIT_2,
+        .port = adc_channel_t::ADC_CHANNEL_6 // => GPIO 14
+    }
 };
+
 
 static StageConfig stage{.weightsLights{
                              /*AmbienteGrp 1*/ 0,  0,   0,
@@ -290,6 +299,11 @@ void stopDmxMonitor() {
     stopRequested = true;
 }
 
+void standAloneTask(void *arg) {
+
+}
+
+
 void app_main(void) {
     // Create default event loop that running in background
     ESP_ERROR_CHECK(esp_event_loop_create_default());
@@ -324,13 +338,17 @@ void app_main(void) {
             ESP_LOGI(TAG, "- IPv4 address: " IPSTR, IP2STR(&ip.ip));
         }
     }
-
+ESP_LOGW(TAG, "HERE1");
     xTaskCreate(tcp_server_task, "tcp_server", 4096, nullptr, 5, NULL);
+    ESP_LOGW(TAG, "HERE2");
     xTaskCreate(dmxSocket, "dmxSocket", 4096, nullptr, 5, NULL);
 
-    Adc adcLight{adc_unit_t::ADC_UNIT_1, adc1_channel_t::ADC1_CHANNEL_0};
-    Adc adcAmbiente{adc_unit_t::ADC_UNIT_1, adc1_channel_t::ADC1_CHANNEL_3};
+    ESP_LOGW(TAG, "HERE3"); 
 
+    Adc adcLight{ioMap.intensity.unit, ioMap.intensity.port};
+    Adc adcAmbiente{ioMap.ambiente.unit, ioMap.ambiente.port};
+
+ESP_LOGW(TAG, "HERE4");
     ScaledValue<int> intensityScale{{0, 4095}, {0, 255}};
     RatiometricLightControl lights(stage);
     StageIntensity intensity;
@@ -348,10 +366,10 @@ void app_main(void) {
             dmxPort.set(values.data(), StageChannelsCount);
             dmxPort.send();
 
-            // ESP_LOGI(TAG, "Dmx Data: %02x%02x%02x %02x%02x %02x%02x%02x %02x%02x%02x%02x%02x%02x %02x%02x %02x%02x%02x%02x %02x%02x%02x%02x", 
-            // values[0],values[1],values[2],values[3],values[4],values[5],values[6],values[7],values[8],values[9],values[10],
-            // values[11],values[12],values[13],values[14],values[15],values[16],values[17],values[18],values[19],values[20],
-            // values[21],values[22],values[23]);
+            ESP_LOGI(TAG, "Dmx Data: %02x%02x%02x %02x%02x %02x%02x%02x %02x%02x%02x%02x%02x%02x %02x%02x %02x%02x%02x%02x %02x%02x%02x%02x", 
+            values[0],values[1],values[2],values[3],values[4],values[5],values[6],values[7],values[8],values[9],values[10],
+            values[11],values[12],values[13],values[14],values[15],values[16],values[17],values[18],values[19],values[20],
+            values[21],values[22],values[23]);
         // }
 
         vTaskDelay(50 / portTICK_PERIOD_MS);

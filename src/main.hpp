@@ -3,6 +3,7 @@
 #include "driver/gpio.h"
 #include "driver/uart.h"
 #include "uart.hpp"
+#include "adc.hpp"
 #include <array>
 #include <algorithm>
 
@@ -14,6 +15,13 @@ struct DeviceIoMap
         gpio_num_t txPin;
     };
 
+    struct AdcMap {
+        adc_unit_t unit;
+        adc_channel_t port;
+    };
+
     UartMap dmx;
     UartMap display;
+    AdcMap intensity;
+    AdcMap ambiente;
 };
