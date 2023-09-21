@@ -1,14 +1,26 @@
 #pragma once
 
 #include "Nextion.h"
-#include "esp_log.h"
-#include "uart.hpp"
-#include "configModel.hpp"
 #include "ValueCache.hpp"
+#include "configModel.hpp"
+#include "esp_log.h"
+#include "message_queue.hpp"
+#include "uart.hpp"
+
+struct DisplayMessage {
+    enum Type {
+        UpdatedIp,
+        UpdateInfo,
+        UpdateStatus,
+    };
+    DisplayMessage(Type t, std::string msg) : type(t), message(msg) {}
+    Type type;
+    std::string message;
+};
 
 class UartWrapper : public SerialStream {
-    public:
-    UartWrapper(Uart & port) : _port(port) {}
+  public:
+    UartWrapper(Uart &port) : _port(port) {}
 
     std::vector<uint8_t> read(size_t minSize = 0, unsigned msTimeout = 0) override {
         return _port.readBytes(minSize, msTimeout);
@@ -20,15 +32,16 @@ class UartWrapper : public SerialStream {
         _port.write(str);
     }
 
-    private:
+  private:
     Uart &_port;
 };
 
 class Display {
   public:
-    using setColorCallback = void(*)(AmbientColorSet);
+    using setColorCallback = void (*)(AmbientColorSet);
 
-    Display(Uart &port, std::string name, std::string version, ColorPresets & initialColors, setColorCallback colorSetCb) 
+    Display(Uart &port, std::string name, std::string version, ColorPresets &initialColors,
+            setColorCallback colorSetCb)
         : _port(port), _colorPresets(initialColors), _colorSetCb(colorSetCb) {
         if (!NxtIo::nexInit(_port, dumpLog)) {
             dumpLog(NxtLogSeverity::Error, "Init failed");
@@ -45,7 +58,7 @@ class Display {
 
         bToInfoPage.attachPush(switchToInfoPage, this);
         bToWorkingPage.attachPush(switchToWorkingPage, this);
-        
+
         switchToWorkingPage(this);
         ESP_LOGI("DISP", "setup finished");
 
@@ -58,7 +71,7 @@ class Display {
         page = CurrentPage::WorkingPage;
         workingPage.show();
         {
-            auto & ic = initialColors;
+            auto &ic = initialColors;
             tScheme1Fg.background.set(calcColor(ic.preset1.foregroundColor));
             tScheme1Bg.background.set(calcColor(ic.preset1.backgroundColor));
             tScheme2Fg.background.set(calcColor(ic.preset2.foregroundColor));
@@ -79,60 +92,56 @@ class Display {
     void tick() {
         switch (page) {
         case CurrentPage::WorkingPage: {
-            NxtIo::SensingList list = {
-                &bToInfoPage,   &bScheme1,  &bScheme2, &bScheme3,
-                &bSchemeCustom, &hCustomFg, &hCustomBg
-            };
+            NxtIo::SensingList list = {&bToInfoPage,   &bScheme1,  &bScheme2, &bScheme3,
+                                       &bSchemeCustom, &hCustomFg, &hCustomBg};
             NxtIo::nexLoop(list);
         } break;
 
         case CurrentPage::InfoPage: {
-            NxtIo::SensingList list = {
-                &bToWorkingPage
-            };
+            NxtIo::SensingList list = {&bToWorkingPage};
             NxtIo::nexLoop(list);
         } break;
 
         default:
             break;
         }
-
-        if (_ip.isNew()) {
-            tAddress.text.set(_ip.getValue());
-        }
-        if (_status.isNew()) {
-            tStatus.text.set(_status.getValue());
-        }
-        if (_info.isNew()) {
-            tInfo.text.set(_info.getValue());
-        }
-        
     }
 
-    void setIp(std::string ip) {
-        _ip.setValue(ip);
-    }
-    void setInfo(std::string info) {
-        _info.setValue(info);
-    }
-    void setStatus(std::string status) {
-        _status.setValue(status);
+    void processQueue(MessageQueue<DisplayMessage> & queue) {
+        std::unique_ptr<DisplayMessage> pMsg;
+        pMsg = queue.dequeue(0);
+        if (pMsg == nullptr) {
+            return;
+        }
+
+        switch (pMsg->type) {
+        case DisplayMessage::Type::UpdatedIp:
+            tAddress.text.set(pMsg->message);
+            break;
+
+        case DisplayMessage::Type::UpdateInfo:
+            tInfo.text.set(pMsg->message);
+            break;
+        case DisplayMessage::Type::UpdateStatus:
+            tStatus.text.set(pMsg->message);
+            break;
+        }
     }
 
-    void setValues(std::array<uint8_t,2> intensities) {
+    void setValues(std::array<uint8_t, 2> intensities) {
         jLight.value.set(intensities[0]);
         jAmbient.value.set(intensities[1]);
     }
 
   private:
-    static uint32_t calcColor (Color col) {
+    static uint32_t calcColor(Color col) {
         return Nxt::Color::calcNextionColor(col.red, col.green, col.blue);
     }
 
     enum CurrentPage { WorkingPage = 1, InfoPage, Pages };
 
     UartWrapper _port;
-    ColorPresets & _colorPresets;
+    ColorPresets &_colorPresets;
     CurrentPage page = CurrentPage::WorkingPage;
 
     Nxt::Page splashScreen{0, "splashScreen"};
@@ -168,57 +177,48 @@ class Display {
     Nxt::Text tInfo{infoPage, 8, "tInfo"};
     Nxt::Text tStatus{infoPage, 10, "tStatus"};
 
-    ValueCache<std::string> _ip;
-    ValueCache<std::string> _status;
-    ValueCache<std::string> _info;
     setColorCallback _colorSetCb;
     AmbientColorSet _customPreset;
 
     static void switchToWorkingPage(void *ptr) {
-        Display * display = (Display*) ptr;
+        Display *display = (Display *)ptr;
         display->page = CurrentPage::WorkingPage;
-        //display->workingPage.show(); // already set by display
+        // display->workingPage.show(); // already set by display
     }
 
     static void switchToInfoPage(void *ptr) {
         ESP_LOGW("DISP", "To Info-Page");
-        Display * display = (Display*) ptr;
+        Display *display = (Display *)ptr;
         display->page = CurrentPage::InfoPage;
-        //display->infoPage.show(); // already set by display
+        // display->infoPage.show(); // already set by display
     }
 
-    static void bScheme1Cb(void *ptr)
-    {
-        Display * display = (Display*) ptr;
+    static void bScheme1Cb(void *ptr) {
+        Display *display = (Display *)ptr;
         display->_colorSetCb(display->_colorPresets.preset1);
     }
-    static void bScheme2Cb(void *ptr)
-    {
-        Display * display = (Display*) ptr;
+    static void bScheme2Cb(void *ptr) {
+        Display *display = (Display *)ptr;
         display->_colorSetCb(display->_colorPresets.preset2);
     }
-    static void bScheme3Cb(void *ptr)
-    {
-        Display * display = (Display*) ptr;
+    static void bScheme3Cb(void *ptr) {
+        Display *display = (Display *)ptr;
         display->_colorSetCb(display->_colorPresets.preset3);
     }
-    static void bSchemeCustomCb(void *ptr)
-    {
-        Display * display = (Display*) ptr;
+    static void bSchemeCustomCb(void *ptr) {
+        Display *display = (Display *)ptr;
         display->_colorSetCb(display->_customPreset);
     }
 
-    static void hCustomFgCb(void *ptr)
-    {
-        Display * display = (Display*) ptr;
+    static void hCustomFgCb(void *ptr) {
+        Display *display = (Display *)ptr;
         auto fg = display->hCustomFg.value.get();
         auto color = hueToRgb(fg);
         display->_customPreset.foregroundColor = color;
         display->tCustomFg.background.set(calcColor(color));
     }
-    static void hCustomBgCb(void *ptr)
-    {
-        Display * display = (Display*) ptr;
+    static void hCustomBgCb(void *ptr) {
+        Display *display = (Display *)ptr;
         auto bg = display->hCustomBg.value.get();
         auto color = hueToRgb(bg);
         display->_customPreset.backgroundColor = color;
@@ -227,8 +227,7 @@ class Display {
 
     static void dumpLog(NxtLogSeverity level, std::string msg) {
         auto output = msg.c_str();
-        switch (level)
-        {
+        switch (level) {
         case NxtLogSeverity::Debug:
             ESP_LOGD("DISP", "Log: %s", output);
             break;
@@ -241,37 +240,47 @@ class Display {
         }
     }
 
-    static Color hueToRgb(uint8_t hue)
-    {
+    static Color hueToRgb(uint8_t hue) {
         Color rgb;
         unsigned char region, remainder, q, t;
         region = hue / 43;
-        remainder = (hue - (region * 43)) * 6; 
+        remainder = (hue - (region * 43)) * 6;
         q = (255 * (255 - ((255 * remainder) >> 8))) >> 8;
         t = (255 * (255 - ((255 * (255 - remainder)) >> 8))) >> 8;
-        
-        switch (region)
-        {
-            case 0:
-                rgb.red = 255; rgb.green = t; rgb.blue = 0;
-                break;
-            case 1:
-                rgb.red = q; rgb.green = 255; rgb.blue = 0;
-                break;
-            case 2:
-                rgb.red = 0; rgb.green = 255; rgb.blue = t;
-                break;
-            case 3:
-                rgb.red = 0; rgb.green = q; rgb.blue = 255;
-                break;
-            case 4:
-                rgb.red = t; rgb.green = 0; rgb.blue = 255;
-                break;
-            default:
-                rgb.red = 255; rgb.green = 0; rgb.blue = q;
-                break;
+
+        switch (region) {
+        case 0:
+            rgb.red = 255;
+            rgb.green = t;
+            rgb.blue = 0;
+            break;
+        case 1:
+            rgb.red = q;
+            rgb.green = 255;
+            rgb.blue = 0;
+            break;
+        case 2:
+            rgb.red = 0;
+            rgb.green = 255;
+            rgb.blue = t;
+            break;
+        case 3:
+            rgb.red = 0;
+            rgb.green = q;
+            rgb.blue = 255;
+            break;
+        case 4:
+            rgb.red = t;
+            rgb.green = 0;
+            rgb.blue = 255;
+            break;
+        default:
+            rgb.red = 255;
+            rgb.green = 0;
+            rgb.blue = q;
+            break;
         }
-        
+
         return rgb;
     }
 };

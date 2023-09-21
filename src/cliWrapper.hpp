@@ -8,6 +8,13 @@
 #include "otaUpdate.hpp"
 #include <functional>
 
+struct CliOptions {
+    struct PrintOut {
+        bool DmxValues;
+        bool PotiValues;
+    };
+};
+
 constexpr static int CLI_RX_BUFFER_SIZE = 16;
 constexpr static int CLI_CMD_BUFFER_SIZE = 32;
 constexpr static int CLI_HISTORY_SIZE = 16;

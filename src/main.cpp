@@ -34,6 +34,7 @@ void app_main(void);
 
 const std::string StationName = "DMX-Bridge";
 const std::string StationVersion = "T 0.5.0";
+constexpr unsigned MinTaskStack = 4096;
 
 constexpr DeviceIoMap ioMap{
     .dmx{
@@ -94,7 +95,8 @@ EtherPins_t etherPins = {
 };
 
 DeviceState deviceState(DeviceState::Mode::StandAlone);
-std::array<uint8_t, 2> intensities;
+std::array<uint8_t, 2> relativeIntensity;
+MessageQueue<DisplayMessage> displayEvents(10);
 
 OtaHandler ota("http://192.168.178.10:8070/dmx_bridge.bin");
 static const char *TAG = "dmx-bridge";
@@ -127,11 +129,16 @@ IpInfo deviceInfo;
 
 static xSemaphoreHandle s_semph_get_ip_addrs =
     xSemaphoreCreateCounting(NR_OF_IP_ADDRESSES_TO_WAIT_FOR, 0);
-bool notifyDisplay = false;
-void gotIpCallback(IpInfo defInfo) {
+void gotIpCallback(IpInfo info) {
     xSemaphoreGive(s_semph_get_ip_addrs);
-    notifyDisplay = true;
-    deviceInfo = defInfo;
+  
+    auto &ip = info.address;
+    std::string ipStr = std::to_string(ip[0]) + "." + std::to_string(ip[1]) + "." +
+                    std::to_string(ip[2]) + "." + std::to_string(ip[3]);
+
+    auto msg = std::make_unique<DisplayMessage>(DisplayMessage::Type::UpdatedIp, ipStr);
+    displayEvents.enqueue(std::move(msg));
+    deviceInfo = info;
 }
 
 std::array<uint32_t, 2> dmxUniverses{1, 2};
@@ -223,22 +230,10 @@ static void displayTask(void *arg) {
                         Uart::BaudRate::_38400Bd);
     static Display display(nxtPort, StationName, StationVersion, stagePresets, newColorScheme);
 
-    while (!notifyDisplay) {
-        display.tick();
-        vTaskDelay(pdMS_TO_TICKS(50));
-    }
-
-    {
-        auto &ip = deviceInfo.address;
-        display.setIp(std::to_string(ip[0]) + "." + std::to_string(ip[1]) + "." +
-                      std::to_string(ip[2]) + "." + std::to_string(ip[3]));
-    }
-
     while (true) {
         display.tick();
-        vTaskDelay(pdMS_TO_TICKS(50));
-        display.tick();
-        display.setValues(intensities);
+        display.processQueue(displayEvents);
+        display.setValues(relativeIntensity);
         vTaskDelay(pdMS_TO_TICKS(50));
     }
 }
@@ -300,9 +295,36 @@ void stopDmxMonitor() {
 }
 
 void standAloneTask(void *arg) {
+    Adc adcLight{ioMap.intensity.unit, ioMap.intensity.port};
+    Adc adcAmbiente{ioMap.ambiente.unit, ioMap.ambiente.port};
 
+    ScaledValue<int> intensityScale{{0, 4095}, {0, 255}};
+    ScaledValue<int> displayScale{{0, 255}, {0, 100}};
+    RatiometricLightControl lights(stage);
+    StageIntensity intensity;
+
+    while (true) {
+        intensity.illumination = intensityScale.scale(adcLight.readValue());
+        intensity.ambiente = intensityScale.scale(adcAmbiente.readValue());
+
+        relativeIntensity[0] = displayScale.scale(intensity.illumination);
+        relativeIntensity[1] = displayScale.scale(intensity.ambiente);
+
+        auto values = lights.update(intensity);
+
+        if (deviceState.stateIs(DeviceState::Mode::StandAlone)) {
+            dmxPort.set(values.data(), StageChannelsCount);
+            dmxPort.send();
+
+            // ESP_LOGI(TAG, "Dmx Data: %02x%02x%02x %02x%02x %02x%02x%02x %02x%02x%02x%02x%02x%02x %02x%02x %02x%02x%02x%02x %02x%02x%02x%02x", 
+            // values[0],values[1],values[2],values[3],values[4],values[5],values[6],values[7],values[8],values[9],values[10],
+            // values[11],values[12],values[13],values[14],values[15],values[16],values[17],values[18],values[19],values[20],
+            // values[21],values[22],values[23]);
+        }
+
+        vTaskDelay(50 / portTICK_PERIOD_MS);
+    }
 }
-
 
 void app_main(void) {
     // Create default event loop that running in background
@@ -322,7 +344,8 @@ void app_main(void) {
     ESP_ERROR_CHECK(err);
 
     ota.get_sha256_of_partitions();
-    xTaskCreate(displayTask, "displayTask", 8192, NULL, 10, NULL);
+    xTaskCreate(displayTask, "displayTask", MinTaskStack * 4, NULL, 10, NULL);
+    xTaskCreate(standAloneTask, "standAloneTask", MinTaskStack * 2, nullptr, 5, NULL);
 
     ESP_LOGI(TAG, "Waiting for IP(s)");
     xSemaphoreTake(s_semph_get_ip_addrs, portMAX_DELAY);
@@ -338,40 +361,6 @@ void app_main(void) {
             ESP_LOGI(TAG, "- IPv4 address: " IPSTR, IP2STR(&ip.ip));
         }
     }
-ESP_LOGW(TAG, "HERE1");
     xTaskCreate(tcp_server_task, "tcp_server", 4096, nullptr, 5, NULL);
-    ESP_LOGW(TAG, "HERE2");
     xTaskCreate(dmxSocket, "dmxSocket", 4096, nullptr, 5, NULL);
-
-    ESP_LOGW(TAG, "HERE3"); 
-
-    Adc adcLight{ioMap.intensity.unit, ioMap.intensity.port};
-    Adc adcAmbiente{ioMap.ambiente.unit, ioMap.ambiente.port};
-
-ESP_LOGW(TAG, "HERE4");
-    ScaledValue<int> intensityScale{{0, 4095}, {0, 255}};
-    RatiometricLightControl lights(stage);
-    StageIntensity intensity;
-
-    while (true) {
-        intensity.illumination = intensityScale.scale(adcLight.readValue());
-        intensity.ambiente = intensityScale.scale(adcAmbiente.readValue());
-
-        intensities[0] = intensity.illumination;
-        intensities[1] = intensity.ambiente;
-
-        auto values = lights.update(intensity);
-
-        // if (deviceState.stateIs(DeviceState::Mode::StandAlone)) {
-            dmxPort.set(values.data(), StageChannelsCount);
-            dmxPort.send();
-
-            ESP_LOGI(TAG, "Dmx Data: %02x%02x%02x %02x%02x %02x%02x%02x %02x%02x%02x%02x%02x%02x %02x%02x %02x%02x%02x%02x %02x%02x%02x%02x", 
-            values[0],values[1],values[2],values[3],values[4],values[5],values[6],values[7],values[8],values[9],values[10],
-            values[11],values[12],values[13],values[14],values[15],values[16],values[17],values[18],values[19],values[20],
-            values[21],values[22],values[23]);
-        // }
-
-        vTaskDelay(50 / portTICK_PERIOD_MS);
-    }
 }
