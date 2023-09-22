@@ -25,3 +25,19 @@ struct DeviceIoMap
     AdcMap intensity;
     AdcMap ambiente;
 };
+
+struct LogSession {
+    char *destinationAddr;
+    bool terminate;
+};
+
+struct LogMessage {
+    enum Type {
+        Event,
+        Meas,
+        Error,
+    };
+    LogMessage(Type t, std::string msg) : type(t), message(msg) {}
+    Type type;
+    std::string message;
+};

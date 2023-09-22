@@ -12,23 +12,28 @@
 #include "streams.hpp"
 #include <array>
 
+sockaddr_in createIpV4Config(uint32_t ip, uint16_t port) {
+    return  {
+            .sin_len = sizeof(sockaddr_in), .sin_family = AF_INET,
+            .sin_port = htons(port),
+            .sin_addr{
+                .s_addr = htonl(ip),
+            },
+            .sin_zero {
+                0
+            }
+        };
+}
+
 class UdpSocket : public ByteStream, public VolatileStream {
   public:
-    UdpSocket(sockaddr_in &dest, IpInfo &device) : dest_addr(dest), Device(device) {
+    UdpSocket(const sockaddr_in &dest, IpInfo &device) : dest_addr(dest), Device(device) {
         sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
         if (sock < 0) {
             ESP_LOGE("UDP", "Unable to create socket: errno %d", errno);
             return; // todo Exception
         }
         ESP_LOGI("UDP", "Socket created");
-
-        int err = bind(sock, (struct sockaddr *)&dest_addr, dest_addr.sin_len);
-        if (err < 0) {
-            ESP_LOGE("UDP", "Socket unable to bind: errno %d", errno);
-            return; // todo Exception
-        }
-        ESP_LOGI("UDP", "Socket bound, port %d", ntohs(dest_addr.sin_port));
-
         active = true;
     }
 
@@ -36,6 +41,16 @@ class UdpSocket : public ByteStream, public VolatileStream {
         ESP_LOGE("UDP", "Shutting down socket and restarting...");
         shutdown(sock, 0);
         close(sock);
+    }
+
+    void attach() {
+        int err = bind(sock, (struct sockaddr *)&dest_addr, dest_addr.sin_len);
+        if (err < 0) {
+            ESP_LOGE("UDP", "Socket unable to bind: errno %d", errno);
+            active = false;
+            return; // todo Exception
+        }
+        ESP_LOGI("UDP", "Socket bound, port %d", ntohs(dest_addr.sin_port));
     }
 
     std::vector<uint8_t> read() override {
@@ -59,6 +74,14 @@ class UdpSocket : public ByteStream, public VolatileStream {
         write(&data[0], data.size());
     }
 
+    void write(std::string & message, sockaddr_in & dest) {
+        int err = sendto(sock, message.data(), message.length(), 0, (struct sockaddr *)&dest, sizeof(dest));
+        if (err < 0) {
+            ESP_LOGE("UDP", "Error occurred during sending: errno %d", errno);
+            active = false;
+        }
+    }
+
     void write(uint8_t *data, uint size, IpAddress *addr = nullptr) {
         // Get the sender's ip address as string
         int err;
@@ -79,7 +102,7 @@ class UdpSocket : public ByteStream, public VolatileStream {
         }
     }
 
-    sockaddr_in &dest_addr; // This Station
+    const sockaddr_in &dest_addr;
     const IpInfo &Device;
     int sock;
     bool isValid() {

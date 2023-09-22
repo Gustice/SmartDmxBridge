@@ -35,6 +35,7 @@ void app_main(void);
 const std::string StationName = "DMX-Bridge";
 const std::string StationVersion = "T 0.5.0";
 constexpr unsigned MinTaskStack = 4096;
+constexpr uint16_t SyslogPort = 514;
 
 constexpr DeviceIoMap ioMap{
     .dmx{
@@ -97,6 +98,7 @@ EtherPins_t etherPins = {
 DeviceState deviceState(DeviceState::Mode::StandAlone);
 std::array<uint8_t, 2> relativeIntensity;
 MessageQueue<DisplayMessage> displayEvents(10);
+MessageQueue<LogMessage> logEvents(32);
 
 OtaHandler ota("http://192.168.178.10:8070/dmx_bridge.bin");
 static const char *TAG = "dmx-bridge";
@@ -138,6 +140,8 @@ void gotIpCallback(IpInfo info) {
 
     auto msg = std::make_unique<DisplayMessage>(DisplayMessage::Type::UpdatedIp, ipStr);
     displayEvents.enqueue(std::move(msg));
+    auto log = std::make_unique<LogMessage>(LogMessage::Type::Event, "Got new Ip" + ipStr);
+    logEvents.enqueue(std::move(log));
     deviceInfo = info;
 }
 
@@ -150,21 +154,10 @@ void Universe1Callback(const uint8_t *data, const uint16_t size) {
 }
 
 static void dmxSocket(void *args) {
+    const sockaddr_in dest_addr = createIpV4Config(INADDR_ANY, arx::artnet::DEFAULT_PORT);
     while (true) {
-        struct sockaddr_in dest_addr_ip4 {
-            .sin_len = sizeof(sockaddr_in), .sin_family = AF_INET,
-            .sin_port = htons(arx::artnet::DEFAULT_PORT),
-            .sin_addr{
-                .s_addr = htonl(INADDR_ANY),
-            },
-            .sin_zero {
-                0
-            }
-        };
-
-        UdpSocket socket(dest_addr_ip4, deviceInfo);
-        // Note: The constructor actually blocks until the socket is established
-        // Todo: Change constructor to non blocking and blocking part
+        UdpSocket socket(dest_addr, deviceInfo);
+        socket.attach();
         deviceState.setNewState(DeviceState::Mode::Remote);
         ArtnetReceiver artnet(socket);
         artnet.subscribe(dmxUniverses[0], Universe1Callback);
@@ -213,6 +206,24 @@ static void tcp_server_task(void *arg) {
     vTaskDelete(NULL);
 }
 
+
+static void sysLogTask(void *pvParameters)
+{
+    auto param = static_cast<LogSession*>(pvParameters);
+    sockaddr_in dest_addr = createIpV4Config(0, SyslogPort);
+    dest_addr.sin_addr.s_addr = (inet_addr(param->destinationAddr));
+    vTaskDelay(pdMS_TO_TICKS(5000));
+    while (!param->terminate) {
+        UdpSocket socket(dest_addr, deviceInfo);
+        while (!param->terminate && socket.isActive()) {
+            auto log = logEvents.dequeue();
+            socket.write(log.get()->message, dest_addr);
+        }
+    }
+    vTaskDelete(NULL);
+}
+
+
 void newColorScheme(AmbientColorSet color) {
     auto fg = color.foregroundColor;
     auto bg = color.backgroundColor;
@@ -222,6 +233,8 @@ void newColorScheme(AmbientColorSet color) {
 
     ESP_LOGI(TAG, "Setting color to fg r=%d g=%d b=%d   bg r=%d g=%d b=%d ", fg.red, fg.green,
              fg.blue, bg.red, bg.green, bg.blue);
+    auto log = std::make_unique<LogMessage>(LogMessage::Type::Event, "New color scheme selected");
+    logEvents.enqueue(std::move(log));
 }
 
 static void displayTask(void *arg) {
@@ -346,6 +359,12 @@ void app_main(void) {
     ota.get_sha256_of_partitions();
     xTaskCreate(displayTask, "displayTask", MinTaskStack * 4, NULL, 10, NULL);
     xTaskCreate(standAloneTask, "standAloneTask", MinTaskStack * 2, nullptr, 5, NULL);
+    
+    static LogSession logSession {
+        .destinationAddr = "192.168.178.10",
+        .terminate = false
+    };
+    xTaskCreate(sysLogTask, "sysLogTask", 4096, &logSession, 5, NULL);
 
     ESP_LOGI(TAG, "Waiting for IP(s)");
     xSemaphoreTake(s_semph_get_ip_addrs, portMAX_DELAY);
