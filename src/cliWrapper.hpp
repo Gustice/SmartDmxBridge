@@ -4,15 +4,33 @@
 #include <embedded_cli.h>
 #include <functional>
 #include <uart.hpp>
+#include "dmx_uart.hpp"
 #include "configModel.hpp"
 #include "otaUpdate.hpp"
 #include <functional>
+#include <memory>
 
 struct CliOptions {
     struct PrintOut {
         bool DmxValues;
         bool PotiValues;
     };
+};
+
+struct MonitorOptions {
+    bool infos = false;
+    bool standAlone = false;
+};
+
+enum MonitorType {
+    RingCheck,
+    Sensing
+};
+
+struct TaskControl {
+    bool cancelled;
+
+    void cancel() {cancelled = true;}
 };
 
 constexpr static int CLI_RX_BUFFER_SIZE = 16;
@@ -75,13 +93,12 @@ class Ui {
     public:
     using abortCallback = void(*)();
     using systemCallback = void(*)();
-    using startMonitorCallback = void(*)(std::function<void(std::string&)> writeCallback);
+    using startMonitorCallback = void(*)(MonitorType type, std::shared_ptr<TaskControl> token);
     struct Config {
         StageConfig & stage;
-        DmxChannels & channels; 
+        Dmx512 & dmx;
         OtaHandler & ota;
         startMonitorCallback startMonitor;
-        void(*stopMonitor)();
         systemCallback showHealth;
     };
         
@@ -95,7 +112,7 @@ class Ui {
         _shell.addBinding(
             {"get-ch", "'c' Get DMX-Channel c (omit c for all)", true, nullptr, getDmxChannel});
         _shell.addBinding(
-            {"ring-monitor", "program to diagnose bus-ring", false, nullptr, startMonitor});
+            {"start-monitor", "program to start ring-monitor or input-monitor", false, nullptr, startMonitor});
         _shell.addBinding(
             {"dump-status", "show system status", false, nullptr, showHealth});
     }
@@ -109,12 +126,12 @@ class Ui {
         auto &port = static_cast<Cli *>(cli->appContext)->_port;
 
         if (embeddedCliGetTokenCount(args) == 0) {
-            port.write(_config->channels.getValuesStr().c_str());
+            port.write(_config->dmx.getValues().getValuesStr().c_str());
             return;
         }
         
         auto arg = embeddedCliGetToken(args, 1);
-        port.write(_config->channels.getValueStr(arg).c_str());
+        port.write(_config->dmx.getValues().getValueStr(arg).c_str());
     }
 
     static void setDmxChannel(EmbeddedCli *cli, char *args, void *context) {
@@ -130,7 +147,7 @@ class Ui {
         
         value = std::min(value, 0xFF); // todo limit-check-check
 
-        _config->channels.values[ch-1] = value;
+        _config->dmx.set(ch-1, value);
         auto output = std::string {" Ch "} + std::to_string(ch) + " = " + std::to_string(value);
         port.write(output + "\n");
     }
@@ -138,9 +155,25 @@ class Ui {
     static void startMonitor(EmbeddedCli *cli, char *args, void *context) {
         auto &port = static_cast<Cli *>(cli->appContext)->_port;
 
+        if (embeddedCliGetTokenCount(args) != 2) {
+            port.write("Need argument, one of: 'ring' 'input'\n");
+            return;
+        }
+        
+        auto type = std::string(embeddedCliGetToken(args, 1));
+
+        if (type == "ring")
+        {
+            _runningTaskToken = std::make_shared<TaskControl>();
+            _config->startMonitor(MonitorType::RingCheck, _runningTaskToken);
+        } else if (type == "input") {
+            _runningTaskToken = std::make_shared<TaskControl>();
+            _config->startMonitor(MonitorType::Sensing, _runningTaskToken);
+        } else {
+            port.write("Error, unknown type. Must be one of: 'ring' 'input'\n");
+        }
+        
         port.write("Starting monitor program. Abort with 'c'\n");
-        _config->startMonitor([](std::string& s){_rShell->_port.write(s.c_str()); });
-        _abortCbk = [](){_config->stopMonitor();};
     }
     
     static void showHealth(EmbeddedCli *cli, char *args, void *context) {
@@ -157,9 +190,8 @@ class Ui {
         }
 
         if(command->name == std::string{"c"}) {
-            if (_abortCbk != nullptr)
-                _abortCbk();
-            _abortCbk = nullptr;
+            if (_runningTaskToken.get() != nullptr)
+                _runningTaskToken->cancel();
         }
     }
 
@@ -186,4 +218,5 @@ class Ui {
     Cli _shell;
     static Cli * _rShell;
     static abortCallback _abortCbk ;
+    static std::shared_ptr<TaskControl> _runningTaskToken;
 };

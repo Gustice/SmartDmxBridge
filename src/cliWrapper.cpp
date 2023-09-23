@@ -7,4 +7,4 @@ const std::string_view WelcomeString {
 
 Ui::Config * Ui::_config;
 Cli * Ui::_rShell = nullptr;
-Ui::abortCallback Ui::_abortCbk = nullptr;
+std::shared_ptr<TaskControl> Ui::_runningTaskToken;

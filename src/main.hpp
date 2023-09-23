@@ -6,6 +6,7 @@
 #include "adc.hpp"
 #include <array>
 #include <algorithm>
+#include <lwip/netdb.h>
 
 struct DeviceIoMap
 {
@@ -27,7 +28,7 @@ struct DeviceIoMap
 };
 
 struct LogSession {
-    char *destinationAddr;
+    sockaddr_in latestClient;
     bool terminate;
 };
 

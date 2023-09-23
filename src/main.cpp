@@ -27,6 +27,7 @@
 #include "ScaledValue.hpp"
 #include "displayWrapper.hpp"
 #include "ratioControl.hpp"
+#include "semaphore.hpp"
 
 extern "C" { // This switch allows the ROS C-implementation to find this main
 void app_main(void);
@@ -37,27 +38,24 @@ const std::string StationVersion = "T 0.5.0";
 constexpr unsigned MinTaskStack = 4096;
 constexpr uint16_t SyslogPort = 514;
 
-constexpr DeviceIoMap ioMap{
-    .dmx{
-        .port = 2,
-        .rxPin = GPIO_NUM_32,
-        .txPin = GPIO_NUM_33,
-    },
-    .display{
-        .port = 1,
-        .rxPin = GPIO_NUM_36,
-        .txPin = GPIO_NUM_4,
-    },
-    .intensity {
-        .unit = adc_unit_t::ADC_UNIT_2,
-        .port = adc_channel_t::ADC_CHANNEL_3 // => GPIO 15
-    },
-    .ambiente {
-        .unit = adc_unit_t::ADC_UNIT_2,
-        .port = adc_channel_t::ADC_CHANNEL_6 // => GPIO 14
-    }
-};
-
+constexpr DeviceIoMap ioMap{.dmx{
+                                .port = 2,
+                                .rxPin = GPIO_NUM_32,
+                                .txPin = GPIO_NUM_33,
+                            },
+                            .display{
+                                .port = 1,
+                                .rxPin = GPIO_NUM_36,
+                                .txPin = GPIO_NUM_4,
+                            },
+                            .intensity{
+                                .unit = adc_unit_t::ADC_UNIT_2,
+                                .port = adc_channel_t::ADC_CHANNEL_3 // => GPIO 15
+                            },
+                            .ambiente{
+                                .unit = adc_unit_t::ADC_UNIT_2,
+                                .port = adc_channel_t::ADC_CHANNEL_6 // => GPIO 14
+                            }};
 
 static StageConfig stage{.weightsLights{
                              /*AmbienteGrp 1*/ 0,  0,   0,
@@ -95,6 +93,8 @@ EtherPins_t etherPins = {
     .ethPhyPower = GPIO_NUM_12,
 };
 
+MonitorOptions monitor;
+
 DeviceState deviceState(DeviceState::Mode::StandAlone);
 std::array<uint8_t, 2> relativeIntensity;
 MessageQueue<DisplayMessage> displayEvents(10);
@@ -102,12 +102,9 @@ MessageQueue<LogMessage> logEvents(32);
 
 OtaHandler ota("http://192.168.178.10:8070/dmx_bridge.bin");
 static const char *TAG = "dmx-bridge";
-DmxChannels channels;
-
 static Dmx512 dmxPort(ioMap.dmx.port, ioMap.dmx.rxPin, ioMap.dmx.txPin);
 
-void startDmxMonitor(std::function<void(std::string &)>);
-void stopDmxMonitor();
+void startDmxMonitor(MonitorType type, std::shared_ptr<TaskControl> token);
 
 void showSystemHealth() {
     ESP_LOGI(TAG, "System-Stats");
@@ -118,25 +115,21 @@ void showSystemHealth() {
 
 Ui::Config uiConfig{
     .stage = stage,
-    .channels = channels,
+    .dmx = dmxPort,
     .ota = ota,
     .startMonitor = startDmxMonitor,
-    .stopMonitor = stopDmxMonitor,
     .showHealth = showSystemHealth,
 };
 
-#define NR_OF_IP_ADDRESSES_TO_WAIT_FOR (2)
-
 IpInfo deviceInfo;
+static Semaphore ipAddressSem{2, 0}; // Counting semaphore
 
-static xSemaphoreHandle s_semph_get_ip_addrs =
-    xSemaphoreCreateCounting(NR_OF_IP_ADDRESSES_TO_WAIT_FOR, 0);
 void gotIpCallback(IpInfo info) {
-    xSemaphoreGive(s_semph_get_ip_addrs);
-  
+    ipAddressSem.give();
+
     auto &ip = info.address;
     std::string ipStr = std::to_string(ip[0]) + "." + std::to_string(ip[1]) + "." +
-                    std::to_string(ip[2]) + "." + std::to_string(ip[3]);
+                        std::to_string(ip[2]) + "." + std::to_string(ip[3]);
 
     auto msg = std::make_unique<DisplayMessage>(DisplayMessage::Type::UpdatedIp, ipStr);
     displayEvents.enqueue(std::move(msg));
@@ -148,9 +141,11 @@ void gotIpCallback(IpInfo info) {
 std::array<uint32_t, 2> dmxUniverses{1, 2};
 
 void Universe1Callback(const uint8_t *data, const uint16_t size) {
-    int len = std::min(static_cast<int>(size), DmxChannelCount);
-    dmxPort.set(data, len);
-    dmxPort.send();
+    if (deviceState.stateIs(DeviceState::Mode::Remote)) {
+        int len = std::min(static_cast<int>(size), DmxChannelCount);
+        dmxPort.set(data, len);
+        dmxPort.send();
+    }
 }
 
 static void dmxSocket(void *args) {
@@ -158,15 +153,39 @@ static void dmxSocket(void *args) {
     while (true) {
         UdpSocket socket(dest_addr, deviceInfo);
         socket.attach();
-        deviceState.setNewState(DeviceState::Mode::Remote);
         ArtnetReceiver artnet(socket);
         artnet.subscribe(dmxUniverses[0], Universe1Callback);
+
+        artnet.parse();
+        auto msg =
+            std::make_unique<DisplayMessage>(DisplayMessage::Type::UpdateInfo, "DMX-IP-Mode");
+        displayEvents.enqueue(std::move(msg));
+        deviceState.setNewState(DeviceState::Mode::Remote);
 
         while (socket.isActive()) {
             ESP_LOGD(TAG, "Waiting for data");
             artnet.parse();
         }
         deviceState.fallbackToLast();
+    }
+    vTaskDelete(NULL);
+}
+
+static void sysLogTask(void *pvParameters) {
+    auto param = static_cast<LogSession *>(pvParameters);
+    ESP_LOGI(TAG, "Syslog task started ... client");
+
+    char _addr_str[24];
+    inet_ntoa_r((&param->latestClient)->sin_addr, _addr_str, sizeof(_addr_str) - 1);
+    ESP_LOGI(TAG, "Telnet activity registered ... starting Syslog to %s", _addr_str);
+    sockaddr_in dest_addr = createIpV4Config(0, SyslogPort);
+    dest_addr.sin_addr.s_addr = param->latestClient.sin_addr.s_addr;
+    while (!param->terminate) {
+        UdpSocket socket(dest_addr, deviceInfo);
+        while (!param->terminate && socket.isActive()) {
+            auto log = logEvents.dequeue();
+            socket.write(log.get()->message, dest_addr);
+        }
     }
     vTaskDelete(NULL);
 }
@@ -179,21 +198,16 @@ static void tcp_server_task(void *arg) {
         .keepInterval = 5,
         .keepCount = 3,
     };
-    struct sockaddr_in dest_addr_ip4 {
-        .sin_len = sizeof(sockaddr_in), .sin_family = AF_INET, .sin_port = htons(TelnetPort),
-        .sin_addr{
-            .s_addr = htonl(INADDR_ANY),
-        },
-        .sin_zero {
-            0
-        }
-    };
-
+    const sockaddr_in dest_addr = createIpV4Config(INADDR_ANY, TelnetPort);
     while (true) {
-        TcpSocket socket(dest_addr_ip4, deviceInfo);
+        TcpSocket socket(dest_addr, deviceInfo);
         while (socket.isActive()) {
             ESP_LOGI(TAG, "Socket waiting for connect");
             TcpSession session(config, socket);
+
+            static LogSession logSession{.latestClient = session.getSource(), .terminate = false};
+            xTaskCreate(sysLogTask, "sysLogTask", 4096, &logSession, 5, NULL);
+
             Ui ui(session, uiConfig);
             if (!session.isActive())
                 break;
@@ -201,28 +215,11 @@ static void tcp_server_task(void *arg) {
             while (session.isActive()) {
                 ui.process();
             }
+            logSession.terminate = true;
         }
     }
     vTaskDelete(NULL);
 }
-
-
-static void sysLogTask(void *pvParameters)
-{
-    auto param = static_cast<LogSession*>(pvParameters);
-    sockaddr_in dest_addr = createIpV4Config(0, SyslogPort);
-    dest_addr.sin_addr.s_addr = (inet_addr(param->destinationAddr));
-    vTaskDelay(pdMS_TO_TICKS(5000));
-    while (!param->terminate) {
-        UdpSocket socket(dest_addr, deviceInfo);
-        while (!param->terminate && socket.isActive()) {
-            auto log = logEvents.dequeue();
-            socket.write(log.get()->message, dest_addr);
-        }
-    }
-    vTaskDelete(NULL);
-}
-
 
 void newColorScheme(AmbientColorSet color) {
     auto fg = color.foregroundColor;
@@ -231,10 +228,15 @@ void newColorScheme(AmbientColorSet color) {
     stage.colors.backgroundColor = color.foregroundColor;
     stage.colors.foregroundColor = color.backgroundColor;
 
+    if (monitor.infos) {
+        std::stringstream msg;
+        msg << "Setting color to fg: " << fg.red << " " << fg.green << " " << fg.blue;
+        msg << "   bg:" << bg.red << " " << bg.green << " " << bg.blue;
+        auto log = std::make_unique<LogMessage>(LogMessage::Type::Meas, std::move(msg.str()));
+        logEvents.enqueue(std::move(log));
+    }
     ESP_LOGI(TAG, "Setting color to fg r=%d g=%d b=%d   bg r=%d g=%d b=%d ", fg.red, fg.green,
              fg.blue, bg.red, bg.green, bg.blue);
-    auto log = std::make_unique<LogMessage>(LogMessage::Type::Event, "New color scheme selected");
-    logEvents.enqueue(std::move(log));
 }
 
 static void displayTask(void *arg) {
@@ -256,55 +258,97 @@ struct MonitorConfig {
     std::function<void(std::string &)> onWrite;
 };
 
-bool stopRequested = false;
-static void dmx_Monitor(void *arg) {
-    MonitorConfig *config = (MonitorConfig *)arg;
-    Dmx512 &dmx = config->dmx;
+static void dmx_RingMonitor(void *arg) {
+    std::shared_ptr<TaskControl> token(*(std::shared_ptr<TaskControl> *)arg);
 
+    deviceState.setNewState(DeviceState::Mode::TestRing);
     BinDiff differ(24);
-    std::vector<uint8_t> sent(49, 0);
-    while (true) {
-        dmx.set(channels.values.data(), channels.values.size());
-        dmx.send();
-        auto received = dmx.get();
+    while (!token->cancelled) {
+        auto sent = dmxPort.getValues();
+        dmxPort.send();
+        auto received = dmxPort.receive();
 
-        std::copy(channels.values.cbegin(), channels.values.cend(), sent.begin() + 1);
-
-        if (received.size() < channels.values.size()) {
+        if (received.size() < sent.values.size()) {
             ESP_LOGW(TAG, "DMX-Monitor, incomplete data received (%d received):", received.size());
         }
-        auto res = differ.compare(sent, received);
+        auto res = differ.compare(sent.values, received);
         if (!res.areSame) {
-            ESP_LOGE(TAG, "DMX-Monitor, error in transmit :\n %s", res.diff.c_str());
-            ESP_LOGI(TAG, "DMX-Monitor, sent -> %d e: %s ..", sent.size(),
-                     differ.stringify_list(sent.cbegin(), sent.cbegin() + 13).c_str());
-            ESP_LOGI(TAG, "DMX-Monitor, got  <- %d e: %s ..", received.size(),
-                     differ
-                         .stringify_list(received.cbegin(),
-                                         received.cbegin() + std::min(13u, received.size()))
-                         .c_str());
+            {
+                auto logD = std::make_unique<LogMessage>(
+                    LogMessage::Type::Meas, "DMX-Monitor, error in transmit :\n " + res.diff);
+                logEvents.enqueue(std::move(logD));
+            }
+            {
+                auto logS = std::make_unique<LogMessage>(
+                    LogMessage::Type::Meas,
+                    "DMX-Monitor, sent -> : " +
+                        differ.stringify_list(sent.values.cbegin(), sent.values.cend()));
+                logEvents.enqueue(std::move(logS));
+            }
+            {
+                auto logR = std::make_unique<LogMessage>(
+                    LogMessage::Type::Meas,
+                    "DMX-Monitor, got  <- : " +
+                        differ.stringify_list(received.cbegin(), received.cend()));
+                logEvents.enqueue(std::move(logR));
+            }
         }
+        vTaskDelay(100 / portTICK_PERIOD_MS);
+    }
+    deviceState.fallbackToLast();
+    vTaskDelete(nullptr);
+}
 
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
-        if (stopRequested) {
-            break;
+static void dmx_Monitor(void *arg) {
+    std::shared_ptr<TaskControl> token(*(std::shared_ptr<TaskControl> *)arg);
+
+    deviceState.setNewState(DeviceState::Mode::Sensing);
+    BinDiff differ(24);
+
+    auto lastReceived = dmxPort.receive();
+    while (!token->cancelled) {
+
+        auto received = dmxPort.receive();
+        auto res = differ.compare(lastReceived, received);
+        if (!res.areSame) {
+            {
+                auto logD = std::make_unique<LogMessage>(
+                    LogMessage::Type::Meas, "DMX-Monitor, error in transmit :\n " + res.diff);
+                logEvents.enqueue(std::move(logD));
+            }
+            {
+                auto logS = std::make_unique<LogMessage>(
+                    LogMessage::Type::Meas,
+                    "DMX-Monitor, got -1 : " +
+                        differ.stringify_list(lastReceived.cbegin(), lastReceived.cend()));
+                logEvents.enqueue(std::move(logS));
+            }
+            {
+                auto logR = std::make_unique<LogMessage>(
+                    LogMessage::Type::Meas,
+                    "DMX-Monitor, got   0 : " +
+                        differ.stringify_list(received.cbegin(), received.cend()));
+                logEvents.enqueue(std::move(logR));
+            }
+            lastReceived = received;
         }
     }
-    stopRequested = false;
+    deviceState.fallbackToLast();
+    vTaskDelete(nullptr);
 }
 
-void startDmxMonitor(std::function<void(std::string &)> onWrite) {
-    ESP_LOGI(TAG, "Starting Monitor task");
-    MonitorConfig config{
-        .dmx = dmxPort,
-        .onWrite = onWrite,
-    };
+void startDmxMonitor(MonitorType type, std::shared_ptr<TaskControl> token) {
+    switch (type) {
+    case MonitorType::RingCheck:
+        ESP_LOGI(TAG, "Ring-Monitor task");
+        xTaskCreate(dmx_RingMonitor, "dmx_RingMonitor", 4096, &token, 5, NULL);
+        break;
 
-    xTaskCreate(dmx_Monitor, "dmx_Monitor", 4096, &config, 5, NULL);
-}
-void stopDmxMonitor() {
-    ESP_LOGI(TAG, "Stopping Monitor task");
-    stopRequested = true;
+    case MonitorType::Sensing:
+        ESP_LOGI(TAG, "Sens-Monitor task");
+        xTaskCreate(dmx_Monitor, "dmx_Monitor", 4096, &token, 5, NULL);
+        break;
+    }
 }
 
 void standAloneTask(void *arg) {
@@ -323,18 +367,22 @@ void standAloneTask(void *arg) {
         relativeIntensity[0] = displayScale.scale(intensity.illumination);
         relativeIntensity[1] = displayScale.scale(intensity.ambiente);
 
-        auto values = lights.update(intensity);
-
         if (deviceState.stateIs(DeviceState::Mode::StandAlone)) {
+            auto values = lights.update(intensity);
             dmxPort.set(values.data(), StageChannelsCount);
             dmxPort.send();
 
-            // ESP_LOGI(TAG, "Dmx Data: %02x%02x%02x %02x%02x %02x%02x%02x %02x%02x%02x%02x%02x%02x %02x%02x %02x%02x%02x%02x %02x%02x%02x%02x", 
-            // values[0],values[1],values[2],values[3],values[4],values[5],values[6],values[7],values[8],values[9],values[10],
-            // values[11],values[12],values[13],values[14],values[15],values[16],values[17],values[18],values[19],values[20],
-            // values[21],values[22],values[23]);
+            if (monitor.standAlone) {
+                std::stringstream msg;
+                msg << "Dmx Data (ch 1 .. 24): " << std::hex;
+                for (auto &&i : values) {
+                    msg << "0x" << i << " ";
+                }
+                auto log =
+                    std::make_unique<LogMessage>(LogMessage::Type::Meas, std::move(msg.str()));
+                logEvents.enqueue(std::move(log));
+            }
         }
-
         vTaskDelay(50 / portTICK_PERIOD_MS);
     }
 }
@@ -359,15 +407,13 @@ void app_main(void) {
     ota.get_sha256_of_partitions();
     xTaskCreate(displayTask, "displayTask", MinTaskStack * 4, NULL, 10, NULL);
     xTaskCreate(standAloneTask, "standAloneTask", MinTaskStack * 2, nullptr, 5, NULL);
-    
-    static LogSession logSession {
-        .destinationAddr = "192.168.178.10",
-        .terminate = false
-    };
-    xTaskCreate(sysLogTask, "sysLogTask", 4096, &logSession, 5, NULL);
+
+    auto msg =
+        std::make_unique<DisplayMessage>(DisplayMessage::Type::UpdateInfo, "Standalone-Mode");
+    displayEvents.enqueue(std::move(msg));
 
     ESP_LOGI(TAG, "Waiting for IP(s)");
-    xSemaphoreTake(s_semph_get_ip_addrs, portMAX_DELAY);
+    ipAddressSem.take(portMAX_DELAY);
 
     // iterate over active interfaces, and print out IPs of "our" netifs
     esp_netif_t *netif = NULL;

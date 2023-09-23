@@ -1,16 +1,18 @@
 #pragma once
 
 #include <array>
+#include <vector>
 #include <cstdint>
 
 #include <cstdint>
 #include <string>
+#include "esp_log.h"
 
 constexpr int StageChannelsCount = 24;
 using StageValues = std::array<uint8_t, StageChannelsCount>;
 
 struct DmxChannels {
-    std::array<uint8_t, 24> values;
+    std::vector<uint8_t> values;
     std::string getValuesStr();
     std::string getValueStr(std::string ch);
 };
@@ -68,10 +70,12 @@ class DeviceState {
 
     void setNewState(Mode mode) {
         _last = _current;
+        ESP_LOGI("MODE", "Set to state %d", static_cast<int>(mode));
         _current = mode;
     }
 
     void fallbackToLast() {
+        ESP_LOGI("MODE", "fallback to %d", static_cast<int>(_last));
         _current = _last;
     }
 

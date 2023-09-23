@@ -90,7 +90,11 @@ void Dmx512::set(const uint8_t *dmx, int size) {
     std::copy(dmx, &dmx[size], &sendBuffer[1]);
 }
 
-std::vector<uint8_t> Dmx512::get() {
+void Dmx512::set(uint8_t channel, uint8_t value) {
+    sendBuffer[channel +1] = value;
+}
+
+std::vector<uint8_t> Dmx512::receive() {
     if (!_context.received)
         return {};
 
@@ -99,4 +103,10 @@ std::vector<uint8_t> Dmx512::get() {
     std::vector<uint8_t> ret(_context.buffer, _context.buffer + DmxBufferSize);
     xSemaphoreGive(_context.syncRead);
     return ret;
+}
+
+DmxChannels Dmx512::getValues() {
+    return {
+        .values = std::vector(std::begin(sendBuffer) + 1, std::end(sendBuffer))
+    };
 }

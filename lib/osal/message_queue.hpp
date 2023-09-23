@@ -4,8 +4,10 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
 #include <memory>
+#include <string_view>
+using namespace std::literals::string_view_literals;
 
-constexpr char *OSAL_TAG = "OSAL";
+constexpr std::string_view OSAL_TAG {"OSAL"sv};
 
 template <typename T> class MessageQueue {
   public:
@@ -13,7 +15,7 @@ template <typename T> class MessageQueue {
         xQueue = xQueueCreate(size, sizeof(T *));
 
         if (xQueue == 0) {
-            ESP_LOGE(OSAL_TAG, "Unable to create queue with size %d", size);
+            ESP_LOGE(OSAL_TAG.data(), "Unable to create queue with size %d", size);
         }
         _isActive = true;
     }

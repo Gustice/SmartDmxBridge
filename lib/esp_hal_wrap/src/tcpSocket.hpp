@@ -12,7 +12,7 @@
 
 class TcpSocket : public VolatileStream {
   public:
-    TcpSocket(sockaddr_in &dest, IpInfo &device) : dest_addr(dest), Device(device) {
+    TcpSocket(const sockaddr_in &dest, IpInfo &device) : dest_addr(dest), Device(device) {
         listen_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
         if (listen_sock < 0) {
             ESP_LOGE("TCP", "Unable to create socket: errno %d", errno);
@@ -53,7 +53,7 @@ class TcpSocket : public VolatileStream {
         return listen_sock;
     }
 
-    sockaddr_in &dest_addr; // This Station
+    const sockaddr_in &dest_addr; // This Station
     const IpInfo &Device;
     struct sockaddr_storage source_addr; // Remote Station
 
@@ -71,7 +71,6 @@ class TcpSession : public CharStream, public VolatileStream {
     };
 
     TcpSession(Config &config, TcpSocket listener) {
-        struct sockaddr_storage source_addr; // Large enough for both IPv4 or IPv6
         socklen_t addr_len = sizeof(source_addr);
         _socket = accept(listener.getSocketId(), (struct sockaddr *)&source_addr, &addr_len);
         if (_socket < 0) {
@@ -86,6 +85,7 @@ class TcpSession : public CharStream, public VolatileStream {
         setsockopt(_socket, IPPROTO_TCP, TCP_KEEPINTVL, &config.keepInterval, sizeof(int));
         setsockopt(_socket, IPPROTO_TCP, TCP_KEEPCNT, &config.keepCount, sizeof(int));
 
+        char _addr_str[24];
         inet_ntoa_r(((struct sockaddr_in *)&source_addr)->sin_addr, _addr_str,
                     sizeof(_addr_str) - 1);
         ESP_LOGI("TCP", "Socket accepted ip address: %s", _addr_str);
@@ -99,6 +99,10 @@ class TcpSession : public CharStream, public VolatileStream {
         ESP_LOGI("TCP", "Tearing down socket");
         shutdown(_socket, 0); // todo something goes wrong on tidy up
         close(_socket);
+    }
+
+    sockaddr_in getSource() {
+        return source_addr;
     }
 
     std::string read() override {
@@ -148,5 +152,5 @@ class TcpSession : public CharStream, public VolatileStream {
     int _port;
     int _socket = 0;
     uint8_t _data[128];
-    char _addr_str[128];
+    sockaddr_in source_addr;
 };
