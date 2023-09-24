@@ -58,7 +58,7 @@ class DeviceState {
         Sensing,
     };
 
-    DeviceState(Mode init) : _default(init), _last(init) {}
+    DeviceState(Mode init) : _default(init), _current(init), _last(init) { }
 
     bool stateIs(Mode mode) {
         return _current == mode;

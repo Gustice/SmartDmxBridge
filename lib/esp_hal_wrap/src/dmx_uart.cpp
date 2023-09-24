@@ -76,7 +76,8 @@ Dmx512::Dmx512(uart_port_t port, gpio_num_t rxd, gpio_num_t txd)
 
 void Dmx512::send() {
     uart_set_line_inverse(Port, UART_SIGNAL_TXD_INV);
-    vTaskDelay(1);
+    usleep(100);
+    vTaskDelay(0);
     uart_set_line_inverse(Port, UART_SIGNAL_INV_DISABLE);
     usleep(10);
     Uart::write(sendBuffer, DmxBufferSize);

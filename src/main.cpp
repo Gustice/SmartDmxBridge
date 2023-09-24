@@ -28,6 +28,7 @@
 #include "displayWrapper.hpp"
 #include "ratioControl.hpp"
 #include "semaphore.hpp"
+#include <sys/time.h>
 
 extern "C" { // This switch allows the ROS C-implementation to find this main
 void app_main(void);
@@ -139,13 +140,22 @@ void gotIpCallback(IpInfo info) {
 }
 
 std::array<uint32_t, 2> dmxUniverses{1, 2};
+BinDiff differ(24);
+
+static void valueRefresherTask(void *) {
+    while (deviceState.stateIs(DeviceState::Mode::Remote)) {
+        // the data might be changed midway, but as the refresh is fast relative to manipulation
+        // this won't lead to inconveniences
+        dmxPort.send();
+        vTaskDelay(pdMS_TO_TICKS(20));
+    }
+    vTaskDelete(NULL);
+}
 
 void Universe1Callback(const uint8_t *data, const uint16_t size) {
-    if (deviceState.stateIs(DeviceState::Mode::Remote)) {
-        int len = std::min(static_cast<int>(size), DmxChannelCount);
-        dmxPort.set(data, len);
-        dmxPort.send();
-    }
+    int len = std::min(static_cast<int>(size), DmxChannelCount);
+    dmxPort.set(data, len);
+    // dmxPort.send(); Send should be triggered cyclically
 }
 
 static void dmxSocket(void *args) {
@@ -161,6 +171,7 @@ static void dmxSocket(void *args) {
             std::make_unique<DisplayMessage>(DisplayMessage::Type::UpdateInfo, "DMX-IP-Mode");
         displayEvents.enqueue(std::move(msg));
         deviceState.setNewState(DeviceState::Mode::Remote);
+        xTaskCreate(valueRefresherTask, "valueRefresherTask", 4096, nullptr, 5, NULL);
 
         while (socket.isActive()) {
             ESP_LOGD(TAG, "Waiting for data");
@@ -262,7 +273,6 @@ static void dmx_RingMonitor(void *arg) {
     std::shared_ptr<TaskControl> token(*(std::shared_ptr<TaskControl> *)arg);
 
     deviceState.setNewState(DeviceState::Mode::TestRing);
-    BinDiff differ(24);
     while (!token->cancelled) {
         auto sent = dmxPort.getValues();
         dmxPort.send();
@@ -271,27 +281,11 @@ static void dmx_RingMonitor(void *arg) {
         if (received.size() < sent.values.size()) {
             ESP_LOGW(TAG, "DMX-Monitor, incomplete data received (%d received):", received.size());
         }
-        auto res = differ.compare(sent.values, received);
+        auto res = differ.compareBytes(sent.values, received, {"sent, received"});
         if (!res.areSame) {
-            {
-                auto logD = std::make_unique<LogMessage>(
-                    LogMessage::Type::Meas, "DMX-Monitor, error in transmit :\n " + res.diff);
-                logEvents.enqueue(std::move(logD));
-            }
-            {
-                auto logS = std::make_unique<LogMessage>(
-                    LogMessage::Type::Meas,
-                    "DMX-Monitor, sent -> : " +
-                        differ.stringify_list(sent.values.cbegin(), sent.values.cend()));
-                logEvents.enqueue(std::move(logS));
-            }
-            {
-                auto logR = std::make_unique<LogMessage>(
-                    LogMessage::Type::Meas,
-                    "DMX-Monitor, got  <- : " +
-                        differ.stringify_list(received.cbegin(), received.cend()));
-                logEvents.enqueue(std::move(logR));
-            }
+            auto logD = std::make_unique<LogMessage>(
+                LogMessage::Type::Meas, "DMX-Monitor, error in transmit :\n " + res.diff);
+            logEvents.enqueue(std::move(logD));
         }
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
@@ -303,33 +297,15 @@ static void dmx_Monitor(void *arg) {
     std::shared_ptr<TaskControl> token(*(std::shared_ptr<TaskControl> *)arg);
 
     deviceState.setNewState(DeviceState::Mode::Sensing);
-    BinDiff differ(24);
-
     auto lastReceived = dmxPort.receive();
     while (!token->cancelled) {
 
         auto received = dmxPort.receive();
-        auto res = differ.compare(lastReceived, received);
+        auto res = differ.compareBytes(lastReceived, received, {"last, new"});
         if (!res.areSame) {
-            {
-                auto logD = std::make_unique<LogMessage>(
-                    LogMessage::Type::Meas, "DMX-Monitor, error in transmit :\n " + res.diff);
-                logEvents.enqueue(std::move(logD));
-            }
-            {
-                auto logS = std::make_unique<LogMessage>(
-                    LogMessage::Type::Meas,
-                    "DMX-Monitor, got -1 : " +
-                        differ.stringify_list(lastReceived.cbegin(), lastReceived.cend()));
-                logEvents.enqueue(std::move(logS));
-            }
-            {
-                auto logR = std::make_unique<LogMessage>(
-                    LogMessage::Type::Meas,
-                    "DMX-Monitor, got   0 : " +
-                        differ.stringify_list(received.cbegin(), received.cend()));
-                logEvents.enqueue(std::move(logR));
-            }
+            auto logD = std::make_unique<LogMessage>(
+                LogMessage::Type::Meas, "DMX-Monitor, error in transmit :\n " + res.diff);
+            logEvents.enqueue(std::move(logD));
             lastReceived = received;
         }
     }
