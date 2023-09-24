@@ -94,7 +94,7 @@ EtherPins_t etherPins = {
     .ethPhyPower = GPIO_NUM_12,
 };
 
-MonitorOptions monitor;
+DebuggingOptions debugOptions;
 
 DeviceState deviceState(DeviceState::Mode::StandAlone);
 std::array<uint8_t, 2> relativeIntensity;
@@ -120,6 +120,7 @@ Ui::Config uiConfig{
     .ota = ota,
     .startMonitor = startDmxMonitor,
     .showHealth = showSystemHealth,
+    .debugOptions = debugOptions
 };
 
 IpInfo deviceInfo;
@@ -239,7 +240,7 @@ void newColorScheme(AmbientColorSet color) {
     stage.colors.backgroundColor = color.foregroundColor;
     stage.colors.foregroundColor = color.backgroundColor;
 
-    if (monitor.infos) {
+    if (debugOptions.infos) {
         std::stringstream msg;
         msg << "Setting color to fg: " << fg.red << " " << fg.green << " " << fg.blue;
         msg << "   bg:" << bg.red << " " << bg.green << " " << bg.blue;
@@ -273,7 +274,7 @@ static void dmx_RingMonitor(void *arg) {
     std::shared_ptr<TaskControl> token(*(std::shared_ptr<TaskControl> *)arg);
 
     deviceState.setNewState(DeviceState::Mode::TestRing);
-    while (!token->cancelled) {
+    while (!token->isCanceled()) {
         auto sent = dmxPort.getValues();
         dmxPort.send();
         auto received = dmxPort.receive();
@@ -298,7 +299,7 @@ static void dmx_Monitor(void *arg) {
 
     deviceState.setNewState(DeviceState::Mode::Sensing);
     auto lastReceived = dmxPort.receive();
-    while (!token->cancelled) {
+    while (!token->isCanceled()) {
 
         auto received = dmxPort.receive();
         auto res = differ.compareBytes(lastReceived, received, {"last, new"});
@@ -348,7 +349,7 @@ void standAloneTask(void *arg) {
             dmxPort.set(values.data(), StageChannelsCount);
             dmxPort.send();
 
-            if (monitor.standAlone) {
+            if (debugOptions.standAlone) {
                 std::stringstream msg;
                 msg << "Dmx Data (ch 1 .. 24): " << std::hex;
                 for (auto &&i : values) {
