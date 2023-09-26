@@ -1,229 +1,100 @@
+/**
+ * @file displayWrapper.hpp
+ * @author Gustice
+ * @brief Wrapping Display control
+ * @date 2023-09-24
+ *
+ * @copyright Copyright (c) 2023
+ */
 #pragma once
 
-#include "Nextion.h"
 #include "ValueCache.hpp"
 #include "configModel.hpp"
-#include "esp_log.h"
+#include "displayElements.hpp"
 #include "message_queue.hpp"
-#include "uart.hpp"
+#include <esp_log.h>
 
-struct DisplayMessage {
-    enum Type {
-        UpdatedIp,
-        UpdateInfo,
-        UpdateStatus,
-    };
-    DisplayMessage(Type t, std::string msg) : type(t), message(msg) {}
-    Type type;
-    std::string message;
-};
-
-class UartWrapper : public SerialStream {
-  public:
-    UartWrapper(Uart &port) : _port(port) {}
-
-    std::vector<uint8_t> read(size_t minSize = 0, unsigned msTimeout = 0) override {
-        return _port.readBytes(minSize, msTimeout);
-    }
-    virtual void write(char c) override {
-        _port.write(c);
-    }
-    virtual void write(std::string str) override {
-        _port.write(str);
-    }
-
-  private:
-    Uart &_port;
-};
-
+/**
+ * @brief Class for Device-Display
+ */
 class Display {
   public:
-    using setColorCallback = void (*)(AmbientColorSet);
+    using setColorCallback = display::WorkingPage::setColorCallback; // void (*)(AmbientColorSet);
+    /// @brief Display message object for message events
+    struct Message {
+        enum Type {
+            UpdatedIp,
+            UpdateInfo,
+            UpdateStatus,
+        };
+        Type type;
+        std::string message;
 
-    Display(Uart &port, std::string name, std::string version, ColorPresets &initialColors,
-            setColorCallback colorSetCb)
-        : _port(port), _colorPresets(initialColors), _colorSetCb(colorSetCb) {
+        Message(Type t, std::string msg) : type(t), message(msg) {}
+    };
+
+    Display(Uart &port, const std::string &name, const std::string &version, ColorPresets &presets,
+            setColorCallback colorCb)
+        : _port(port), pageSwitchFunc([this](display::PageBase * p) { this->pageSwitch(p); }),
+          splashScreen(eventCallback), workingPage(eventCallback, pageSwitchFunc, presets, colorCb),
+          infoPage(eventCallback, pageSwitchFunc, name, version) {
         if (!NxtIo::nexInit(_port, dumpLog)) {
             dumpLog(NxtLogSeverity::Error, "Init failed");
         }
         ESP_LOGI("DISP", "begin setup");
-        tHealth.text.set("Setup Image");
 
-        bScheme1.attachPush(bScheme1Cb, this);
-        bScheme2.attachPush(bScheme2Cb, this);
-        bScheme3.attachPush(bScheme3Cb, this);
-        bSchemeCustom.attachPush(bSchemeCustomCb, this);
-        hCustomFg.attachPop(hCustomFgCb, this);
-        hCustomBg.attachPop(hCustomBgCb, this);
+        splashScreen.init();
+        infoPage.init();
 
-        bToInfoPage.attachPush(switchToInfoPage, this);
-        bToWorkingPage.attachPush(switchToWorkingPage, this);
-
-        switchToWorkingPage(this);
-        ESP_LOGI("DISP", "setup finished");
-
-        tName.text.set(name);
-        tVersion.text.set(version);
-        tAddress.text.set("0.0.0.0");
-        tInfo.text.set("Device Info");
-        tStatus.text.set("Device Status");
-
-        page = CurrentPage::WorkingPage;
-        workingPage.show();
-        {
-            auto &ic = initialColors;
-            tScheme1Fg.background.set(calcColor(ic.preset1.foregroundColor));
-            tScheme1Bg.background.set(calcColor(ic.preset1.backgroundColor));
-            tScheme2Fg.background.set(calcColor(ic.preset2.foregroundColor));
-            tScheme2Bg.background.set(calcColor(ic.preset2.backgroundColor));
-            tScheme3Fg.background.set(calcColor(ic.preset3.foregroundColor));
-            tScheme3Bg.background.set(calcColor(ic.preset3.backgroundColor));
-
-            auto fg = hCustomFg.value.get();
-            tCustomFg.background.set(calcColor(hueToRgb(fg)));
-            auto bg = hCustomBg.value.get();
-            tCustomBg.background.set(calcColor(hueToRgb(bg)));
-
-            jLight.value.set(0);
-            jAmbient.value.set(0);
-        }
+        _page = workingPage.show();
+        workingPage.init();
     }
 
     void tick() {
-        switch (page) {
-        case CurrentPage::WorkingPage: {
-            NxtIo::SensingList list = {&bToInfoPage,   &bScheme1,  &bScheme2, &bScheme3,
-                                       &bSchemeCustom, &hCustomFg, &hCustomBg};
-            NxtIo::nexLoop(list);
-        } break;
-
-        case CurrentPage::InfoPage: {
-            NxtIo::SensingList list = {&bToWorkingPage};
-            NxtIo::nexLoop(list);
-        } break;
-
-        default:
-            break;
-        }
+        _page->tick();
     }
 
-    void processQueue(MessageQueue<DisplayMessage> & queue) {
-        std::unique_ptr<DisplayMessage> pMsg;
-        pMsg = queue.dequeue(0);
+    void processQueue(MessageQueue<Message> &queue) {
+        std::unique_ptr<Message> pMsg;
+        pMsg = queue.dequeue(0); // don't block if no message pending
         if (pMsg == nullptr) {
             return;
         }
 
         switch (pMsg->type) {
-        case DisplayMessage::Type::UpdatedIp:
-            tAddress.text.set(pMsg->message);
+        case Message::Type::UpdatedIp:
+            infoPage.tAddress.text.set(pMsg->message);
             break;
 
-        case DisplayMessage::Type::UpdateInfo:
-            tInfo.text.set(pMsg->message);
+        case Message::Type::UpdateInfo:
+            infoPage.tInfo.text.set(pMsg->message);
             break;
-        case DisplayMessage::Type::UpdateStatus:
-            tStatus.text.set(pMsg->message);
+        case Message::Type::UpdateStatus:
+            infoPage.tStatus.text.set(pMsg->message);
             break;
         }
     }
 
     void setValues(std::array<uint8_t, 2> intensities) {
-        jLight.value.set(intensities[0]);
-        jAmbient.value.set(intensities[1]);
+        workingPage.jLight.value.set(intensities[0]);
+        workingPage.jAmbient.value.set(intensities[1]);
     }
 
-  private:
-    static uint32_t calcColor(Color col) {
-        return Nxt::Color::calcNextionColor(col.red, col.green, col.blue);
-    }
-
-    enum CurrentPage { WorkingPage = 1, InfoPage, Pages };
-
-    UartWrapper _port;
-    ColorPresets &_colorPresets;
-    CurrentPage page = CurrentPage::WorkingPage;
-
-    Nxt::Page splashScreen{0, "splashScreen"};
-    Nxt::Page workingPage{1, "workingPage"};
-    Nxt::Page infoPage{2, "infoPage"};
-
-    Nxt::Button bScheme1{workingPage, 1, "bScheme1"};
-    Nxt::Button bScheme2{workingPage, 4, "bScheme2"};
-    Nxt::Button bScheme3{workingPage, 7, "bScheme3"};
-    Nxt::Button bSchemeCustom{workingPage, 10, "bSchemeCustom"};
-
-    Nxt::Button bToInfoPage{workingPage, 15, "bNext"};
-    Nxt::Button bToWorkingPage{infoPage, 11, "bPrev"};
-
-    Nxt::Text tHealth{splashScreen, 4, "tHealth"};
-    Nxt::Text tScheme1Fg{workingPage, 2, "tScheme1Fg"};
-    Nxt::Text tScheme1Bg{workingPage, 3, "tScheme1Bg"};
-    Nxt::Text tScheme2Fg{workingPage, 5, "tScheme2Fg"};
-    Nxt::Text tScheme2Bg{workingPage, 6, "tScheme2Bg"};
-    Nxt::Text tScheme3Fg{workingPage, 8, "tScheme3Fg"};
-    Nxt::Text tScheme3Bg{workingPage, 9, "tScheme3Bg"};
-    Nxt::Text tCustomFg{workingPage, 16, "tCustomFg"};
-    Nxt::Text tCustomBg{workingPage, 17, "tCustomBg"};
-
-    Nxt::Slider hCustomFg{workingPage, 13, "hCustomFg"};
-    Nxt::Slider hCustomBg{workingPage, 14, "hCustomBg"};
-    Nxt::ProgressBar jLight{workingPage, 21, "jLight"};
-    Nxt::ProgressBar jAmbient{workingPage, 20, "jAmbient"};
-
-    Nxt::Text tName{infoPage, 3, "tName"};
-    Nxt::Text tVersion{infoPage, 4, "tVersion"};
-    Nxt::Text tAddress{infoPage, 6, "tAddress"};
-    Nxt::Text tInfo{infoPage, 8, "tInfo"};
-    Nxt::Text tStatus{infoPage, 10, "tStatus"};
-
-    setColorCallback _colorSetCb;
-    AmbientColorSet _customPreset;
-
-    static void switchToWorkingPage(void *ptr) {
-        Display *display = (Display *)ptr;
-        display->page = CurrentPage::WorkingPage;
-        // display->workingPage.show(); // already set by display
-    }
-
-    static void switchToInfoPage(void *ptr) {
-        ESP_LOGW("DISP", "To Info-Page");
-        Display *display = (Display *)ptr;
-        display->page = CurrentPage::InfoPage;
+    void pageSwitch(display::PageBase *to) {
+        _page = to;
+        ESP_LOGI("DISP", "Switch to %s", _page->getName().c_str());
         // display->infoPage.show(); // already set by display
     }
 
-    static void bScheme1Cb(void *ptr) {
-        Display *display = (Display *)ptr;
-        display->_colorSetCb(display->_colorPresets.preset1);
-    }
-    static void bScheme2Cb(void *ptr) {
-        Display *display = (Display *)ptr;
-        display->_colorSetCb(display->_colorPresets.preset2);
-    }
-    static void bScheme3Cb(void *ptr) {
-        Display *display = (Display *)ptr;
-        display->_colorSetCb(display->_colorPresets.preset3);
-    }
-    static void bSchemeCustomCb(void *ptr) {
-        Display *display = (Display *)ptr;
-        display->_colorSetCb(display->_customPreset);
-    }
+  private:
+    display::UartWrapper _port;
+    display::PageBase::SwitchCb pageSwitchFunc;
 
-    static void hCustomFgCb(void *ptr) {
-        Display *display = (Display *)ptr;
-        auto fg = display->hCustomFg.value.get();
-        auto color = hueToRgb(fg);
-        display->_customPreset.foregroundColor = color;
-        display->tCustomFg.background.set(calcColor(color));
-    }
-    static void hCustomBgCb(void *ptr) {
-        Display *display = (Display *)ptr;
-        auto bg = display->hCustomBg.value.get();
-        auto color = hueToRgb(bg);
-        display->_customPreset.backgroundColor = color;
-        display->tCustomBg.background.set(calcColor(color));
-    }
+    display::SplashScreenPage splashScreen;
+    display::WorkingPage workingPage;
+    display::InfoPage infoPage;
+
+    display::PageBase *_page;
 
     static void dumpLog(NxtLogSeverity level, std::string msg) {
         auto output = msg.c_str();
@@ -240,47 +111,17 @@ class Display {
         }
     }
 
-    static Color hueToRgb(uint8_t hue) {
-        Color rgb;
-        unsigned char region, remainder, q, t;
-        region = hue / 43;
-        remainder = (hue - (region * 43)) * 6;
-        q = (255 * (255 - ((255 * remainder) >> 8))) >> 8;
-        t = (255 * (255 - ((255 * (255 - remainder)) >> 8))) >> 8;
-
-        switch (region) {
-        case 0:
-            rgb.red = 255;
-            rgb.green = t;
-            rgb.blue = 0;
-            break;
-        case 1:
-            rgb.red = q;
-            rgb.green = 255;
-            rgb.blue = 0;
-            break;
-        case 2:
-            rgb.red = 0;
-            rgb.green = 255;
-            rgb.blue = t;
-            break;
-        case 3:
-            rgb.red = 0;
-            rgb.green = q;
-            rgb.blue = 255;
-            break;
-        case 4:
-            rgb.red = t;
-            rgb.green = 0;
-            rgb.blue = 255;
-            break;
-        default:
-            rgb.red = 255;
-            rgb.green = 0;
-            rgb.blue = q;
-            break;
+    /// @brief Static method to generate c-compatible function-pointer for bound-command-callback
+    /// @details - receives and wraps arguments in string,
+    ///          - determines object according to appContext
+    ///          - calls appropriate method of appropriate object
+    static void eventCallback(void *context) {
+        if (context == nullptr) {
+            return;
+            ESP_LOGE("DISP", "No context in callback available");
         }
 
-        return rgb;
+        display::PageBase::BindCb &cb = *((display::PageBase::BindCb *)context);
+        cb(nullptr);
     }
 };

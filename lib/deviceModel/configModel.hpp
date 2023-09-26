@@ -21,6 +21,8 @@ struct Color {
     uint8_t red;
     uint8_t green;
     uint8_t blue;
+
+    static Color fromHue(uint8_t hue); 
 };
 
 struct AmbientColorSet {

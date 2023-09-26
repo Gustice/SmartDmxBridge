@@ -10,7 +10,7 @@
 
 #include "configModel.hpp"
 #include "dmx_uart.hpp"
-#include "esp_log.h"
+#include <esp_log.h>
 #include "otaUpdate.hpp"
 #include "uart.hpp"
 #include <embedded_cli.h>
@@ -26,7 +26,7 @@ static constexpr int CLI_BINDING_COUNT = 8;
 static constexpr std::string_view CliWelcomeString{
     "** Smart-DMX-Bridge **\n"
     "  send 'help' for help-page\n"
-    "  NOTE: Syslogs are sent to client of this session\n"};
+    "  NOTE: Syslog-messages are sent to client of this session\n"};
 
 /**
  * @brief Descriptive flags for Debugging options. (Supposed to be enabled by CLI-commands)

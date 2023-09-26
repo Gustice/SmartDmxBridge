@@ -98,7 +98,7 @@ DebuggingOptions debugOptions;
 
 DeviceState deviceState(DeviceState::Mode::StandAlone);
 std::array<uint8_t, 2> relativeIntensity;
-MessageQueue<DisplayMessage> displayEvents(10);
+MessageQueue<Display::Message> displayEvents(10);
 MessageQueue<LogMessage> logEvents(32);
 
 OtaHandler ota("http://192.168.178.10:8070/dmx_bridge.bin");
@@ -133,7 +133,7 @@ void gotIpCallback(IpInfo info) {
     std::string ipStr = std::to_string(ip[0]) + "." + std::to_string(ip[1]) + "." +
                         std::to_string(ip[2]) + "." + std::to_string(ip[3]);
 
-    auto msg = std::make_unique<DisplayMessage>(DisplayMessage::Type::UpdatedIp, ipStr);
+    auto msg = std::make_unique<Display::Message>(Display::Message::Type::UpdatedIp, ipStr);
     displayEvents.enqueue(std::move(msg));
     auto log = std::make_unique<LogMessage>(LogMessage::Type::Event, "Got new Ip" + ipStr);
     logEvents.enqueue(std::move(log));
@@ -169,7 +169,7 @@ static void dmxSocket(void *args) {
 
         artnet.parse();
         auto msg =
-            std::make_unique<DisplayMessage>(DisplayMessage::Type::UpdateInfo, "DMX-IP-Mode");
+            std::make_unique<Display::Message>(Display::Message::Type::UpdateInfo, "DMX-IP-Mode");
         displayEvents.enqueue(std::move(msg));
         deviceState.setNewState(DeviceState::Mode::Remote);
         xTaskCreate(valueRefresherTask, "valueRefresherTask", 4096, nullptr, 5, NULL);
@@ -386,7 +386,7 @@ void app_main(void) {
     xTaskCreate(standAloneTask, "standAloneTask", MinTaskStack * 2, nullptr, 5, NULL);
 
     auto msg =
-        std::make_unique<DisplayMessage>(DisplayMessage::Type::UpdateInfo, "Standalone-Mode");
+        std::make_unique<Display::Message>(Display::Message::Type::UpdateInfo, "Standalone-Mode");
     displayEvents.enqueue(std::move(msg));
 
     ESP_LOGI(TAG, "Waiting for IP(s)");
