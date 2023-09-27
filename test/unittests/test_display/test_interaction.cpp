@@ -10,7 +10,7 @@ static void eventCallback(void *ptr) {
 }
 
 static std::string lastLog;
-static void logCallback(std::string log) {
+static void logCallback(NxtLogSeverity level, std::string log) {
     lastLog = log;
 }
 
@@ -24,12 +24,12 @@ TEST(DisplayTestInteraction, PushEvents) {
     NxtIo::SensingList list = {&btn};
 
     eventRegistered = false;
-    stream.nextRead = {0x65,0x00,0x01,0x01,0xFF,0xFF,0xFF};
+    stream.setNextRead(NxtIo::Return::TouchEvent, {0x00, 0x01, 0x01});
     NxtIo::nexLoop(list);
 
     EXPECT_EQ(true, eventRegistered);
     EXPECT_EQ("TouchEvent: 0 1 1", lastLog);
-} 
+}
 
 TEST(DisplayTestInteractionIgnored, PushEvents) {
     NxtIo::nexInit(stream, logCallback);
@@ -39,11 +39,33 @@ TEST(DisplayTestInteractionIgnored, PushEvents) {
     btn.attachPush(eventCallback, &btn);
 
     NxtIo::SensingList list = {&btn};
-    
+
     eventRegistered = false;
-    stream.nextRead = {0x65,0x00,0x02,0x01,0xFF,0xFF,0xFF};
+    stream.setNextRead(NxtIo::Return::TouchEvent, {0x00, 0x02, 0x01});
+
     NxtIo::nexLoop(list);
 
     EXPECT_EQ(false, eventRegistered);
     EXPECT_EQ("TouchEvent ignored", lastLog);
-} 
+}
+
+TEST(DisplayTestInteractionError, Timeout) {
+    NxtIo::nexInit(stream, logCallback);
+
+    Nxt::Page eut{0, "eut"};
+    Nxt::Button btn{eut, 1, "btn"};
+    btn.attachPush(eventCallback, &btn);
+
+    NxtIo::SensingList list = {&btn};
+
+    // One missing terminator
+    stream.setNextRead({0x65, 0x00, 0x01, 0x01, 0xFF, 0xFF});
+
+    NxtIo::nexLoop(list);
+    EXPECT_EQ("recvRetCommandFinished timeout", lastLog);
+
+    // No termination at all
+    stream.setNextRead({0x65, 0x00, 0x01, 0x01});
+    NxtIo::nexLoop(list);
+    EXPECT_EQ("recvRetCommandFinished timeout", lastLog);
+}

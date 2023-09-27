@@ -53,7 +53,9 @@ class PageBase {
         return this;
     }
 
-    std::string getName() { return _page.getObjName(); }
+    std::string getName() {
+        return _page.getObjName();
+    }
 
   protected:
     Nxt::Page _page;
@@ -176,9 +178,10 @@ class WorkingPage : public PageBase {
 
 class InfoPage : public PageBase {
   public:
-    InfoPage(EventCallback genericCb, SwitchCb pageSwitch, const std::string &name, const std::string &version)
-        : PageBase(Page::Info, "infoPage", genericCb), _name(name),
-          _version(version), _pageSwitchCb(pageSwitch) {
+    InfoPage(EventCallback genericCb, SwitchCb pageSwitch, const std::string &name,
+             const std::string &version)
+        : PageBase(Page::Info, "infoPage", genericCb), _name(name), _version(version),
+          _pageSwitchCb(pageSwitch) {
         bToWorkingPage.attachPush(_genericCb,
                                   createFunctional([this](BArgs a) { this->switchPage(a); }));
     }
