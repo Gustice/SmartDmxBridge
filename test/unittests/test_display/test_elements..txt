@@ -1,4 +1,4 @@
-#include "Nextion.h"
+#include "Nextion.hpp"
 #include "fakes/streamDummy.hpp"
 #include <gtest/gtest.h>
 

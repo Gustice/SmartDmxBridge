@@ -1,6 +1,6 @@
 #pragma once
 
-#include "NexHardware.h"
+#include "Nextion.hpp"
 #include "bases/Color.hpp"
 #include "Touch.hpp"
 

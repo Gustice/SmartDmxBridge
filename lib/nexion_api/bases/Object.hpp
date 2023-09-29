@@ -1,6 +1,5 @@
 #pragma once
 
-#include "BaseIncludes.hpp"
 #include <sstream>
 
 namespace Nxt {

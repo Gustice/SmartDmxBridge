@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Nextion.h"
+#include "Nextion.hpp"
 #include "configModel.hpp"
 #include "uart.hpp"
 #include <cstdint>

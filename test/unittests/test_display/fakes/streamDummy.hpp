@@ -1,7 +1,7 @@
-#include "Nextion.h"
+#include "Nextion.hpp"
 #include <string_view>
 
-class StreamDummy : public SerialStream {
+class StreamDummy : public nxt::Stream {
   public:
     std::vector<uint8_t> read(size_t minSize = 0, unsigned msTimeout = 0) override {
         auto ret = nextRead;
@@ -14,7 +14,7 @@ class StreamDummy : public SerialStream {
         lastWrite = str;
     }
 
-    void setNextRead(NxtIo::Return type, std::vector<uint8_t> payload = {}) {
+    void setNextRead(nxt::Return type, std::vector<uint8_t> payload) {
         std::vector<uint8_t> buffer;
         buffer.push_back(static_cast<uint8_t>(type));
         for (auto &&e : payload) {

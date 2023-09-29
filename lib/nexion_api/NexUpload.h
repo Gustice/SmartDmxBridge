@@ -1,6 +1,6 @@
 #pragma once 
 
-#include "NexHardware.h"
+#include "Nextion.hpp"
 
 /**
  * @addtogroup CoreAPI 

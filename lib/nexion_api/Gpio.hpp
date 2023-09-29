@@ -1,7 +1,7 @@
 #pragma once
 
 #include "bases/BaseIncludes.hpp"
-#include "NexHardware.h"
+#include "Nextion.hpp"
 
 namespace Nxt {
 
