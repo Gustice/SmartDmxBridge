@@ -3,7 +3,7 @@
 #include "Nextion.hpp"
 #include "Touch.hpp"
 
-namespace Nxt {
+namespace nxt {
 
 /**
  * @addtogroup Component 
@@ -19,7 +19,7 @@ public: /* methods */
     /**
      * @copydoc Object::Object(uint8_t pid, uint8_t cid, std::string_view name);
      */
-    Hotspot(Nxt::Page & pid, uint8_t cid, std::string_view name) : Touch(pid, cid, name) {}
+    Hotspot(Page &page, Port &port, uint8_t cid, std::string_view name) : Touch(page, port, cid, name) {}
 };
 /**
  * @}

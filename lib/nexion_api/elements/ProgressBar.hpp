@@ -1,10 +1,10 @@
 #pragma once
 
 #include "Nextion.hpp"
-#include "Touch.hpp"
+#include "bases/Object.hpp"
 #include "bases/Elements.hpp"
 
-namespace Nxt {
+namespace nxt {
 
 /**
  * @addtogroup Component 
@@ -12,22 +12,16 @@ namespace Nxt {
  */
 
 /**
- * Checkbox component. 
- *
- * Commonly, you want to do something after push and pop it. It is recommanded that only
- * call @ref Touch::attachPop to satisfy your purpose. 
- * 
- * @warning Please do not call @ref Touch::attachPush on this component, even though you can. 
+ * ProgressBar component. 
  */
-class Checkbox: public Touch
+class ProgressBar: public Object
 {
 public: /* methods */
-
     /**
      * @copydoc Object::Object(uint8_t pid, uint8_t cid, std::string_view name);
      */
-    Checkbox(Nxt::Page & pid, uint8_t cid, std::string_view name) : Touch(pid, cid, name) {}
-	
+    ProgressBar(Page &page, Port &port, uint8_t cid, std::string_view name) : Object(page, port, cid, name) {}
+    
     /**
      * Number attribute of component.
      */
@@ -43,6 +37,7 @@ public: /* methods */
      */
     Color fontColor{*this, "pco"};
 };
+
 /**
  * @}
  */

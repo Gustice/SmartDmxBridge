@@ -36,11 +36,8 @@ class Display {
     Display(Uart &port, const std::string &name, const std::string &version, ColorPresets &presets,
             setColorCallback colorCb)
         : _port(port), pageSwitchFunc([this](display::PageBase * p) { this->pageSwitch(p); }),
-          splashScreen(eventCallback), workingPage(eventCallback, pageSwitchFunc, presets, colorCb),
-          infoPage(eventCallback, pageSwitchFunc, name, version) {
-        if (!NxtIo::nexInit(_port, dumpLog)) {
-            dumpLog(NxtLogSeverity::Error, "Init failed");
-        }
+          _display(_port, dumpLog),  splashScreen(_display, eventCallback), workingPage(_display, eventCallback, pageSwitchFunc, presets, colorCb),
+          infoPage(_display, eventCallback, pageSwitchFunc, name, version) {
         ESP_LOGI("DISP", "begin setup");
 
         splashScreen.init();
@@ -90,22 +87,23 @@ class Display {
     display::UartWrapper _port;
     display::PageBase::SwitchCb pageSwitchFunc;
 
+    Nextion _display;
     display::SplashScreenPage splashScreen;
     display::WorkingPage workingPage;
     display::InfoPage infoPage;
 
     display::PageBase *_page;
 
-    static void dumpLog(NxtLogSeverity level, std::string msg) {
+    static void dumpLog(nxt::LogSeverity level, std::string msg) {
         auto output = msg.c_str();
         switch (level) {
-        case NxtLogSeverity::Debug:
+        case nxt::LogSeverity::Debug:
             ESP_LOGD("DISP", "Log: %s", output);
             break;
-        case NxtLogSeverity::Warning:
+        case nxt::LogSeverity::Warning:
             ESP_LOGW("DISP", "Log: %s", output);
             break;
-        case NxtLogSeverity::Error:
+        case nxt::LogSeverity::Error:
             ESP_LOGE("DISP", "Log: %s", output);
             break;
         }

@@ -2,39 +2,20 @@
 
 // Find Nextion DataSheets at: https://nextion.tech/datasheets/
 
-#include "NxtPort.hpp"
-// #include "Touch.hpp"
-// #include "Button.hpp"
-// #include "Crop.hpp"
-// #include "Gauge.hpp"
-// #include "Hotspot.hpp"
-// #include "Page.hpp"
-// #include "Picture.hpp"
-// #include "ProgressBar.hpp"
-// #include "Slider.hpp"
-// #include "Text.hpp"
-// #include "Waveform.hpp"
-// #include "Timer.hpp"
-// #include "Number.hpp"
-// #include "DualStateButton.hpp"
-// #include "Variable.hpp"
-// #include "Checkbox.hpp"
-// #include "Radio.hpp"
-// #include "Scrolltext.hpp"
-// #include "Gpio.hpp"
-// #include "Rtc.hpp"
+#include "bases/Alignment.hpp"
+#include "bases/BackgroundImage.hpp"
+#include "bases/Color.hpp"
+#include "bases/Font.hpp"
+#include "bases/Port.hpp"
+#include "elements/Page.hpp"
+#include "Gpio.hpp"
+#include "Rtc.hpp"
 
-extern const std::string EndSequence;
-
-
-/**
- * @addtogroup CoreAPI
- * @{
- */
+#include <map>
 
 class Nextion {
   public:
-    // using SensingList = Nxt::Touch::SensingList;
+    using SensingList = nxt::Touch::SensingList;
     /**
      * Init Nextion.
      *
@@ -53,8 +34,37 @@ class Nextion {
      * @warning This function must be called repeatedly to response touch events
      *  from Nextion touch panel. Actually, you should place it in your loop function.
      */
-    // void nexLoop(const SensingList &nex_listen_list);
+    void nexLoop(const SensingList &nex_listen_list);
 
+    nxt::Page createPage(uint8_t pageId, std::string_view name) {
+        nxt::Page page(*this, _port, pageId, name);
+        return page;
+    }
+
+    nxt::Rtc &getRtc() {
+        return _timer;
+    }
+
+    nxt::Gpio &getGpio() {
+        return _gpio;
+    }
+
+    nxt::Page &getActivePage() {
+        return *_currentActive;
+    }
+
+    const std::map<uint8_t, nxt::Page *> &getPageMap() {
+        return _pages;
+    }
+
+    bool showPage(nxt::Page & page) {
+      _port.sendCommand(std::string("page ") + page.getObjName());
+      bool isOk = _port.recvRetCommandFinished();
+      if (isOk) {
+          _currentActive = &page;
+      }
+      return isOk;
+    }
 
   protected:
   private:
@@ -62,10 +72,11 @@ class Nextion {
 
     nxt::Port _port;
     nxt::LogCallback _logCallback;
+    nxt::Rtc _timer;
+    nxt::Gpio _gpio;
 
     bool _isHealthy;
-};
 
-/**
- * @}
- */
+    nxt::Page *_currentActive = nullptr;
+    std::map<uint8_t, nxt::Page *> _pages;
+};

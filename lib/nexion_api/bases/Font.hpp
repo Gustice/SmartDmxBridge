@@ -1,8 +1,9 @@
 #pragma once
 
-#include "../NexHardware.h"
+#include "bases/Port.hpp"
+#include "Object.hpp"
 
-namespace Nxt {
+namespace nxt {
 
 class Font {
   public:
@@ -14,8 +15,8 @@ class Font {
      * @return returns value
      */
     uint32_t getFont() {
-        NxtIo::sendCommand(std::string{"get "} + _parent.getObjName() + ".font");
-        return NxtIo::recvRetNumber();
+        _parent._port.sendCommand(std::string{"get "} + _parent.getObjName() + ".font");
+        return _parent._port.recvRetNumber();
     }
 
     /**
@@ -25,8 +26,8 @@ class Font {
      * @return true if success, false for failure
      */
     bool setFont(uint32_t number) {
-        NxtIo::sendCommand(_parent.getObjName() + ".font=" + std::to_string(number));
-        return NxtIo::recvRetCommandFinished();
+        _parent._port.sendCommand(_parent.getObjName() + ".font=" + std::to_string(number));
+        return _parent._port.recvRetCommandFinished();
     }
 
   private:

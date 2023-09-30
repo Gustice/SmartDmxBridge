@@ -1,20 +1,13 @@
-#include "Page.hpp"
 #include "Nextion.hpp"
 
-namespace Nxt
-{
-    
-// bool Page::show(void) {
-//     NxtIo::sendCommand(std::string("page ") + getObjName());
-//     bool isOk = NxtIo::recvRetCommandFinished();
-//     if (isOk) {
-//         _currentActive = this;
-//     }
-//     return isOk;
-// }
+namespace nxt {
 
-Page * Page::_currentActive;
-std::map<uint8_t, Page*> Page::_pages;
+bool Page::isActive() {
+    return (&_parent.getActivePage() == this);
+}
 
+bool Page::show(void) {
+    return _parent.showPage(*this);
+}
 
-} // namespace Nxt
+} // namespace nxt

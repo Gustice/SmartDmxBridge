@@ -3,7 +3,7 @@
 #include "Nextion.hpp"
 #include "Touch.hpp"
 
-namespace Nxt {
+namespace nxt {
 
 /**
  * @addtogroup Component
@@ -22,7 +22,7 @@ class Timer : public Touch {
     /**
      * @copydoc Object::Object(uint8_t pid, uint8_t cid, std::string_view name);
      */
-    Timer(Nxt::Page & pid, uint8_t cid, std::string_view name) : Touch(pid, cid, name) {}
+    Timer(Page &page, Port &port, uint8_t cid, std::string_view name) : Touch(page, port, cid, name) {}
 
     /**
      * Attach an callback function of timer respond event.
@@ -58,8 +58,8 @@ class Timer : public Touch {
      * @retval false - failed.
      */
     bool enable(void) {
-        NxtIo::sendCommand(std::string{getObjName()} + ".en=1");
-        return NxtIo::recvRetCommandFinished();
+        _port.sendCommand(std::string{getObjName()} + ".en=1");
+        return _port.recvRetCommandFinished();
     }
 
     /**
@@ -69,8 +69,8 @@ class Timer : public Touch {
      * @retval false - failed.
      */
     bool disable(void) {
-        NxtIo::sendCommand(std::string{getObjName()} + ".en=0");
-        return NxtIo::recvRetCommandFinished();
+        _port.sendCommand(std::string{getObjName()} + ".en=0");
+        return _port.recvRetCommandFinished();
     }
 };
 /**

@@ -4,7 +4,7 @@
 #include "Touch.hpp"
 #include "bases/Elements.hpp"
 
-namespace Nxt {
+namespace nxt {
 
 /**
  * @addtogroup Component 
@@ -21,7 +21,7 @@ public: /* methods */
     /**
      * @copydoc Object::Object(uint8_t pid, uint8_t cid, std::string_view name);
      */
-    Crop(Nxt::Page & pid, uint8_t cid, std::string_view name) : Touch(pid, cid, name) {}
+    Crop(Page &page, Port &port, uint8_t cid, std::string_view name) : Touch(page, port, cid, name) {}
 
     /**
      * Image attribute of component.

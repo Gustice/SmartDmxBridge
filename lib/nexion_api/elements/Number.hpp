@@ -4,7 +4,7 @@
 #include "Touch.hpp"
 #include "bases/Elements.hpp"
 
-namespace Nxt {
+namespace nxt {
 
 /**
  * @addtogroup Component
@@ -16,10 +16,7 @@ namespace Nxt {
  */
 class Number : public Touch {
   public: /* methods */
-    /**
-     * @copydoc Object::Object(uint8_t pid, uint8_t cid, std::string_view name);
-     */
-    Number(Nxt::Page & pid, uint8_t cid, std::string_view name) : Touch(pid, cid, name) {}
+    Number(Page &page, Port &port, uint8_t cid, std::string_view name) : Touch(page, port, cid, name) {}
 
     /**
      * Number attribute of component.

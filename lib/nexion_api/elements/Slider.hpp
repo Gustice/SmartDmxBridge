@@ -5,7 +5,7 @@
 #include "Touch.hpp"
 #include "bases/Elements.hpp"
 
-namespace Nxt {
+namespace nxt {
 
 /**
  * @addtogroup Component
@@ -20,7 +20,7 @@ class Slider : public Touch {
     /**
      * @copydoc Object::Object(uint8_t pid, uint8_t cid, std::string_view name);
      */
-    Slider(Nxt::Page & pid, uint8_t cid, std::string_view name) : Touch(pid, cid, name) {}
+    Slider(Page &page, Port &port, uint8_t cid, std::string_view name) : Touch(page, port, cid, name) {}
 
     /**
      * Number attribute of component.

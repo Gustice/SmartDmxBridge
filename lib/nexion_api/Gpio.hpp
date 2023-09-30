@@ -1,9 +1,8 @@
 #pragma once
 
-#include "bases/BaseIncludes.hpp"
-#include "Nextion.hpp"
+#include "bases/Port.hpp"
 
-namespace Nxt {
+namespace nxt {
 
 /**
  * @addtogroup Component 
@@ -17,6 +16,8 @@ namespace Nxt {
 class Gpio
 {
 public:
+    Gpio(Port & port) : _port(port) {}
+
     /**
      * Set gpio mode
      *
@@ -79,6 +80,9 @@ public:
     
     uint32_t get_pwmfreq();
      
+     private:
+        Port &_port;
+
 };
     
 /**

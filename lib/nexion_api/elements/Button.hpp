@@ -4,7 +4,7 @@
 #include "Touch.hpp"
 #include "bases/Elements.hpp"
 
-namespace Nxt {
+namespace nxt {
 
 /**
  * @addtogroup Component
@@ -24,12 +24,12 @@ class Button : public Touch {
     /**
      * @copydoc Object::Object(uint8_t pid, uint8_t cid, std::string_view name);
      */
-    Button(Nxt::Page & pid, uint8_t cid, std::string_view name) : Touch(pid, cid, name) {}
+    Button(Page &page, Port &port, uint8_t cid, std::string_view name) : Touch(page, port, cid, name) {}
 
     /**
      * Text attribute of component.
      */
-    Nxt::TextValue text{*this, "txt"};
+    TextValue text{*this, "txt"};
 
     /**
      * Background-color (bco) attribute of component

@@ -1,11 +1,10 @@
 #pragma once
 
 #include "Nextion.hpp"
-#include "bases/BaseIncludes.hpp"
 #include "Touch.hpp"
 #include "bases/Elements.hpp"
 
-namespace Nxt {
+namespace nxt {
 
 /**
  * @addtogroup Component
@@ -17,10 +16,7 @@ namespace Nxt {
  */
 class Scrolltext : public Touch {
   public: /* methods */
-    /**
-     * @copydoc Object::Object(uint8_t pid, uint8_t cid, std::string_view name);
-     */
-    Scrolltext(Nxt::Page & pid, uint8_t cid, std::string_view name) : Touch(pid, cid, name) {}
+    Scrolltext(Page &page, Port &port, uint8_t cid, std::string_view name) : Touch(page, port, cid, name) {}
 
     /**
      * Text attribute of component.
@@ -71,16 +67,16 @@ class Scrolltext : public Touch {
      * Enable scrolling
      */
     bool enable(void) {
-        NxtIo::sendCommand(std::string{getObjName()} + ".en=1");
-        return NxtIo::recvRetCommandFinished();
+        _port.sendCommand(std::string{getObjName()} + ".en=1");
+        return _port.recvRetCommandFinished();
     }
 
     /**
      * Disable scrolling
      */
     bool disable(void) {
-        NxtIo::sendCommand(std::string{getObjName()} + ".en=0");
-        return NxtIo::recvRetCommandFinished();
+        _port.sendCommand(std::string{getObjName()} + ".en=0");
+        return _port.recvRetCommandFinished();
     }
 };
 

@@ -1,7 +1,7 @@
-#include "bases/Object.hpp"
-#include "Page.hpp"
+#include "Nextion.hpp"
+#include <sstream>
 
-namespace Nxt {
+namespace nxt {
 
 std::string Object::printObjInfo(void) {
     std::stringstream output;
@@ -20,4 +20,4 @@ std::string Object::getObjName(void) {
     return (pageRef._name + "." + _name);
 }
 
-} // namespace Nxt
+} // namespace nxt

@@ -1,10 +1,8 @@
 #pragma once
 
-#include "Nextion.hpp"
-#include "bases/Color.hpp"
-#include "Touch.hpp"
+#include "bases/Port.hpp"
 
-namespace Nxt {
+namespace nxt {
 
 /**
  * @addtogroup Component 
@@ -18,6 +16,8 @@ namespace Nxt {
 class Rtc
 {
     public:
+
+    Rtc(Port & port) : _port(port) {}
 
     bool write_rtc_time(char *time);
     
@@ -71,6 +71,10 @@ class Rtc
     
     bool read_rtc_time(uint32_t *time,uint32_t len);
     
+
+    private:
+        Port& _port;
+
 };
 
 /**

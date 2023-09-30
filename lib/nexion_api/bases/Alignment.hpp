@@ -3,7 +3,7 @@
 #include "Values.hpp"
 #include "Object.hpp"
 
-namespace Nxt {
+namespace nxt {
 
 class Alignment {
   private:

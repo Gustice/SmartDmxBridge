@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../NexHardware.h"
+#include "bases/Port.hpp"
 
-namespace Nxt {
+namespace nxt {
 
 class BackgroundImage {
   public:
@@ -14,8 +14,8 @@ class BackgroundImage {
      * @return return value
      */
     uint32_t getImagePic() {
-        NxtIo::sendCommand(std::string{"get "} + _parent.getObjName() + ".pic" + _key.begin());
-        return NxtIo::recvRetNumber();
+        _parent._port.sendCommand(std::string{"get "} + _parent.getObjName() + ".pic" + _key.begin());
+        return _parent._port.recvRetNumber();
     }
 
     /**
@@ -25,8 +25,8 @@ class BackgroundImage {
      * @return true if success, false for failure
      */
     bool setImagePic(uint32_t number) {
-        NxtIo::sendCommand(_parent.getObjName() + ".pic" + _key.begin() + "=" + std::to_string(number));
-        return NxtIo::recvRetCommandFinished();
+        _parent._port.sendCommand(_parent.getObjName() + ".pic" + _key.begin() + "=" + std::to_string(number));
+        return _parent._port.recvRetCommandFinished();
     }
 
     /**
@@ -35,8 +35,8 @@ class BackgroundImage {
      * @return return value
      */
     uint32_t getBackgroundCropPicc() {
-        NxtIo::sendCommand(std::string{"get "} + _parent.getObjName() + ".picc" + _key.begin());
-        return NxtIo::recvRetNumber();
+        _parent._port.sendCommand(std::string{"get "} + _parent.getObjName() + ".picc" + _key.begin());
+        return _parent._port.recvRetNumber();
     }
 
     /**
@@ -46,8 +46,8 @@ class BackgroundImage {
      * @return true if success, false for failure
      */
     bool setBackgroundCropPicc(uint32_t number) {
-        NxtIo::sendCommand(_parent.getObjName() + ".picc" + _key.begin() + "=" + std::to_string(number));
-        return NxtIo::recvRetCommandFinished();
+        _parent._port.sendCommand(_parent.getObjName() + ".picc" + _key.begin() + "=" + std::to_string(number));
+        return _parent._port.recvRetCommandFinished();
     }
 
   private:

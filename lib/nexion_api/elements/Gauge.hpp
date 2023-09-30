@@ -1,30 +1,31 @@
 #pragma once
 
 #include "Nextion.hpp"
-#include "Touch.hpp"
+#include "bases/Object.hpp"
 #include "bases/Elements.hpp"
 
-namespace Nxt {
+namespace nxt {
 
 /**
- * @addtogroup Component
- * @{
+ * @addtogroup Component 
+ * @{ 
  */
 
 /**
- * Text component.
+ * Gauge component.
  */
-class Text : public Touch {
-  public: /* methods */
+class Gauge: public Object
+{
+public: /* methods */
     /**
      * @copydoc Object::Object(uint8_t pid, uint8_t cid, std::string_view name);
      */
-    Text(Nxt::Page & pid, uint8_t cid, std::string_view name) : Touch(pid, cid, name) {}
+    Gauge(Page &page, Port &port, uint8_t cid, std::string_view name) : Object(page, port, cid, name) {}
 
     /**
      * Text attribute of component.
      */
-    TextValue text{*this, "txt"};
+    IntegerValue value{*this, "val"};
 
     /**
      * Background-color (bco) attribute of component
@@ -37,23 +38,18 @@ class Text : public Touch {
     Color fontColor{*this, "pco"};
 
     /**
-     * Text alignment
+     * Text attribute of component.
      */
-    Alignment alignment{*this};
+    IntegerValue pointerThickness{*this, "wid"};
 
     /**
-     * Text font
+     * Text attribute of component.
      */
-    Font font{*this};
-
-    /**
-     * Background image
-     */
-    BackgroundImage backgroundImage{*this};
+    IntegerValue backgroundCropImage{*this, "picc"};
 };
 
 /**
  * @}
  */
 
-} // namespace Nxt
+}

@@ -4,7 +4,7 @@
 #include "bases/Object.hpp"
 #include "bases/Elements.hpp"
 
-namespace Nxt {
+namespace nxt {
 
 /**
  * @addtogroup Component
@@ -19,7 +19,7 @@ class Waveform : public Object {
     /**
      * @copydoc Object::Object(uint8_t pid, uint8_t cid, std::string_view name);
      */
-    Waveform(Nxt::Page & pid, uint8_t cid, std::string_view name) : Object(pid, cid, name) {}
+    Waveform(Page &page, Port &port, uint8_t cid, std::string_view name) : Object(page, port, cid, name) {}
 
     /**
      * Add value to show.
@@ -38,7 +38,7 @@ class Waveform : public Object {
         char buf[15] = {0};
         sprintf(buf, "add %u,%u,%u", getObjCid(), ch, number);
 
-        NxtIo::sendCommand(buf);
+        _port.sendCommand(buf);
         return true;
     }
 

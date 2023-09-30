@@ -1,8 +1,8 @@
 #pragma once
 
-#include <sstream>
+#include "bases/Port.hpp"
 
-namespace Nxt {
+namespace nxt {
 
 /**
  * @addtogroup CoreAPI
@@ -10,7 +10,6 @@ namespace Nxt {
  */
 
 class Page;
-
 
 /**
  * Root class of all Nextion components.
@@ -28,16 +27,16 @@ class Object {
      * @param cid - component id.
      * @param name - pointer to an unique name in range of all components.
      */
-    Object(Page &pid, uint8_t cid, std::string_view name)
-        : pageRef(pid), _componentId(cid), _name(name) {}
+    Object(Page &pid, Port & port, uint8_t cid, std::string_view name)
+        : pageRef(pid), _port(port), _componentId(cid), _name(name) {}
 
     /**
      * Constructor for pages
      *
      * @param name - pointer to an unique name in range of all components.
      */
-    Object(std::string_view name)
-        : pageRef(*(reinterpret_cast<Page *>(this))), _componentId(0), _name(name) {}
+    Object(std::string_view name, Port & port)
+        : pageRef(*(reinterpret_cast<Page *>(this))), _port(port),  _componentId(0), _name(name) {}
 
     /**
      * Print current object'address, page id, component id and name.
@@ -53,7 +52,8 @@ class Object {
      */
     std::string getObjName(void);
 
-    Page & pageRef;
+    Page &pageRef;
+    Port &_port;
 
   protected: /* methods */
     /*
@@ -65,6 +65,7 @@ class Object {
         return _componentId;
     }
 
+
   private: /* data */
     uint8_t _componentId;
     std::string _name;
@@ -73,4 +74,4 @@ class Object {
  * @}
  */
 
-} // namespace Nxt
+} // namespace nxt

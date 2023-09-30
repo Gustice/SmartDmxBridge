@@ -1,8 +1,6 @@
-#include "Touch.hpp"
-#include <vector>
-#include "Page.hpp"
+#include "Nextion.hpp"
 
-namespace Nxt {
+namespace nxt {
 
 void Touch::attachPush(eventCb push, void *ptr) {
     this->_pushCb = push;

@@ -1,3 +1,5 @@
+#pragma once
+
 #include <array>
 #include <cstdint>
 #include <queue>
@@ -11,13 +13,20 @@ enum class LogSeverity { Debug,
                          Error };
 
 using LogCallback = void (*)(LogSeverity, std::string);
-    using Buffer = std::vector<uint8_t>;
+using Buffer = std::vector<uint8_t>;
 
 class Stream {
   public:
+  Stream () = default;
     virtual std::vector<uint8_t> read(size_t minSize = 0, unsigned msTimeout = 0) = 0;
     virtual void write(char c) = 0;
     virtual void write(std::string str) = 0;
+
+  private:
+    Stream(const Stream &other) = delete;
+    Stream(Stream &&other) noexcept = delete;
+    Stream &operator=(const Stream &other) = delete;
+    Stream &operator=(Stream &&other) noexcept = delete;
 };
 
 /**
@@ -179,19 +188,23 @@ enum class Return : uint8_t {
 };
 
 enum class CodeBin : uint8_t {
-    Return = 0,
+    Trash = 0,
+    Return,
     Touch,
     Number,
     String,
     Events,
-    Trash,
     BinsCount,
 };
 class Port {
   public:
+    Port(Stream &port, nxt::LogCallback logCb = nullptr)
+        : _serialPort(port), _logCallback(logCb) {}
 
-    Port(Stream &port, nxt::LogCallback logCb = nullptr) 
-    : _serialPort(port), _logCallback(logCb) {}
+    Port(const Port &other) = delete;
+    Port(Port &&other) noexcept = delete;
+    Port &operator=(const Port &other) = delete;
+    Port &operator=(Port &&other) noexcept = delete;
 
     /**
      * @brief Get Numeric Data
@@ -225,8 +238,7 @@ class Port {
      */
     void sendCommand(std::string payload);
 
-
-    Buffer readCode(CodeBin code, unsigned msTimeout = 0);
+    Buffer readCode(CodeBin code, int minSize, unsigned msTimeout );
     Buffer getFromBin(CodeBin code);
     void putInBin(Buffer payload);
     void sendLog(LogSeverity level, std::string log);
@@ -234,7 +246,7 @@ class Port {
   private:
     Stream &_serialPort;
     LogCallback _logCallback;
-    std::array<std::queue<Buffer>, static_cast<unsigned>(CodeBin::BinsCount)> bins;
+    std::array<std::queue<Buffer>, static_cast<unsigned>(CodeBin::BinsCount)> _bins;
     Buffer _remainder;
 };
 } // namespace nxt

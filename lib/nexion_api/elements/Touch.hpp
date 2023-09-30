@@ -1,9 +1,9 @@
 #pragma once
 
-#include "bases/Object.hpp"
+#include "../bases/Object.hpp"
 #include <vector>
 
-namespace Nxt {
+namespace nxt {
 
 class Page;
 
@@ -32,21 +32,22 @@ class Touch : public Object {
     using SensingList = std::vector<Touch *>;
     /// @brief Iterate events
     /// @param elements elements to be checked
-    /// @param pid propagated page id
+    /// @param page propagated page id
     /// @param cid propagated component id
     /// @param event propagated event
     /// @return true if successful, false if not found
-    static bool iterate(const SensingList &elements, uint8_t pid, uint8_t cid,
+    static bool iterate(const SensingList &elements, uint8_t page, uint8_t cid,
                         int32_t event);
 
     /**
-     * @copydoc Object::Object(uint8_t pid, uint8_t cid, std::string_view name);
+     * @copydoc Object::Object(uint8_t page, uint8_t cid, std::string_view name);
      */
-    Touch(Nxt::Page & pid, uint8_t cid, std::string_view name) : Object(pid, cid, name) {
+    Touch(Page & page, Port & port, uint8_t cid, std::string_view name) 
+    : Object(page, port, cid, name) {
       
     }
 
-    Touch(std::string_view name) : Object(name) {
+    Touch(std::string_view name, Port & port) : Object(name, port) {
       
     }
 
