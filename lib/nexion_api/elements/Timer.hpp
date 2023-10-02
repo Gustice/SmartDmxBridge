@@ -6,75 +6,45 @@
 namespace nxt {
 
 /**
- * @addtogroup Component
- * @{
- */
-
-/**
- * Timer component.
+ * @brief Timer component.
  *
- * Commonly, you want to do something after set timer cycle and enable it,and the cycle value
+ * @details Commonly, you want to do something after set timer cycle and enable it,and the cycle value
  * must be greater than 50
- *
  */
 class Timer : public Touch {
-  public: /* methods */
-    /**
-     * @copydoc Object::Object(uint8_t pid, uint8_t cid, std::string_view name);
-     */
-    Timer(Page &page, Port &port, uint8_t cid, std::string_view name) : Touch(page, port, cid, name) {}
+  public:
+    /// @copydoc Object::Object(Page &page, Port &port, uint8_t cId, std::string_view name);
+    Timer(Page &page, Port &port, uint8_t cid, std::string_view name)
+        : Touch(page, port, cid, name) {}
 
-    /**
-     * Attach an callback function of timer respond event.
-     *
-     * @param timer - callback called with ptr when a timer respond event occurs.
-     * @param ptr - parameter passed into push[default:NULL].
-     * @return none.
-     *
-     * @note If calling this method multiply, the last call is valid.
-     */
-    void attachTimer(Touch::eventCb timer, void *ptr = NULL) {
+    /// @brief Attach one callback function of timer respond event
+    /// @param timer callback called with ptr when a timer respond event occurs
+    /// @param ptr parameter passed into push
+    void attachTimer(Touch::eventCb timer, void *ptr = nullptr) {
         Touch::attachPop(timer, ptr);
     }
 
-    /**
-     * Detach an callback function.
-     *
-     * @return none.
-     */
-    void detachTimer(void) {
+    /// @brief Detach an callback function
+    void detachTimer() {
         Touch::detachPop();
     }
 
-    /**
-     * cycle attribute of component.
-     */
+    /// @brief cycle attribute of component
     IntegerValue cycleTime{*this, "tim"};
 
-    /**
-     * contorl timer enable.
-     *
-     * @retval true - success.
-     * @retval false - failed.
-     */
-    bool enable(void) {
+    /// @brief Control timer enable
+    /// @return success flag
+    bool enable() {
         _port.sendCommand(std::string{getObjName()} + ".en=1");
         return _port.recvRetCommandFinished();
     }
 
-    /**
-     * contorl timer disable.
-     *
-     * @retval true - success.
-     * @retval false - failed.
-     */
+    /// @brief Control timer disable
+    /// @return success flag
     bool disable(void) {
         _port.sendCommand(std::string{getObjName()} + ".en=0");
         return _port.recvRetCommandFinished();
     }
 };
-/**
- * @}
- */
 
-} // namespace Nxt
+} // namespace nxt

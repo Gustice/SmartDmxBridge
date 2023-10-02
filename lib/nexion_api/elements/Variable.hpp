@@ -2,43 +2,26 @@
 
 #include "Nextion.hpp"
 #include "Touch.hpp"
-#include "bases/Elements.hpp"
 
 namespace nxt {
-/**
- * @addtogroup Component 
- * @{ 
- */
 
 /**
- * Variable component. 
+ * @brief Variable component. 
  *
- * Commonly, you want to do something after push and pop it. It is recommanded that only
+ * @details Commonly, you want to do something after push and pop it. It is recommanded that only
  * call @ref Touch::attachPop to satisfy your purpose. 
- * 
- * @warning Please do not call @ref Touch::attachPush on this component, even though you can. 
  */
-class Variable: public Touch
-{
-public: /* methods */
+class Variable : public Touch {
+  public:
+    /// @copydoc Object::Object(Page &page, Port &port, uint8_t cId, std::string_view name);
+    Variable(Page &page, Port &port, uint8_t cid, std::string_view name)
+        : Touch(page, port, cid, name) {}
 
-    /**
-     * @copydoc Object::Object(uint8_t pid, uint8_t cid, std::string_view name);
-     */
-    Variable(Page &page, Port &port, uint8_t cid, std::string_view name) : Touch(page, port, cid, name) {}
-
-    /**
-     * Text attribute of component.
-     */
+    /// @brief Text attribute of component.
     TextValue text{*this, "txt"};
-	
-    /**
-     * Number attribute of component.
-     */
+
+    /// @brief Number attribute of component.
     IntegerValue value{*this, "val"};
 };
-/**
- * @}
- */
 
-}
+} // namespace nxt

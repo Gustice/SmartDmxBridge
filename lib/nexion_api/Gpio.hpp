@@ -4,10 +4,6 @@
 
 namespace nxt {
 
-/**
- * @addtogroup Component 
- * @{ 
- */
 
 /**
  * Gpio component.
@@ -84,9 +80,5 @@ public:
         Port &_port;
 
 };
-    
-/**
- * @}
- */    
-    
+        
 }

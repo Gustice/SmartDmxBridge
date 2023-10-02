@@ -4,13 +4,9 @@
 
 namespace nxt {
 
-/**
- * @addtogroup Component 
- * @{ 
- */
 
 /**
- * Rtc component.
+ * @details Rtc component.
  */
 
 class Rtc
@@ -77,8 +73,5 @@ class Rtc
 
 };
 
-/**
- * @}
- */
 
 }

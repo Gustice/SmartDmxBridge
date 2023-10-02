@@ -1,32 +1,33 @@
 #pragma once
 
-#include "bases/Port.hpp"
 #include "Object.hpp"
+#include "bases/Port.hpp"
 
 namespace nxt {
 
+/**
+ * @brief Font property of Control
+ * 
+ */
 class Font {
   public:
-    Font(Object &parent) : _parent(parent) {}
+    /// @brief Constructor
+    /// @param parent Reference to parent Control
+    Font(Object &parent)
+        : _parent(parent) {}
 
-    /**
-     * Get font attribute of component
-     *
-     * @return returns value
-     */
+    /// @brief Getter for FontId
+    /// @return FontId
     uint32_t getFont() {
         _parent._port.sendCommand(std::string{"get "} + _parent.getObjName() + ".font");
         return _parent._port.recvRetNumber();
     }
 
-    /**
-     * Set font attribute of component
-     *
-     * @param number - To set up the data
-     * @return true if success, false for failure
-     */
-    bool setFont(uint32_t number) {
-        _parent._port.sendCommand(_parent.getObjName() + ".font=" + std::to_string(number));
+    /// @brief Setter for FontId
+    /// @param fontId
+    /// @return
+    bool setFont(uint32_t fontId) {
+        _parent._port.sendCommand(_parent.getObjName() + ".font=" + std::to_string(fontId));
         return _parent._port.recvRetCommandFinished();
     }
 
@@ -34,4 +35,4 @@ class Font {
     Object &_parent;
 };
 
-}
+} // namespace nxt

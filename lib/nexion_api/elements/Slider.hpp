@@ -1,64 +1,40 @@
 #pragma once
 
 #include "Nextion.hpp"
-#include "bases/Color.hpp"
 #include "Touch.hpp"
-#include "bases/Elements.hpp"
+#include "bases/Color.hpp"
 
 namespace nxt {
 
 /**
- * @addtogroup Component
- * @{
- */
-
-/**
- * Slider component.
+ * @brief Slider component.
  */
 class Slider : public Touch {
-  public: /* methods */
-    /**
-     * @copydoc Object::Object(uint8_t pid, uint8_t cid, std::string_view name);
-     */
-    Slider(Page &page, Port &port, uint8_t cid, std::string_view name) : Touch(page, port, cid, name) {}
+  public:
+    /// @copydoc Object::Object(Page &page, Port &port, uint8_t cId, std::string_view name);
+    Slider(Page &page, Port &port, uint8_t cid, std::string_view name)
+        : Touch(page, port, cid, name) {}
 
-    /**
-     * Number attribute of component.
-     */
+    /// @brief Number attribute of component.
     IntegerValue value{*this, "val"};
 
-    /**
-     * Background-color (bco) attribute of component
-     */
+    /// @brief Background-color (bco) attribute of component
     Color background{*this, "bco"};
 
-    /**
-     * Font-color (pco) attribute of component
-     */
+    /// @brief Font-color (pco) attribute of component
     Color fontColor{*this, "pco"};
 
-    /**
-     * Pointer thickness of component.
-     */
+    /// @brief Pointer thickness of component.
     IntegerValue pointerThickness{*this, "wid"};
 
-    /**
-     * Cursor height of component.
-     */
+    /// @brief Cursor height of component.
     IntegerValue cursorHeight{*this, "hig"};
 
-    /**
-     * Maximum of component.
-     */
+    /// @brief Maximum of component.
     IntegerValue maxValue{*this, "maxval"};
 
-    /**
-     * Minimum of component.
-     */
+    /// @brief Minimum of component.
     IntegerValue minValue{*this, "minval"};
 };
-/**
- * @}
- */
 
-} // namespace Nxt
+} // namespace nxt

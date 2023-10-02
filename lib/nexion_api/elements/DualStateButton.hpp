@@ -2,78 +2,45 @@
 
 #include "Nextion.hpp"
 #include "Touch.hpp"
-#include "bases/Elements.hpp"
 
 namespace nxt {
 
 /**
- * @addtogroup Component 
- * @{ 
- */
-
-/**
- * DualStateButton component. 
+ * @brief DualStateButton component. 
  *
- * Commonly, you want to do something after push and pop it. It is recommanded that only
+ * @details Commonly, you want to do something after push and pop it. It is recommended that only
  * call @ref Touch::attachPop to satisfy your purpose. 
- * 
- * @warning Please do not call @ref Touch::attachPush on this component, even though you can. 
  */
-class DualStateButton: public Touch
-{
-public: /* methods */
-    /**
-     * @copydoc Object::Object(uint8_t pid, uint8_t cid, std::string_view name);
-     */
-    DualStateButton(Page &page, Port &port, uint8_t cid, std::string_view name) : Touch(page, port, cid, name) {}
-    
-    /**
-     * Number attribute of component.
-     */
+class DualStateButton : public Touch {
+  public:
+    /// @copydoc Object::Object(Page &page, Port &port, uint8_t cId, std::string_view name);    DualStateButton(Page &page, Port &port, uint8_t cid, std::string_view name) : Touch(page, port, cid, name) {}
+
+    /// @brief Number attribute of component.
     IntegerValue value{*this, "val"};
 
-    /**
-     * Text attribute of component.
-     */
+    /// @brief Text attribute of component.
     TextValue text{*this, "txt"};
 
-    /**
-     * Font-color (pco) attribute of component
-     */
+    /// @brief Font-color (pco) attribute of component
     Color fontColor{*this, "pco"};
 
-    /**
-     * Color State 1 attribute of component
-     */
+    /// @brief Color State 1 attribute of component
     Color colorState0{*this, "bco0"};
 
-    /**
-     * Color State 2 attribute of component
-     */
+    /// @brief Color State 2 attribute of component
     Color colorState1{*this, "bco1"};
 
-    /**
-     * Text alignment
-     */
+    /// @brief Text alignment
     Alignment alignment{*this};
 
-    /**
-     * Text font
-     */
+    /// @brief Text font
     Font font{*this};
 
-    /**
-     * Background image state 1
-     */
+    /// @brief Background image state 1
     BackgroundImage imageState1{*this, "0"};
 
-    /**
-     * Background image state 2
-     */
+    /// @brief Background image state 2
     BackgroundImage imageState2{*this, "1"};
 };
-/**
- * @}
- */
 
-}
+} // namespace nxt

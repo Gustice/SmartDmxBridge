@@ -2,60 +2,38 @@
 
 #include "Nextion.hpp"
 #include "Touch.hpp"
-#include "bases/Elements.hpp"
 
 namespace nxt {
 
 /**
- * @addtogroup Component
- * @{
- */
-
-/**
- * Number component.
+ * @brief Number component.
  */
 class Number : public Touch {
-  public: /* methods */
-    Number(Page &page, Port &port, uint8_t cid, std::string_view name) : Touch(page, port, cid, name) {}
+  public:
+    /// @copydoc Object::Object(Page &page, Port &port, uint8_t cId, std::string_view name);
+    Number(Page &page, Port &port, uint8_t cid, std::string_view name)
+        : Touch(page, port, cid, name) {}
 
-    /**
-     * Number attribute of component.
-     */
+    /// @brief Number attribute of component.
     IntegerValue value{*this, "val"};
 
-    /**
-     * Background-color (bco) attribute of component
-     */
+    /// @brief Background-color (bco) attribute of component
     Color background{*this, "bco"};
 
-    /**
-     * Font-color (pco) attribute of component
-     */
+    /// @brief Font-color (pco) attribute of component
     Color fontColor{*this, "pco"};
 
-    /**
-     * Text alignment
-     */
+    /// @brief Text alignment
     Alignment alignment{*this};
 
-    /**
-     * Text font
-     */
+    /// @brief Text font
     Font font{*this};
 
-    /**
-     * Length attribute of component
-     */
+    /// @brief Length attribute of component
     IntegerValue length{*this, "lenth"};
 
-    /**
-     * Background image
-     */
+    /// @brief Background image
     BackgroundImage backgroundImage{*this};
 };
 
-/**
- * @}
- */
-
-} // namespace Nxt
+} // namespace nxt

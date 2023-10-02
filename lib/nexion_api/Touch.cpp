@@ -7,7 +7,7 @@ void Touch::attachPush(eventCb push, void *ptr) {
     this->_ptrForPushCb = ptr;
 }
 
-void Touch::detachPush(void) {
+void Touch::detachPush() {
     this->_pushCb = nullptr;
     this->_ptrForPushCb = nullptr;
 }
@@ -17,27 +17,27 @@ void Touch::attachPop(eventCb pop, void *ptr) {
     this->_ptrForPopCb = ptr;
 }
 
-void Touch::detachPop(void) {
+void Touch::detachPop() {
     this->_popCb = nullptr;
     this->_ptrForPopCb = nullptr;
 }
 
-void Touch::push(void) {
+void Touch::push() {
     if (_pushCb) {
         _pushCb(_ptrForPushCb);
     }
 }
 
-void Touch::pop(void) {
+void Touch::pop() {
     if (_popCb) {
         _popCb(_ptrForPopCb);
     }
 }
 
-bool Touch::iterate(const SensingList &elements, uint8_t pid, uint8_t cid, int32_t event) {
+bool Touch::iterate(const SensingList &elements, uint8_t pId, uint8_t cId, int32_t event) {
     for (auto &&e : elements) {
-        if (e->pageRef.getId() == pid && e->getObjCid() == cid) {
-            e->printObjInfo();
+        if (e->pageRef.getId() == pId && e->getObjCid() == cId) {
+            e->getObjectInfo();
             if (static_cast<int>(Event::Push) == event) {
                 e->push();
 
@@ -49,4 +49,4 @@ bool Touch::iterate(const SensingList &elements, uint8_t pid, uint8_t cid, int32
     }
     return false;
 }
-} // namespace Nxt
+} // namespace nxt

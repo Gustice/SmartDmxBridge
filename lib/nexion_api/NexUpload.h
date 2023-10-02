@@ -3,11 +3,6 @@
 #include "Nextion.hpp"
 
 /**
- * @addtogroup CoreAPI 
- * @{ 
- */
-
-/**
  *
  * Provides the API for nextion to download the ftf file.
  */
@@ -117,7 +112,4 @@ private: /* data */
     uint8_t _SD_chip_select; /*sd chip select pin*/
     uint32_t _download_baudrate; /*download baudrate*/
 };
-/**
- * @}
- */
 

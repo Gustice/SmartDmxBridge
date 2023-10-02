@@ -64,7 +64,8 @@ void Port::putInBin(Buffer payload) {
     bin.push(payload);
 }
 
-Buffer Port::readCode(CodeBin code, int minSize, unsigned msTimeout) {
+Buffer Port::readCode(CodeBin code, int minPayload, unsigned msTimeout) {
+    auto minSize = minPayload;
     constexpr unsigned D = 3;
     if (minSize < 0) {
         minSize = D;

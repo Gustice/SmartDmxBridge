@@ -3,13 +3,13 @@
 
 namespace nxt {
 
-std::string Object::printObjInfo(void) {
+std::string Object::getObjectInfo() {
     std::stringstream output;
     output << "[" << this << ":" << pageRef.getId() << "," << _componentId << "," << _name << "]";
     return output.str();
 }
 
-std::string Object::getObjName(void) {
+std::string Object::getObjName() {
     if (pageRef.isActive()) {
         return _name;
     }

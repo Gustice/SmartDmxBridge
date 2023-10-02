@@ -2,34 +2,20 @@
 
 #include "Nextion.hpp"
 #include "Touch.hpp"
-#include "bases/Elements.hpp"
 
 namespace nxt {
 
 /**
- * @addtogroup Component 
- * @{ 
+ * @brief Picture component. 
  */
+class Picture : public Touch {
+  public:
+    /// @copydoc Object::Object(Page &page, Port &port, uint8_t cId, std::string_view name);
+    Picture(Page &page, Port &port, uint8_t cid, std::string_view name)
+        : Touch(page, port, cid, name) {}
 
-/**
- * Picture component. 
- */
-class Picture: public Touch
-{
-public: /* methods */
-    /**
-     * @copydoc Object::Object(uint8_t pid, uint8_t cid, std::string_view name);
-     */
-    Picture(Page &page, Port &port, uint8_t cid, std::string_view name) : Touch(page, port, cid, name) {}
-    
-    /**
-     * Picture attribute of component.
-     */
+    /// @brief Picture attribute of component.
     IntegerValue picture{*this, "pic"};
 };
 
-/**
- * @}
- */
-
-}
+} // namespace nxt

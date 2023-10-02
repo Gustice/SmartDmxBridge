@@ -2,44 +2,26 @@
 
 #include "Nextion.hpp"
 #include "bases/Object.hpp"
-#include "bases/Elements.hpp"
 
 namespace nxt {
 
 /**
- * @addtogroup Component 
- * @{ 
+ * @brief ProgressBar component. 
  */
+class ProgressBar : public Object {
+  public:
+    /// @copydoc Object::Object(Page &page, Port &port, uint8_t cId, std::string_view name);
+    ProgressBar(Page &page, Port &port, uint8_t cid, std::string_view name)
+        : Object(page, port, cid, name) {}
 
-/**
- * ProgressBar component. 
- */
-class ProgressBar: public Object
-{
-public: /* methods */
-    /**
-     * @copydoc Object::Object(uint8_t pid, uint8_t cid, std::string_view name);
-     */
-    ProgressBar(Page &page, Port &port, uint8_t cid, std::string_view name) : Object(page, port, cid, name) {}
-    
-    /**
-     * Number attribute of component.
-     */
+    /// @brief Number attribute of component.
     IntegerValue value{*this, "val"};
-	
-    /**
-     * Background-color (bco) attribute of component
-     */
+
+    /// @brief Background-color (bco) attribute of component
     Color background{*this, "bco"};
 
-    /**
-     * Font-color (pco) attribute of component
-     */
+    /// @brief Font-color (pco) attribute of component
     Color fontColor{*this, "pco"};
 };
 
-/**
- * @}
- */
-
-}
+} // namespace nxt

@@ -2,35 +2,20 @@
 
 #include "Nextion.hpp"
 #include "Touch.hpp"
-#include "bases/Elements.hpp"
 
 namespace nxt {
 
 /**
- * @addtogroup Component 
- * @{ 
+ * @brief Crop component. 
  */
+class Crop : public Touch {
+  public:
+    /// @copydoc Object::Object(Page &page, Port &port, uint8_t cId, std::string_view name);
+    Crop(Page &page, Port &port, uint8_t cid, std::string_view name)
+        : Touch(page, port, cid, name) {}
 
-/**
- * Crop component. 
- */
-class Crop: public Touch
-{
-public: /* methods */
-
-    /**
-     * @copydoc Object::Object(uint8_t pid, uint8_t cid, std::string_view name);
-     */
-    Crop(Page &page, Port &port, uint8_t cid, std::string_view name) : Touch(page, port, cid, name) {}
-
-    /**
-     * Image attribute of component.
-     */
+    /// @brief Image attribute of component.
     IntegerValue cropImage{*this, "picc"};
 };
 
-/**
- * @}
- */
-
-}
+} // namespace nxt

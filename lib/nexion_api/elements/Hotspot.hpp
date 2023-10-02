@@ -6,23 +6,13 @@
 namespace nxt {
 
 /**
- * @addtogroup Component 
- * @{ 
+ * @brief Hotspot component. 
  */
-
-/**
- * Hotspot component. 
- */
-class Hotspot: public Touch
-{
-public: /* methods */
-    /**
-     * @copydoc Object::Object(uint8_t pid, uint8_t cid, std::string_view name);
-     */
-    Hotspot(Page &page, Port &port, uint8_t cid, std::string_view name) : Touch(page, port, cid, name) {}
+class Hotspot : public Touch {
+  public:
+    /// @copydoc Object::Object(Page &page, Port &port, uint8_t cId, std::string_view name);
+    Hotspot(Page &page, Port &port, uint8_t cid, std::string_view name)
+        : Touch(page, port, cid, name) {}
 };
-/**
- * @}
- */
 
-}
+} // namespace nxt

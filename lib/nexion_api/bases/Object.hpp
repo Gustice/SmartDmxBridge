@@ -4,74 +4,51 @@
 
 namespace nxt {
 
-/**
- * @addtogroup CoreAPI
- * @{
- */
-
 class Page;
 
 /**
- * Root class of all Nextion components.
- *
- * Provides the essential attributes of a Nextion component and the methods accessing
- * them. At least, Page ID(pid), Component ID(pid) and an unique name are needed for
- * creating a component in Nexiton library.
+ * @brief Root class of all Nextion components.
+ * @details Provides essential attributes
  */
 class Object {
-  public: /* methods */
-    /**
-     * Constructor.
-     *
-     * @param pid - page id.
-     * @param cid - component id.
-     * @param name - pointer to an unique name in range of all components.
-     */
-    Object(Page &pid, Port & port, uint8_t cid, std::string_view name)
-        : pageRef(pid), _port(port), _componentId(cid), _name(name) {}
+  public:
+    /// @brief Constructor typical components
+    /// @param page Parent-page-reference
+    /// @param port Port-reference
+    /// @param cId ComponentId
+    /// @param name Component name
+    Object(Page &page, Port &port, uint8_t cId, std::string_view name)
+        : pageRef(page), _port(port), _componentId(cId), _name(name) {}
 
-    /**
-     * Constructor for pages
-     *
-     * @param name - pointer to an unique name in range of all components.
-     */
-    Object(std::string_view name, Port & port)
-        : pageRef(*(reinterpret_cast<Page *>(this))), _port(port),  _componentId(0), _name(name) {}
+    /// @brief Constructor for pages
+    /// @param name Component name
+    /// @param port Port-reference
+    Object(std::string_view name, Port &port)
+        : pageRef(*(reinterpret_cast<Page *>(this))), _port(port), _componentId(0), _name(name) {}
 
-    /**
-     * Print current object'address, page id, component id and name.
-     *
-     * @warning this method does nothing, unless debug message enabled.
-     */
-    std::string printObjInfo(void);
+    /// @brief Getter for ObjectInfo
+    /// @return Infos as string "[this:PageId,ComponentId,Name]"
+    std::string getObjectInfo();
 
-    /**
-     * Get component name.
-     *
-     * @return the name of component.
-     */
-    std::string getObjName(void);
+    /// @brief Getter for ObjectName
+    /// @return Name of object
+    std::string getObjName();
 
+    /// @brief Reference to parent page
     Page &pageRef;
+
+    /// @brief Reference to associated port
     Port &_port;
 
-  protected: /* methods */
-    /*
-     * Get component id.
-     *
-     * @return the id of component.
-     */
-    uint8_t getObjCid(void) {
+  protected:
+    /// @brief Getter for ObjectId
+    /// @return ObjectId
+    uint8_t getObjCid() {
         return _componentId;
     }
 
-
-  private: /* data */
+  private:
     uint8_t _componentId;
     std::string _name;
 };
-/**
- * @}
- */
-
 } // namespace nxt
