@@ -69,8 +69,11 @@ struct TaskControl {
  */
 class Cli {
   public:
+    /// @brief Type for callback arguments
     using CArgs = std::vector<std::string> &;
+    /// @brief Type for bind callback
     using BindCb = std::function<void(CArgs)>;
+    /// @brief Type for command callback
     using CommandCb = std::function<void(std::string, CArgs)>;
 
     /// @brief Parameter structure for command-binding
@@ -80,6 +83,9 @@ class Cli {
         BindCb callback;
     };
 
+    /// @brief Constructor 
+    /// @param port Reference to serial port
+    /// @param cmd command callback
     Cli(CharStream &port, CommandCb cmd) : _port(port), _commandCb(cmd) {
         EmbeddedCliConfig *config = embeddedCliDefaultConfig();
         // NOTE: Note setting cliBuffer allows Cli to allocate needed buffer in correct size
@@ -102,6 +108,7 @@ class Cli {
         cli->appContext = this;
     }
 
+    /// @brief Destructor
     ~Cli() {
         embeddedCliFree(cli);
     }
@@ -195,9 +202,14 @@ class Cli {
  */
 class Ui {
   public:
+    /// @brief Type for abort callback
     using abortCallback = void (*)();
+    /// @brief Type for system callback
     using systemCallback = void (*)();
+    /// @brief Type 
     using startMonitorCallback = void (*)(MonitorType type, std::shared_ptr<TaskControl> token);
+    
+    /// @brief Configuration class
     struct Config {
         StageConfig &stage;
         Dmx512 &dmx;
@@ -207,6 +219,9 @@ class Ui {
         DebuggingOptions &debugOptions;
     };
 
+    /// @brief Constructor
+    /// @param port Reference to serial port
+    /// @param config Ui-configuration
     Ui(CharStream &port, Config &config)
         : _shell(port, [this](std::string n, Cli::CArgs a) { this->onCommand(n, a); }),
           _config(config) {
@@ -244,10 +259,14 @@ class Ui {
         _shell.write(CliWelcomeString.begin());
     }
 
+    /// @brief Print DMX-layout
+    /// @param args callback arguments
     void getDmxLayout(Cli::CArgs args) {
         _shell.write(_config.stage.getStageConfigStr().c_str());
     }
 
+    /// @brief Get DMX-channel value
+    /// @param args callback arguments
     void getDmxChannel(Cli::CArgs args) {
         if (args.size() == 0) {
             _shell.write(_config.dmx.getValues().getValuesStr().c_str());
@@ -257,6 +276,8 @@ class Ui {
         _shell.write(_config.dmx.getValues().getValueStr(args[0]).c_str());
     }
 
+    /// @brief Set DMX-channel value
+    /// @param args callback arguments
     void setDmxChannel(Cli::CArgs args) {
         if (args.size() != 2) {
             _shell.write("Need 2 arguments\n");
@@ -273,6 +294,8 @@ class Ui {
         _shell.write(output + "\n");
     }
 
+    /// @brief Start DMX-diagnosis
+    /// @param args callback arguments
     void startMonitor(Cli::CArgs args) {
         if (args.size() != 1) {
             _shell.write("Need argument, one of: 'ring' 'input'\n");
@@ -295,11 +318,15 @@ class Ui {
         _shell.write("Starting monitor program. Abort with 'c'\n");
     }
 
+    /// @brief Show device health
+    /// @param args callback arguments
     void showHealth(Cli::CArgs args) {
         _shell.write("Calling system stats output (will be dumped in Log interface)\n");
         _config.showHealth();
     }
 
+    /// @brief Set debugging functions
+    /// @param args callback arguments
     void setDebugging(Cli::CArgs args) {
         if (args.size() == 0) {
             _shell.write(
@@ -311,6 +338,9 @@ class Ui {
         _config.debugOptions = options;
     }
 
+    /// @brief Callback for commands that are not directly wired
+    /// @param name command name
+    /// @param args callback arguments
     void onCommand(std::string name, Cli::CArgs args) {
         ESP_LOGI("UI", "Invoking: %s", name.c_str());
 
@@ -320,6 +350,8 @@ class Ui {
         }
     }
 
+    /// @brief Callback for update start
+    /// @param args callback arguments
     void startUpdate(Cli::CArgs args) {
         _config.ota.enableUpdateTask();
     }

@@ -1,3 +1,11 @@
+/**
+ * @file displayElements.hpp
+ * @author Gustice
+ * @brief Base classes and elements for Display control
+ * @date 2023-10-02
+ * 
+ * @copyright Copyright (c) 2023
+ */
 #pragma once
 
 #include "Nextion.hpp"
@@ -10,18 +18,32 @@
 
 namespace display {
 
-/// @brief Wrapper class for UART port to mimic simple stream behaviour
+/**
+ * @brief Wrapper class for UART port to mimic simple stream behaviour
+ */
 class UartWrapper : public nxt::Stream {
   public:
+    /// @brief Constructor
+    /// @param port reference to serial port
     UartWrapper(Uart &port)
         : _port(port) {}
 
+    /// @brief Propagation for read method
+    /// @param minSize bytes to read
+    /// @param msTimeout timeout in ms
+    /// @return read bytes
     std::vector<uint8_t> read(size_t minSize = 0, unsigned msTimeout = 0) override {
         return _port.readBytes(minSize, msTimeout);
     }
+
+    /// @brief Propagation for write method
+    /// @param c character to write
     virtual void write(char c) override {
         _port.write(c);
     }
+
+    /// @brief Propagation for write method
+    /// @param str string to write
     virtual void write(std::string str) override {
         _port.write(str);
     }
@@ -30,34 +52,63 @@ class UartWrapper : public nxt::Stream {
     Uart &_port;
 };
 
-enum class Page { Splash = 0,
-                  Working,
-                  Info };
+/**
+ * @brief Enumerator for page-ids
+ */
+enum class Page {
+    Splash = 0, ///< Splash-screen
+    Working,    ///< Working-screen
+    Info        ///< Info-page
+};
 
+/**
+ * @brief Base class for pages
+ * 
+ */
 class PageBase {
   public:
+    /// @brief Type for event callback
     using EventCallback = void (*)(void *);
+    /// @brief Type for event arguments
     using BArgs = void *;
+    /// @brief Type for bind callback
     using BindCb = std::function<void(BArgs)>;
+    /// @brief Type for switch page callback
     using SwitchCb = std::function<void(display::PageBase *)>;
 
+    /// @brief Constructor
+    /// @param display Reference to display
+    /// @param id PageId
+    /// @param name Page-name
+    /// @param genericCb Generic event callback
     PageBase(Nextion &display, Page id, std::string_view name, EventCallback genericCb)
         : _display(display),
           _page(display.createPage(static_cast<uint8_t>(id), name)),
           _genericCb(genericCb) {}
+
+    /// @brief Method for initial call
     virtual void init(){};
+
+    /// @brief Method for cyclic calls
     virtual void tick(){};
 
+    /// @brief create void functional pointer from functional object
+    /// @param cb functional callback
+    /// @return void pointer
     static void *createFunctional(BindCb cb) {
         BindCb *c = new BindCb{cb};
         return (void *)c;
     }
 
+    /// @brief Display current page
+    /// @return Id of active page
     PageBase *show() {
         _page.show();
         return this;
     }
 
+    /// @brief Get page name
+    /// @return name of page
     std::string getName() {
         return _page.getObjName();
     }
@@ -68,24 +119,42 @@ class PageBase {
     EventCallback _genericCb;
 };
 
+/**
+ * @brief Definition of splash-screen / welcome-page
+ */
 class SplashScreenPage : public PageBase {
   public:
+    /// @brief Constructor
+    /// @param display Reference to display
+    /// @param genericCb Generic event callback
     SplashScreenPage(Nextion &display, EventCallback genericCb)
         : PageBase(display, Page::Splash, "splashScreen", genericCb),
           tHealth(_page.createComponent<nxt::Text>(4, "tHealth")) {}
 
+    /// @brief Text-field for health indication
     nxt::Text tHealth;
 
+    /// @brief Specific init
     void init() override {
         tHealth.text.set("Setup Image");
     }
 };
 
+/**
+ * @brief Definition of working-page
+ */
 class WorkingPage : public PageBase {
   public:
+    /// @brief Type for color callback
     using setColorCallback = void (*)(AmbientColorSet);
 
-    WorkingPage(Nextion &display, EventCallback genericCb, SwitchCb pageSwitch, ColorPresets &presets,
+    /// @brief Constructor
+    /// @param display Reference to display
+    /// @param genericCb Generic event callback
+    /// @param presets Reference to color presets
+    /// @param pageSwitch Callback for switching to different page
+    /// @param colorCb Callback to color switch
+    WorkingPage(Nextion &display, EventCallback genericCb, ColorPresets &presets, SwitchCb pageSwitch,
                 setColorCallback colorCb)
         : PageBase(display, Page::Working, "workingPage", genericCb),
           bScheme1(_page.createComponent<nxt::Button>(1, "bScheme1")),
@@ -106,37 +175,56 @@ class WorkingPage : public PageBase {
           jLight(_page.createComponent<nxt::ProgressBar>(21, "jLight")),
           jAmbient(_page.createComponent<nxt::ProgressBar>(20, "jAmbient")),
           _colorSetCb(colorCb),
-          _colorPresets(presets), _pageSwitchCb(pageSwitch)
-    {
+          _colorPresets(presets), _pageSwitchCb(pageSwitch) {
         auto gCb = _genericCb;
         auto cF = createFunctional;
         bScheme1.attachPush(gCb, cF([this](BArgs a) { _colorSetCb(_colorPresets.preset1); }));
-        bScheme2.attachPush(gCb, cF([this](BArgs a) { this->bScheme2Cb(a); }));
-        bScheme3.attachPush(gCb, cF([this](BArgs a) { this->bScheme3Cb(a); }));
-        bSchemeCustom.attachPush(gCb, cF([this](BArgs a) { this->bSchemeCustomCb(a); }));
+        bScheme2.attachPush(gCb, cF([this](BArgs a) { _colorSetCb(_colorPresets.preset2); }));
+        bScheme3.attachPush(gCb, cF([this](BArgs a) { _colorSetCb(_colorPresets.preset3); }));
+        bSchemeCustom.attachPush(gCb, cF([this](BArgs a) { _colorSetCb(_customPreset); }));
         hCustomFg.attachPop(gCb, cF([this](BArgs a) { this->hCustomFgCb(a); }));
         hCustomBg.attachPop(gCb, cF([this](BArgs a) { this->hCustomBgCb(a); }));
         bToInfoPage.attachPush(gCb, cF([this](BArgs a) { this->switchPage(a); }));
     }
 
+    /// @brief Button for color scheme 1
     nxt::Button bScheme1;
+    /// @brief Button for color scheme 2
     nxt::Button bScheme2;
+    /// @brief Button for color scheme 3
     nxt::Button bScheme3;
+    /// @brief Button for custom color scheme
     nxt::Button bSchemeCustom;
+    /// @brief Button to switch to info-page
     nxt::Button bToInfoPage;
+
+    /// @brief Color field as visualisation foreground of scheme 1
     nxt::Text tScheme1Fg;
+    /// @brief Color field as visualisation background of scheme 1
     nxt::Text tScheme1Bg;
+    /// @brief Color field as visualisation foreground of scheme 2
     nxt::Text tScheme2Fg;
+    /// @brief Color field as visualisation background of scheme 2
     nxt::Text tScheme2Bg;
+    /// @brief Color field as visualisation foreground of scheme 3
     nxt::Text tScheme3Fg;
+    /// @brief Color field as visualisation background of scheme 3
     nxt::Text tScheme3Bg;
+    /// @brief Color field as visualisation foreground of custom scheme
     nxt::Text tCustomFg;
+    /// @brief Color field as visualisation background of custom scheme
     nxt::Text tCustomBg;
+
+    /// @brief Slider for custom foreground hue
     nxt::Slider hCustomFg;
+    /// @brief Slider for custom background hue
     nxt::Slider hCustomBg;
+    /// @brief Visualisation of light intensity
     nxt::ProgressBar jLight;
+    /// @brief Visualisation of background intensity
     nxt::ProgressBar jAmbient;
 
+    /// @brief Specific init
     void init() override {
         auto &ic = _colorPresets;
         tScheme1Fg.background.set(calcColor(ic.preset1.foregroundColor));
@@ -155,26 +243,22 @@ class WorkingPage : public PageBase {
         jAmbient.value.set(0);
     }
 
+    /// @brief Specific cyclic task
     void tick() override {
         _display.nexLoop(_sensingList);
     }
 
-    void bScheme2Cb(void *ptr) {
-        _colorSetCb(_colorPresets.preset2);
-    }
-    void bScheme3Cb(void *ptr) {
-        _colorSetCb(_colorPresets.preset3);
-    }
-    void bSchemeCustomCb(void *ptr) {
-        _colorSetCb(_customPreset);
-    }
-
+    /// @brief Callback for changing hue of custom foreground
+    /// @param ptr ignored argument
     void hCustomFgCb(void *ptr) {
         auto fg = hCustomFg.value.get();
         auto color = Color::fromHue(fg);
         _customPreset.foregroundColor = color;
         tCustomFg.background.set(calcColor(color));
     }
+
+    /// @brief Callback for changing hue of custom background
+    /// @param ptr ignored argument
     void hCustomBgCb(void *ptr) {
         auto bg = hCustomBg.value.get();
         auto color = Color::fromHue(bg);
@@ -182,14 +266,19 @@ class WorkingPage : public PageBase {
         tCustomBg.background.set(calcColor(color));
     }
 
+    /// @brief Switch to this page
     void switchPage(void *ptr) {
         _pageSwitchCb(this);
     }
 
+    /// @brief Generate color code from color object
+    /// @param col color object
+    /// @return color code
     static uint32_t calcColor(Color col) {
         return nxt::Color::calcColor(col.red, col.green, col.blue);
     }
 
+  private:
     setColorCallback _colorSetCb;
     ColorPresets &_colorPresets;
     SwitchCb _pageSwitchCb;
@@ -199,10 +288,18 @@ class WorkingPage : public PageBase {
                                          &bSchemeCustom, &hCustomFg, &hCustomBg};
 };
 
+/**
+ * @brief Definition of info-page
+ */
 class InfoPage : public PageBase {
   public:
-    InfoPage(Nextion &display, EventCallback genericCb, SwitchCb pageSwitch, const std::string &name,
-             const std::string &version)
+    /// @brief Constructor
+    /// @param display Reference to display
+    /// @param genericCb Generic event callback
+    /// @param name device name for display
+    /// @param version device version for display
+    /// @param pageSwitch Callback for switching to different page
+    InfoPage(Nextion &display, EventCallback genericCb, const std::string &name, const std::string &version, SwitchCb pageSwitch)
         : PageBase(display, Page::Info, "infoPage", genericCb),
           bToWorkingPage(_page.createComponent<nxt::Button>(11, "bPrev")),
           tName(_page.createComponent<nxt::Text>(3, "tName")),
@@ -215,13 +312,20 @@ class InfoPage : public PageBase {
                                   createFunctional([this](BArgs a) { this->switchPage(a); }));
     }
 
+    /// @brief Button to switch to working-page
     nxt::Button bToWorkingPage;
+    /// @brief Text field for device-name
     nxt::Text tName;
+    /// @brief Text field for version-string
     nxt::Text tVersion;
+    /// @brief Text field for IP-address
     nxt::Text tAddress;
+    /// @brief Text field for device infos
     nxt::Text tInfo;
+    /// @brief Text field for device status
     nxt::Text tStatus;
 
+    /// @brief Specific init
     void init() override {
         tName.text.set(_name);
         tVersion.text.set(_version);
@@ -230,19 +334,21 @@ class InfoPage : public PageBase {
         tStatus.text.set("Device Status");
     }
 
+    /// @brief Switch to this page
     void switchPage(void *ptr) {
         _pageSwitchCb(this);
     }
 
+    /// @brief Specific cyclic task
     void tick() override {
         _display.nexLoop(_sensingList);
     }
 
   private:
-    Nextion::SensingList _sensingList = {&bToWorkingPage};
     const std::string &_name;
     const std::string &_version;
     SwitchCb _pageSwitchCb;
+    Nextion::SensingList _sensingList = {&bToWorkingPage};
 };
 
 } // namespace display

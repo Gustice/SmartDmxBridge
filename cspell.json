@@ -4,13 +4,14 @@
     "dictionaryDefinitions": [],
     "dictionaries": [],
     "words": [
-        "uart",
         "LOGD",
+        "LOGE",
         "LOGI",
         "LOGW",
-        "LOGE",
         "Nextion",
-        "syslog"
+        "syslog",
+        "uart",
+        "visualisation"
     ],
     "ignoreWords": [],
     "import": []

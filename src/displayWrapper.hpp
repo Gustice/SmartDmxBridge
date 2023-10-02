@@ -19,25 +19,38 @@
  */
 class Display {
   public:
-    using setColorCallback = display::WorkingPage::setColorCallback; // void (*)(AmbientColorSet);
+    /// @brief Propagate type for color callback
+    using setColorCallback = display::WorkingPage::setColorCallback;
     /// @brief Display message object for message events
     struct Message {
         enum Type {
-            UpdatedIp,
-            UpdateInfo,
-            UpdateStatus,
+            UpdatedIp,    ///< Update IP-text
+            UpdateInfo,   ///< Update Info-textfield
+            UpdateStatus, ///< Update Status-textfield
         };
+        /// @brief Message type
         Type type;
+        /// @brief Message payload
         std::string message;
 
-        Message(Type t, std::string msg) : type(t), message(msg) {}
+        /// @brief Constructor
+        /// @param t message-type
+        /// @param msg payload
+        Message(Type t, std::string msg)
+            : type(t), message(msg) {}
     };
 
+    /// @brief Constructor
+    /// @param port Reference to serial port
+    /// @param name Device name for display
+    /// @param version Device version for display
+    /// @param presets Reference to color presets
+    /// @param colorCb Callback to color switch
     Display(Uart &port, const std::string &name, const std::string &version, ColorPresets &presets,
             setColorCallback colorCb)
-        : _port(port), pageSwitchFunc([this](display::PageBase * p) { this->pageSwitch(p); }),
-          _display(_port, dumpLog),  splashScreen(_display, eventCallback), workingPage(_display, eventCallback, pageSwitchFunc, presets, colorCb),
-          infoPage(_display, eventCallback, pageSwitchFunc, name, version) {
+        : _port(port), pageSwitchFunc([this](display::PageBase *p) { this->pageSwitch(p); }),
+          _display(_port, dumpLog), splashScreen(_display, eventCallback), workingPage(_display, eventCallback, presets, pageSwitchFunc, colorCb),
+          infoPage(_display, eventCallback, name, version, pageSwitchFunc) {
         ESP_LOGI("DISP", "begin setup");
 
         splashScreen.init();
@@ -47,10 +60,13 @@ class Display {
         workingPage.init();
     }
 
+    /// @brief Cyclic task
     void tick() {
         _page->tick();
     }
 
+    /// @brief Process message for info-page
+    /// @param queue queued message
     void processQueue(MessageQueue<Message> &queue) {
         std::unique_ptr<Message> pMsg;
         pMsg = queue.dequeue(0); // don't block if no message pending
@@ -72,11 +88,15 @@ class Display {
         }
     }
 
+    /// @brief Set values for visualisation
+    /// @param intensities
     void setValues(std::array<uint8_t, 2> intensities) {
         workingPage.jLight.value.set(intensities[0]);
         workingPage.jAmbient.value.set(intensities[1]);
     }
 
+    /// @brief Callback for switch page
+    /// @param to target page
     void pageSwitch(display::PageBase *to) {
         _page = to;
         ESP_LOGI("DISP", "Switch to %s", _page->getName().c_str());
