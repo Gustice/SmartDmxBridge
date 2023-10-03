@@ -1,3 +1,11 @@
+/**
+ * @file otaUpdate.hpp
+ * @author Gustice
+ * @brief Update functionality
+ * @date 2023-10-03
+ * 
+ * @copyright Copyright (c) 2023
+ */
 #pragma once
 
 #include "esp_http_client.h"
@@ -13,25 +21,25 @@ extern const uint8_t server_cert_pem_end[] asm("_binary_ca_cert_pem_end");
 /* The interface name value can refer to if_desc in esp_netif_defaults.h */
 static const char *bind_interface_name = "eth";
 
+/**
+ * @brief Class for Update handling
+ * 
+ */
 class OtaHandler {
-  public:
-    struct OtaParam {
-        std::string updateUrl;
-    };
     constexpr static int HashLength = 32;
 
+  public:
+    /**
+     * @brief Configuration structure
+     */
+    struct OtaParam {
+        /// @brief Update URL
+        std::string updateUrl;
+    };
+
+    /// @brief Constructor
+    /// @param updateUrl default FTP/HTTP-server URL to update file 
     OtaHandler(std::string updateUrl) : _param{updateUrl} {}
-
-    void startUpdateService() {}
-
-    static void print_sha256(const uint8_t *image_hash, const char *label) {
-        char hash_print[HashLength * 2 + 1];
-        hash_print[HashLength * 2] = 0;
-        for (int i = 0; i < HashLength; ++i) {
-            sprintf(&hash_print[i * 2], "%02x", image_hash[i]);
-        }
-        ESP_LOGI("OTA", "%s %s", label, hash_print);
-    }
 
     static void get_sha256_of_partitions(void) {
         uint8_t sha_256[HashLength] = {0};
@@ -49,7 +57,10 @@ class OtaHandler {
         print_sha256(sha_256, "SHA-256 for current firmware: ");
     }
 
-    void enableUpdateTask() {
+    /// @brief Start Update service
+    /// @param param FTP/HTTP-server URL to update file  
+    void startUpdateService(OtaParam param) {
+        _param = param;
         xTaskCreate(&updateTask, "updateTask", 8192, &_param, 5, NULL);
     }
 
@@ -90,6 +101,16 @@ class OtaHandler {
             vTaskDelay(1000 / portTICK_PERIOD_MS);
         }
     }
+
+    static void print_sha256(const uint8_t *image_hash, const char *label) {
+        char hash_print[HashLength * 2 + 1];
+        hash_print[HashLength * 2] = 0;
+        for (int i = 0; i < HashLength; ++i) {
+            sprintf(&hash_print[i * 2], "%02x", image_hash[i]);
+        }
+        ESP_LOGI("OTA", "%s %s", label, hash_print);
+    }
+
 
     OtaParam _param;
     const std::string _firmwareUpdateUrl;

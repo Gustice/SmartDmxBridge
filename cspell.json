@@ -9,6 +9,7 @@
         "LOGI",
         "LOGW",
         "Nextion",
+        "ratiometric",
         "syslog",
         "uart",
         "visualisation"

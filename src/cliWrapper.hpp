@@ -19,8 +19,8 @@
 #include <memory>
 
 /* Module configuration */
-static constexpr int CLI_RX_BUFFER_SIZE = 16;
-static constexpr int CLI_CMD_BUFFER_SIZE = 32;
+static constexpr int CLI_RX_BUFFER_SIZE = 64;
+static constexpr int CLI_CMD_BUFFER_SIZE = 64; // to also accept URLs for Updates
 static constexpr int CLI_HISTORY_SIZE = 16;
 static constexpr int CLI_BINDING_COUNT = 8;
 static constexpr std::string_view CliWelcomeString{
@@ -353,7 +353,12 @@ class Ui {
     /// @brief Callback for update start
     /// @param args callback arguments
     void startUpdate(Cli::CArgs args) {
-        _config.ota.enableUpdateTask();
+        if (args.size() != 1) {
+            _shell.write("Need URL to application'\n");
+            return;
+        }
+        
+        _config.ota.startUpdateService(OtaHandler::OtaParam{args[0]});
     }
 
     /// @brief publicly exposed process method

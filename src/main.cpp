@@ -26,6 +26,7 @@ void app_main(void);
 const std::string StationName = "DMX-Bridge";
 /// @brief Station Version for display
 const std::string StationVersion = "T 0.7.0";
+
 constexpr unsigned MinTaskStack = 4096;
 constexpr uint16_t SyslogPort = 514;
 constexpr uint16_t TelnetPort = 23;
@@ -82,7 +83,7 @@ ColorPresets stagePresets{
         .backgroundColor{127, 127, 0},
     },
 };
-
+ 
 EtherPins_t etherPins = {
     .ethPhyAddr = GPIO_NUM_0,
     .ethPhyRst = GPIO_NUM_NC,
@@ -113,7 +114,7 @@ static std::array<uint8_t, 2> relativeIntensity;
 static MessageQueue<Display::Message> displayEvents(10);
 static MessageQueue<LogMessage> logEvents(32);
 
-static OtaHandler ota("http://192.168.178.10:8070/dmx_bridge.bin");
+static OtaHandler ota("http://192.168.178.10:8070/firmware.bin");
 static Dmx512 dmxPort(ioMap.dmx.port, ioMap.dmx.rxPin, ioMap.dmx.txPin);
 IpInfo deviceInfo;
 static Semaphore ipAddressSem{2, 0}; // Counting semaphore
@@ -461,13 +462,17 @@ void standAloneTask(void *arg) {
 /****************************************************************************//*
  * Main
  ******************************************************************************/
-
 /**
  * @brief Entry point for Operating system
  * @details Setup station, spawns tasks and returns
  * 
  */
+
 void app_main(void) {
+    ESP_LOGI("INIT", "###################################");
+    ESP_LOGI("INIT", "Loading App %s %s", StationName.c_str(), StationVersion.c_str());
+    ESP_LOGI("INIT", "###################################");
+
     // Create default event loop that running in background
     ESP_ERROR_CHECK(esp_event_loop_create_default());
     initEthernetHardware(etherPins, gotIpCallback);

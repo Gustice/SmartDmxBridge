@@ -11,7 +11,7 @@
                 "telnet://${config:project.deviceIp}:23",
                 "/W=\"DMX-Bridge\"",
                 "/T=1",
-                "/F=\"${workspaceFolder}/doc/TERATERM.INI\""
+                "/F=\"${workspaceFolder}/tools/TERATERM.INI\""
             ],
             "problemMatcher": []
         }
