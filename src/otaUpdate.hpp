@@ -14,6 +14,7 @@
 #include "esp_ota_ops.h"
 #include <string>
 #include "httpWrapper.hpp"
+#include "etherInit.hpp"
 
 extern const uint8_t server_cert_pem_start[] asm("_binary_ca_cert_pem_start");
 extern const uint8_t server_cert_pem_end[] asm("_binary_ca_cert_pem_end");
@@ -68,8 +69,9 @@ class OtaHandler {
     static void updateTask(void *pvParameter) {
         OtaParam * param =  (OtaParam *) pvParameter;
         ESP_LOGI("OTA", "Starting OTA-update-service");
-#ifdef CONFIG_EXAMPLE_FIRMWARE_UPGRADE_BIND_IF
-        esp_netif_t *netif = get_example_netif_from_desc(bind_interface_name);
+
+        // Bind OTA to specific interface
+        esp_netif_t *netif = get_netif_from_desc(bind_interface_name);
         if (netif == NULL) {
             ESP_LOGE("OTA", "Can't find netif from interface description");
             abort();
@@ -77,15 +79,13 @@ class OtaHandler {
         struct ifreq ifr;
         esp_netif_get_netif_impl_name(netif, ifr.ifr_name);
         ESP_LOGI("OTA", "Bind interface name is %s", ifr.ifr_name);
-#endif
+
         esp_http_client_config_t config = {
             .url = param->updateUrl.c_str(),
             .cert_pem = (char *)server_cert_pem_start,
             .event_handler = Http::_http_event_handler,
             .keep_alive_enable = true,
-#ifdef CONFIG_EXAMPLE_FIRMWARE_UPGRADE_BIND_IF
             .if_name = &ifr,
-#endif
         };
 
         // #ifdef CONFIG_EXAMPLE_SKIP_COMMON_NAME_CHECK // todo: this bad

@@ -38,17 +38,13 @@ static void eth_event_handler(void *arg, esp_event_base_t event_base, int32_t ev
     }
 }
 
-static esp_netif_t *get_example_netif_from_desc(const char *desc) {
-    esp_netif_t *netif = NULL;
-    char *expected_desc;
-    asprintf(&expected_desc, "%s: %s", TAG, desc);
+esp_netif_t *get_netif_from_desc(const char *desc) {
+    esp_netif_t *netif = nullptr;
     while ((netif = esp_netif_next(netif)) != NULL) {
-        if (strcmp(esp_netif_get_desc(netif), expected_desc) == 0) {
-            free(expected_desc);
+        if (strcmp(esp_netif_get_desc(netif), desc) == 0) {
             return netif;
         }
     }
-    free(expected_desc);
     return netif;
 }
 
@@ -80,7 +76,7 @@ static void got_ip_event_handler(void *arg, esp_event_base_t event_base, int32_t
 }
 
 static void eth_stop(void) {
-    esp_netif_t *eth_netif = get_example_netif_from_desc("eth");
+    esp_netif_t *eth_netif = get_netif_from_desc("eth");
     ESP_ERROR_CHECK(
         esp_event_handler_unregister(IP_EVENT, IP_EVENT_ETH_GOT_IP, &got_ip_event_handler));
     ESP_ERROR_CHECK(esp_eth_stop(eth_handle));

@@ -51,3 +51,11 @@ void initEthernetHardware(EtherPins_t etherPins, void (*)(IpInfo));
 /// @param netif NETIF-descriptor
  */
 bool is_our_netif(const char *prefix, esp_netif_t *netif);
+
+/**
+ * @brief Queries Net-IF descriptor by name
+ * 
+ * @param desc network name
+ * @return esp_netif_t* descriptor
+ */
+esp_netif_t *get_netif_from_desc(const char *desc);
