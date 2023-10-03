@@ -1,5 +1,4 @@
 #include "Nextion.hpp"
-// #include "Page.hpp"
 #include <numeric>
 #include <string_view>
 

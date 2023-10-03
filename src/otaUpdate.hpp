@@ -111,7 +111,6 @@ class OtaHandler {
         ESP_LOGI("OTA", "%s %s", label, hash_print);
     }
 
-
     OtaParam _param;
     const std::string _firmwareUpdateUrl;
 };

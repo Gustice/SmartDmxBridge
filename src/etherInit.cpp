@@ -133,3 +133,18 @@ void initEthernetHardware(EtherPins_t etherPins, GotIpHandler gotIpCb) {
 bool is_our_netif(const char *prefix, esp_netif_t *netif) {
     return strncmp(prefix, esp_netif_get_desc(netif), strlen(prefix) - 1) == 0;
 }
+
+// clang-format off
+sockaddr_in createIpV4Config(uint32_t ip, uint16_t port) {
+    return {
+            .sin_len = sizeof(sockaddr_in), .sin_family = AF_INET,
+            .sin_port = htons(port),
+            .sin_addr{
+                .s_addr = htonl(ip),
+            },
+            .sin_zero {
+                0
+            }
+        };
+}
+// clang-format on

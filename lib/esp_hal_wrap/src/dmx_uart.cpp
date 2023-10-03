@@ -7,6 +7,11 @@
 #include <string.h>
 #include <vector>
 
+// see
+// https://github.com/luksal/ESP32-DMX
+// https://github.com/yoann-darche/ESP32-DMX
+// for alternative implementations
+
 constexpr int StdBufferSize = 128;
 
 void dmx_receive_task(void *pvParameters) {
@@ -92,7 +97,7 @@ void Dmx512::set(const uint8_t *dmx, int size) {
 }
 
 void Dmx512::set(uint8_t channel, uint8_t value) {
-    sendBuffer[channel +1] = value;
+    sendBuffer[channel + 1] = value;
 }
 
 std::vector<uint8_t> Dmx512::receive() {
@@ -108,6 +113,5 @@ std::vector<uint8_t> Dmx512::receive() {
 
 DmxChannels Dmx512::getValues() {
     return {
-        .values = std::vector(std::begin(sendBuffer) + 1, std::end(sendBuffer))
-    };
+        .values = std::vector(std::begin(sendBuffer) + 1, std::end(sendBuffer))};
 }

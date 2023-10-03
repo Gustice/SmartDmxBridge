@@ -11,7 +11,8 @@ static esp_adc_cal_characteristics_t adc_chars[adc_unit_t::ADC_UNIT_2 + 1];
 
 std::array<bool, adc_unit_t::ADC_UNIT_2 + 1> Adc::_isInitialized;
 
-Adc::Adc(adc_unit_t unit, adc_channel_t channel) : _unit(unit), _channel(channel) {
+Adc::Adc(adc_unit_t unit, adc_channel_t channel)
+    : _unit(unit), _channel(channel) {
 
     if ((unit != ADC_UNIT_1) && (unit != ADC_UNIT_2)) {
         ESP_LOGE("ADC", "ADC-unit %d not supported", _unit);

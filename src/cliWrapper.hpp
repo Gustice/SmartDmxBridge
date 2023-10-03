@@ -2,6 +2,8 @@
  * @file cliWrapper.hpp
  * @author Gustice
  * @brief Wrapping Command-Line-Interfaces with custom endpoints
+ * @details Command-Line-Interface is based on the implementation of
+ *      https://github.com/funbiscuit/embedded-cli
  * @date 2023-09-24
  *
  * @copyright Copyright (c) 2023

@@ -6,7 +6,6 @@
 
 #include <cstdint>
 #include <string>
-#include "esp_log.h"
 
 constexpr int StageChannelsCount = 24;
 using StageValues = std::array<uint8_t, StageChannelsCount>;
@@ -72,12 +71,10 @@ class DeviceState {
 
     void setNewState(Mode mode) {
         _last = _current;
-        ESP_LOGI("MODE", "Set to state %d", static_cast<int>(mode));
         _current = mode;
     }
 
     void fallbackToLast() {
-        ESP_LOGI("MODE", "fallback to %d", static_cast<int>(_last));
         _current = _last;
     }
 

@@ -1,3 +1,11 @@
+/**
+ * @file tcpSocket.hpp
+ * @author Gustice
+ * @brief Abstraction of TCP sockets for convenient usage
+ * @date 2023-10-03
+ * 
+ * @copyright Copyright (c) 2023
+ */
 #pragma once
 
 #include "esp_log.h"
@@ -10,13 +18,21 @@
 
 #include "ip.hpp"
 
+/**
+ * @brief TCP-Socket
+ */
 class TcpSocket : public VolatileStream {
   public:
-    TcpSocket(const sockaddr_in &dest, IpInfo &device) : dest_addr(dest), Device(device) {
+    /// @brief Constructor
+    /// @note This constructor blocks bind and listen
+    /// @param dest destination address info
+    /// @param device device ip configuration
+    TcpSocket(const sockaddr_in &dest, IpInfo &device)
+        : dest_addr(dest), Device(device) {
         listen_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
         if (listen_sock < 0) {
             ESP_LOGE("TCP", "Unable to create socket: errno %d", errno);
-            return; // todo Exception
+            return; // @todo Exception
         }
 
         int opt = 1;
@@ -27,26 +43,26 @@ class TcpSocket : public VolatileStream {
         if (err != 0) {
             ESP_LOGE("TCP", "Socket unable to bind: errno %d", errno);
             ESP_LOGE("TCP", "IPPROTO: %d", AF_INET);
-            return; // todo Exception => close(listen_sock);
+            return; // @todo Exception => close(listen_sock);
         }
         ESP_LOGI("TCP", "Socket bound, port %d", ntohs(dest_addr.sin_port));
 
         err = listen(listen_sock, 1);
         if (err != 0) {
             ESP_LOGE("TCP", "Error occurred during listen: errno %d", errno);
-            return; // todo Exception => close(listen_sock);
+            return; // @todo Exception => close(listen_sock);
         }
-
         active = true;
     }
 
-    bool isActive() override {
-        return active;
-    }
-
-
     ~TcpSocket() {
         close(listen_sock);
+    }
+
+    /// @brief Check if socket is active
+    /// @return true if active
+    bool isActive() override {
+        return active;
     }
 
     int getSocketId() {
@@ -76,7 +92,7 @@ class TcpSession : public CharStream, public VolatileStream {
         if (_socket < 0) {
             ESP_LOGE("TCP", "Unable to accept connection: errno %d", errno);
             active = false;
-            return; // todo exception
+            return; // @todo exception
         }
 
         // Set tcp keepalive option
@@ -97,7 +113,7 @@ class TcpSession : public CharStream, public VolatileStream {
             return;
 
         ESP_LOGI("TCP", "Tearing down socket");
-        shutdown(_socket, 0); // todo something goes wrong on tidy up
+        shutdown(_socket, 0); // @todo something goes wrong on tidy up
         close(_socket);
     }
 

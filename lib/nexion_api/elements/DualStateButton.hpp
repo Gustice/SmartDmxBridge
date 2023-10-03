@@ -14,6 +14,8 @@ namespace nxt {
 class DualStateButton : public Touch {
   public:
     /// @copydoc Object::Object(Page &page, Port &port, uint8_t cId, std::string_view name);    DualStateButton(Page &page, Port &port, uint8_t cid, std::string_view name) : Touch(page, port, cid, name) {}
+    DualStateButton(Page &page, Port &port, uint8_t cid, std::string_view name)
+        : Touch(page, port, cid, name) {}
 
     /// @brief Number attribute of component.
     IntegerValue value{*this, "val"};

@@ -59,3 +59,12 @@ bool is_our_netif(const char *prefix, esp_netif_t *netif);
  * @return esp_netif_t* descriptor
  */
 esp_netif_t *get_netif_from_desc(const char *desc);
+
+/**
+ * @brief Create default IP-V4 Configuration
+ * 
+ * @param ip IP-word
+ * @param port Port
+ * @return sockaddr_in NET-IF compatible configuration
+ */
+sockaddr_in createIpV4Config(uint32_t ip, uint16_t port);

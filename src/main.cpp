@@ -6,10 +6,32 @@
  *   - Standalone mode: To control a simple configurable scene with a few slider
  *   - Remote mode (optionally): Can be controlled by a highly computer GUI using ArtNet protocol
  *   - Diagnosis mode (optionally): Can be used to validate DMX-chain bye closing the ring
+ * 
+ * This device is based on hardware ESP32-POE-ISO 
+ *  https://www.olimex.com/Products/IoT/ESP32/ESP32-POE-ISO/open-source-hardware
+ * Open Source documentation is on
+ *   https://github.com/OLIMEX/ESP32-POE-ISO
+ * Olimex also provides Example Projects for this platform
+ *   https://github.com/OLIMEX/ESP32-POE/tree/master/SOFTWARE/ESP-IDF
+ * 
+ * This project is generated with Platform IO, based on Espressif IDF
+ * An introduction can be found at
+ *   https://docs.platformio.org/en/latest/frameworks/espidf.html
+ * ESP-specific configuration can be found at
+ *   https://docs.platformio.org/en/latest/platforms/espressif32.html
+ * 
+ * ESP-IDF was choosen in order to use the device integrated RMII connected LAN8710A-PHY 
+ *   as ethernet interface (Arduino Framework relies on SPI connected PHYs and WiFi)
+ * 
+ * The ArtNet-Interface was tested with [Q Light Controller+](https://www.qlcplus.org/)
+ * 
  * @date 2023-10-03
  * 
  * @copyright Copyright (c) 2023
  */
+
+// NOTE: @todo There are stille some beefy ToDos in some underlying components ... 
+
 
 #include "main.hpp"
 #include "sdkconfig.h"
@@ -99,7 +121,7 @@ static const char *TAG = "dmx-bridge";
 static void startDmxMonitor(MonitorType type, std::shared_ptr<TaskControl> token);
 static void showSystemHealth();
 static void valueRefresherTask(void *);
-static void sysLogTask(void *pvParameters);
+static void sysLogSocket_task(void *pvParameters);
 static void newColorScheme(AmbientColorSet color);
 static void dmx_RingMonitor(void *arg);
 static void dmx_Monitor(void *arg);
@@ -230,7 +252,7 @@ void startDmxMonitor(MonitorType type, std::shared_ptr<TaskControl> token) {
  * @details Tested with [Q Light Controller+](https://www.qlcplus.org/)
  * @param args ignored task argument
  */
-static void dmxSocket(void *args) {
+static void dmxSocket_task(void *args) {
     const sockaddr_in dest_addr = createIpV4Config(INADDR_ANY, ArtNetPort);
     while (true) {
         UdpSocket socket(dest_addr, deviceInfo);
@@ -263,7 +285,7 @@ static void dmxSocket(void *args) {
  *   The ini-file for TeraTerm only changes CRReceive and CRSend values both to "=CR"
  * @param arg ignored task argument
  */
-static void tcp_server_task(void *arg) {
+static void telnetSocket_task(void *arg) {
     TcpSession::Config config{
         .keepAlive = 1,
         .keepIdle = 5,
@@ -273,6 +295,7 @@ static void tcp_server_task(void *arg) {
     const sockaddr_in dest_addr = createIpV4Config(INADDR_ANY, TelnetPort);
     while (true) {
         TcpSocket socket(dest_addr, deviceInfo);
+        socket.attach();
 
         // Run telnet-session as long socket is active else restart socket
         while (socket.isActive()) {
@@ -280,7 +303,7 @@ static void tcp_server_task(void *arg) {
             TcpSession session(config, socket);
 
             static LogSession logSession{.latestClient = session.getSource(), .terminate = false};
-            xTaskCreate(sysLogTask, "sysLogTask", 4096, &logSession, 5, NULL);
+            xTaskCreate(sysLogSocket_task, "sysLogSocket", 4096, &logSession, 5, NULL);
 
             Ui ui(session, uiConfig);
             if (!session.isActive())
@@ -294,6 +317,31 @@ static void tcp_server_task(void *arg) {
     }
     vTaskDelete(NULL);
 }
+
+/**
+ * @brief Syslog-Task (spawn in on active Telnet session)
+ * 
+ * @param pvParameters Pointer to LogSession 
+ */
+static void sysLogSocket_task(void *pvParameters) {
+    auto param = static_cast<LogSession *>(pvParameters);
+    ESP_LOGI(TAG, "Syslog task started ... client");
+
+    char _addr_str[24];
+    inet_ntoa_r((&param->latestClient)->sin_addr, _addr_str, sizeof(_addr_str) - 1);
+    ESP_LOGI(TAG, "Telnet activity registered ... starting Syslog to %s", _addr_str);
+    sockaddr_in dest_addr = createIpV4Config(0, SyslogPort);
+    dest_addr.sin_addr.s_addr = param->latestClient.sin_addr.s_addr;
+    while (!param->terminate) {
+        UdpSocket socket(dest_addr, deviceInfo);
+        while (!param->terminate && socket.isActive()) {
+            auto log = logEvents.dequeue();
+            socket.write(log.get()->message, dest_addr);
+        }
+    }
+    vTaskDelete(NULL);
+}
+
 
 /****************************************************************************//*
  * Tasks
@@ -375,31 +423,6 @@ static void dmx_Monitor(void *arg) {
     deviceState.fallbackToLast();
     vTaskDelete(nullptr);
 }
-
-/**
- * @brief Syslog-Task
- * 
- * @param pvParameters Pointer to LogSession 
- */
-static void sysLogTask(void *pvParameters) {
-    auto param = static_cast<LogSession *>(pvParameters);
-    ESP_LOGI(TAG, "Syslog task started ... client");
-
-    char _addr_str[24];
-    inet_ntoa_r((&param->latestClient)->sin_addr, _addr_str, sizeof(_addr_str) - 1);
-    ESP_LOGI(TAG, "Telnet activity registered ... starting Syslog to %s", _addr_str);
-    sockaddr_in dest_addr = createIpV4Config(0, SyslogPort);
-    dest_addr.sin_addr.s_addr = param->latestClient.sin_addr.s_addr;
-    while (!param->terminate) {
-        UdpSocket socket(dest_addr, deviceInfo);
-        while (!param->terminate && socket.isActive()) {
-            auto log = logEvents.dequeue();
-            socket.write(log.get()->message, dest_addr);
-        }
-    }
-    vTaskDelete(NULL);
-}
-
 
 /**
  * @brief Task for to provide a simple way to cyclically refresh values
@@ -511,6 +534,6 @@ void app_main(void) {
             ESP_LOGI(TAG, "- IPv4 address: " IPSTR, IP2STR(&ip.ip));
         }
     }
-    xTaskCreate(tcp_server_task, "tcp_server", 4096, nullptr, 5, NULL);
-    xTaskCreate(dmxSocket, "dmxSocket", 4096, nullptr, 5, NULL);
+    xTaskCreate(telnetSocket_task, "telnetSocket", 4096, nullptr, 5, NULL);
+    xTaskCreate(dmxSocket_task, "dmxSocket", 4096, nullptr, 5, NULL);
 }
