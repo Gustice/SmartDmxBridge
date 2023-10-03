@@ -1,11 +1,25 @@
+/**
+ * @file httpWrapper.hpp
+ * @author Gustice
+ * @brief HTTP utilities
+ * @date 2023-10-03
+ * 
+ * @copyright Copyright (c) 2023
+ */
 #pragma once
 
 #include "esp_http_client.h"
 #include "esp_log.h"
 
-
+/**
+ * @brief HTTP utilities
+ * 
+ */
 class Http {
   public:
+    /// @brief HTTP-Event handler
+    /// @param evt Pointer to event
+    /// @return ESP_OK if known event
     static esp_err_t _http_event_handler(esp_http_client_event_t *evt) {
         switch (evt->event_id) {
         case HTTP_EVENT_ERROR:
@@ -34,4 +48,3 @@ class Http {
         return ESP_OK;
     }
 };
-

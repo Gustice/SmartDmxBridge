@@ -6,7 +6,13 @@
         {
             "label": "Start TeraTerm",
             "type": "shell",
-            "command": "${workspaceFolder}/.vscode/TeraTerm.lnk",
+            "command": "C:/Program Files (x86)/teraterm/ttermpro.exe",
+            "args": [
+                "telnet://${config:project.deviceIp}:23",
+                "/W=\"DMX-Bridge\"",
+                "/T=1",
+                "/F=\"${workspaceFolder}/doc/TERATERM.INI\""
+            ],
             "problemMatcher": []
         }
     ]

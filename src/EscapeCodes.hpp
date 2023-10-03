@@ -1,7 +1,16 @@
+/**
+ * @file EscapeCodes.hpp
+ * @author Gustice
+ * @brief Codes and defines for colored terminal
+ * @date 2023-10-02
+ * 
+ * @copyright Copyright (c) 2023
+ */
 #pragma once
 #include <string>
 #include <sstream>
 
+/// @brief Color enumeration
 enum class AnsiColor : char {
     Black = 0,
     Red = 1,
@@ -23,6 +32,7 @@ enum class AnsiColor : char {
 
 constexpr std::string_view EscapeSequence {"\033["};
 
+/// @brief Escape codes
 class EscapeCodes {
   public:
     static std::string home() {

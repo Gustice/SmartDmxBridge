@@ -38,7 +38,7 @@ static void eth_event_handler(void *arg, esp_event_base_t event_base, int32_t ev
     }
 }
 
-esp_netif_t *get_example_netif_from_desc(const char *desc) {
+static esp_netif_t *get_example_netif_from_desc(const char *desc) {
     esp_netif_t *netif = NULL;
     char *expected_desc;
     asprintf(&expected_desc, "%s: %s", TAG, desc);
@@ -63,8 +63,7 @@ static void got_ip_event_handler(void *arg, esp_event_base_t event_base, int32_t
     IpInfo deviceInfo{.address = IpAddress(ip_info->ip.addr),
                       .subnet = IpAddress(ip_info->netmask.addr),
                       .gateway = IpAddress(ip_info->gw.addr),
-                      .macAddress{0} 
-                      };
+                      .macAddress{0}};
     std::copy(std::begin(mac_addr), std::end(mac_addr), deviceInfo.macAddress.begin());
 
     ESP_LOGI(TAG, "Ethernet Got IP Address");
@@ -73,7 +72,7 @@ static void got_ip_event_handler(void *arg, esp_event_base_t event_base, int32_t
     ESP_LOGI(TAG, "ETHMASK:" IPSTR, IP2STR(&ip_info->netmask));
     ESP_LOGI(TAG, "ETHGW:" IPSTR, IP2STR(&ip_info->gw));
     ESP_LOGI(TAG, "MACADD %02x:%02x:%02x:%02x:%02x:%02x", mac_addr[0], mac_addr[1],
-                 mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
+             mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
     ESP_LOGI(TAG, "~~~~~~~~~~~");
     if (gotIpHandler) {
         gotIpHandler(deviceInfo);
@@ -135,11 +134,6 @@ void initEthernetHardware(EtherPins_t etherPins, GotIpHandler gotIpCb) {
     ESP_ERROR_CHECK(esp_register_shutdown_handler(&eth_stop));
 }
 
-/**
- * @brief Checks the netif description if it contains specified prefix.
- * All netifs created withing common connect component are prefixed with the module TAG,
- * so it returns true if the specified netif is owned by this module
- */
 bool is_our_netif(const char *prefix, esp_netif_t *netif) {
     return strncmp(prefix, esp_netif_get_desc(netif), strlen(prefix) - 1) == 0;
 }
