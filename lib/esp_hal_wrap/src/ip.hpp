@@ -9,8 +9,8 @@
 
 #pragma once
 
-#include <cstdint>
 #include <array>
+#include <cstdint>
 
 /**
  * @brief IP-Address class
@@ -39,9 +39,9 @@ class IpAddress {
     uint8_t operator[](int index) const {
         return _address.bytes[index];
     };
-    
+
     /// @brief Get IP-address as word
-    /// @return 
+    /// @return
     uint32_t asWord() const {
         return _address.dword;
     }
@@ -58,16 +58,16 @@ class IpAddress {
  */
 struct IpInfo {
     /// @brief IP address
-    IpAddress address {0u};
+    IpAddress address{0u};
     /// @brief IP subnet
-    IpAddress subnet {0u};
-    /// @brief Gateway IP 
-    IpAddress gateway {0u};
+    IpAddress subnet{0u};
+    /// @brief Gateway IP
+    IpAddress gateway{0u};
     /// @brief MAC-Address
     std::array<uint8_t, 6> macAddress;
 
     /// @brief Get broadcast address from IP and subnet
-    /// @return 
+    /// @return
     IpAddress getBradcastAddress() const {
         auto sn = address.asWord() | ~subnet.asWord();
         return IpAddress(sn);

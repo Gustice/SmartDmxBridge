@@ -1,7 +1,7 @@
 /**
  * @file dmx_uart.hpp
  * @author Gustice
- * @brief Abstraction of UART Interface used as DMX-Channel
+ * @brief Abstraction of UART-interface used as DMX-Channel
  * @date 2023-10-03
  * 
  * @copyright Copyright (c) 2023
@@ -24,20 +24,20 @@ constexpr int DmxBufferSize = DmxChannelCount + 1; // buffer + start-code
  */
 class Dmx512 : Uart {
   public:
-  /**
+    /**
    * @brief DMX-State
    */
     enum class DmxState {
-        Idle, ///< DMX in idle
-        Data, ///< DMX receiving Data
-        Break,///< Break-Signal / Sync-flag
+        Idle,  ///< DMX in idle
+        Data,  ///< DMX receiving Data
+        Break, ///< Break-Signal / Sync-flag
     };
 
     /**
      * @brief Structure for DMX-State-machine
      */
     struct DmxContext {
-        /// @brief Port to use
+        /// @brief Uart module to use
         uart_port_t port;
         /// @brief Buffer to data
         uint8_t *buffer;
@@ -83,7 +83,7 @@ class Dmx512 : Uart {
     std::vector<uint8_t> receive();
 
     /// @brief Get buffered data (from send)
-    /// @return 
+    /// @return
     DmxChannels getValues();
 
   private:

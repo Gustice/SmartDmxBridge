@@ -21,29 +21,6 @@
 #include "streams.hpp"
 #include <array>
 
-// clang-format off
-
-/**
- * @brief Create default IP-V4 Configuration
- * 
- * @param ip IP-word
- * @param port Port
- * @return sockaddr_in NET-IF compatible configuration
- */
-sockaddr_in createIpV4Config(uint32_t ip, uint16_t port) {
-    return {
-            .sin_len = sizeof(sockaddr_in), .sin_family = AF_INET,
-            .sin_port = htons(port),
-            .sin_addr{
-                .s_addr = htonl(ip),
-            },
-            .sin_zero {
-                0
-            }
-        };
-}
-// clang-format on
-
 /**
  * @brief UDP-Socket abstraction
  * @details Maintains UDF-Socket and provides stream functions
@@ -73,16 +50,19 @@ class UdpSocket : public ByteStream, public VolatileStream {
     }
 
     /// @brief Attach to configured socket
-    void attach() {
+    /// @note Blocks until successful or failed
+    /// @return true if successful
+    bool attach() {
         int err = bind(sock, (struct sockaddr *)&dest_addr, dest_addr.sin_len);
         if (err < 0) {
             ESP_LOGE("UDP", "Socket unable to bind: errno %d", errno);
             active = false;
-            return; // @todo Exception
+            return false; // @todo Exception
         }
         ESP_LOGI("UDP", "Socket bound, port %d", ntohs(dest_addr.sin_port));
 
         active = true;
+        return active;
     }
 
     /// @brief Read from socket
@@ -150,13 +130,19 @@ class UdpSocket : public ByteStream, public VolatileStream {
 
     /// @brief Standard destination address
     const sockaddr_in &dest_addr;
+
+    /// @brief Device info
     const IpInfo &Device;
-    int sock;
+
+    /// @brief query if stream is still active
+    /// @return true if active
     bool isValid() {
         return sock >= 0;
     }
-    struct sockaddr_storage source_addr; // Remote Station
+
   private:
+    struct sockaddr_storage source_addr; // Remote Station
+    int sock;
     socklen_t socklen = sizeof(source_addr);
 
     char addr_str[128];
