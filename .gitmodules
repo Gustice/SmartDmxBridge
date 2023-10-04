@@ -4,3 +4,6 @@
 [submodule "external/Nextion"]
 	path = external/Nextion
 	url = https://github.com/itead/ITEADLIB_Arduino_Nextion.git
+[submodule "external/ArtNet"]
+	path = external/ArtNet
+	url = https://github.com/hideakitai/ArtNet
