@@ -7,3 +7,6 @@
 [submodule "external/ArtNet"]
 	path = external/ArtNet
 	url = https://github.com/hideakitai/ArtNet
+[submodule "external/RapidJSON"]
+	path = external/RapidJSON
+	url = https://github.com/Tencent/rapidjson
