@@ -68,6 +68,9 @@ struct AmbientColorSet {
     Color backgroundColor;
 };
 
+/// @brief Shortened definition for set of colors as preset
+using ColorPresets = std::array<AmbientColorSet, 3>;
+
 /**
  * @brief Stage configuration for lights. 
  * @details Defines the weights for the channels that are scaled with the intensity values 
@@ -75,16 +78,16 @@ struct AmbientColorSet {
  */
 struct StageConfig {
     /// @brief Weights for illumination channels
-    std::array<uint8_t, StageChannelsCount> weightsLights {};
+    std::array<uint8_t, StageChannelsCount> weightsLights{};
 
     /// @brief Channel indexes for foreground color
-    std::array<uint8_t, 3> channelsForeground {};
-    
+    std::array<uint8_t, 3> channelsForeground{};
+
     /// @brief Channel indexes for background color
-    std::array<uint8_t, 3> channelsBackground {};
-    
+    std::array<uint8_t, 3> channelsBackground{};
+
     /// @brief Color presets
-    std::array<AmbientColorSet, 3> colorsPresets {};
+    ColorPresets colorsPresets{};
 
     /// @brief Create descriptive string for terminal output
     /// @return generated string
@@ -107,20 +110,19 @@ struct StageIntensity {
  */
 class DeviceState {
   public:
-
-  /**
+    /**
    * @brief Enumeration for Mode
    */
     enum class Mode {
-        /// @brief Standalone mode: 
+        /// @brief Standalone mode:
         /// Configuration weights are scaled with potentiometer values send via DMX-output
         StandAlone,
-        
+
         /// @brief Remote mode:
         /// Applies values that are received via ArtNet, potentiometer values are muted
         Remote,
 
-        /// @brief Manual mode: 
+        /// @brief Manual mode:
         /// Debugging and testing via Telnet shell
         Manual,
 
@@ -171,11 +173,30 @@ class DeviceState {
     Mode _last;
 };
 
-
-struct FactoryInfo { 
-    char DeviceType[24] = "** DEVICE_TYPE_FIELD **";
-    char SerialNumber[12] = "SN:12345678"; // Something like SN:123ABC
-    char HwVersion[16] = "V ***.***.*****";    // V 1.00.00
-    char SwVersion[12] = "V **.**.***";
-};
-
+// clang-format off
+constexpr StageConfig DefaultStageConfig{ 
+    .weightsLights{
+        /*Illumination*/  255, 255, 255, 255, //  1- 4
+        /*Spare*/           0,   0,   0,   0, //  5- 8
+        /*Spare*/           0,   0,   0,   0, //  9-12
+        /*Spare*/           0,   0,   0,   0, // 13-16
+        /*Foreground*/      0,   0,   0,   0, // 17-20
+        /*Background*/      0,   0,   0,   0, // 21-24
+    },
+    .channelsForeground{17, 18, 19},
+    .channelsBackground{21, 22, 23},
+    .colorsPresets{ 
+        AmbientColorSet{ 
+            .foregroundColor{255, 0, 0},
+            .backgroundColor{0, 127, 127},
+        },
+        AmbientColorSet{
+            .foregroundColor{0, 255, 0},
+            .backgroundColor{127, 0, 127},
+        },
+        AmbientColorSet{
+            .foregroundColor{0, 0, 255},
+            .backgroundColor{127, 127, 0},
+        }
+        }
+    };
