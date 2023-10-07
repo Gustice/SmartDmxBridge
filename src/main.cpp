@@ -30,8 +30,7 @@
  * @copyright Copyright (c) 2023
  */
 
-// NOTE: @todo There are stille some beefy ToDos in some underlying components ... 
-
+// NOTE: @todo There are stille some beefy ToDos in some underlying components ...
 
 #include "main.hpp"
 #include "sdkconfig.h"
@@ -40,7 +39,7 @@ extern "C" { // This switch allows the ROS C-implementation to find this main
 void app_main(void);
 }
 
-/****************************************************************************//*
+/****************************************************************************/ /*
  * Configuration of DMX-Bridge
  ******************************************************************************/
 
@@ -86,24 +85,25 @@ static StageConfig stage{.weightsLights{
     },
     .channelsForeground{1, 2, 3},
     .channelsBackground{6, 7, 8},
-    .colors{
-        .foregroundColor{255, 64, 0}, 
-        .backgroundColor{0, 64, 255}
-    }};
+    .colorsPresets{ 
+        AmbientColorSet{ 
+            .foregroundColor{255, 0, 0},
+            .backgroundColor{0, 127, 127},
+        },
+        AmbientColorSet{
+            .foregroundColor{0, 255, 0},
+            .backgroundColor{127, 0, 127},
+        },
+        AmbientColorSet{
+            .foregroundColor{0, 0, 255},
+            .backgroundColor{127, 127, 0},
+        }
+        }
+    };
 
-ColorPresets stagePresets{
-    .preset1{
-        .foregroundColor{255, 0, 0},
-        .backgroundColor{0, 127, 127},
-    },
-    .preset2{
-        .foregroundColor{0, 255, 0},
-        .backgroundColor{127, 0, 127},
-    },
-    .preset3{
-        .foregroundColor{0, 0, 255},
-        .backgroundColor{127, 127, 0},
-    },
+AmbientColorSet stageAmbient {
+    .foregroundColor = stage.colorsPresets[0].foregroundColor,
+    .backgroundColor = stage.colorsPresets[0].backgroundColor
 };
  
 EtherPins_t etherPins = {
@@ -126,7 +126,7 @@ static void newColorScheme(AmbientColorSet color);
 static void dmx_RingMonitor(void *arg);
 static void dmx_Monitor(void *arg);
 
-/****************************************************************************//*
+/****************************************************************************/ /*
  * Local instances of Device
  ******************************************************************************/
 
@@ -143,7 +143,6 @@ static Semaphore ipAddressSem{2, 0}; // Counting semaphore
 std::array<uint32_t, 2> dmxUniverses{1, 2};
 BinDiff differ(24);
 
-
 Ui::Config uiConfig{
     .stage = stage,
     .dmx = dmxPort,
@@ -152,8 +151,7 @@ Ui::Config uiConfig{
     .showHealth = showSystemHealth,
     .debugOptions = debugOptions};
 
-
-/****************************************************************************//*
+/****************************************************************************/ /*
  * Callbacks
  ******************************************************************************/
 
@@ -207,8 +205,8 @@ static void newColorScheme(AmbientColorSet color) {
     auto fg = color.foregroundColor;
     auto bg = color.backgroundColor;
 
-    stage.colors.backgroundColor = color.foregroundColor;
-    stage.colors.foregroundColor = color.backgroundColor;
+    stageAmbient.backgroundColor = color.foregroundColor;
+    stageAmbient.foregroundColor = color.backgroundColor;
 
     if (debugOptions.infos) {
         std::stringstream msg;
@@ -241,8 +239,7 @@ void startDmxMonitor(MonitorType type, std::shared_ptr<TaskControl> token) {
     }
 }
 
-
-/****************************************************************************//*
+/****************************************************************************/ /*
  * Sockets
  ******************************************************************************/
 
@@ -342,8 +339,7 @@ static void sysLogSocket_task(void *pvParameters) {
     vTaskDelete(NULL);
 }
 
-
-/****************************************************************************//*
+/****************************************************************************/ /*
  * Tasks
  ******************************************************************************/
 
@@ -356,7 +352,7 @@ static void displayTask(void *arg) {
     ESP_LOGI(TAG, "Starting Display Task");
     static Uart nxtPort(ioMap.display.port, ioMap.display.rxPin, ioMap.display.txPin,
                         Uart::BaudRate::_38400Bd);
-    static Display display(nxtPort, StationName, StationVersion, stagePresets, newColorScheme);
+    static Display display(nxtPort, StationName, StationVersion, stage.colorsPresets, newColorScheme);
 
     while (true) {
         display.tick();
@@ -452,7 +448,7 @@ void standAloneTask(void *arg) {
 
     ScaledValue<int> intensityScale{{0, 4095}, {0, 255}};
     ScaledValue<int> displayScale{{0, 255}, {0, 100}};
-    RatiometricLightControl lights(stage);
+    RatiometricLightControl lights(stage, stageAmbient);
     StageIntensity intensity;
 
     while (true) {
@@ -482,7 +478,7 @@ void standAloneTask(void *arg) {
     }
 }
 
-/****************************************************************************//*
+/****************************************************************************/ /*
  * Main
  ******************************************************************************/
 /**
@@ -490,7 +486,6 @@ void standAloneTask(void *arg) {
  * @details Setup station, spawns tasks and returns
  * 
  */
-
 void app_main(void) {
     ESP_LOGI("INIT", "###################################");
     ESP_LOGI("INIT", "Loading App %s %s", StationName.c_str(), StationVersion.c_str());

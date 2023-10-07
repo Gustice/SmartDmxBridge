@@ -1,6 +1,4 @@
-// #include "Register.h"
 #include <gtest/gtest.h>
-// #include "Nextion.hpp"
 
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);

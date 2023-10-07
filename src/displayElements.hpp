@@ -178,9 +178,9 @@ class WorkingPage : public PageBase {
           _colorPresets(presets), _pageSwitchCb(pageSwitch) {
         auto gCb = _genericCb;
         auto cF = createFunctional;
-        bScheme1.attachPush(gCb, cF([this](BArgs a) { _colorSetCb(_colorPresets.preset1); }));
-        bScheme2.attachPush(gCb, cF([this](BArgs a) { _colorSetCb(_colorPresets.preset2); }));
-        bScheme3.attachPush(gCb, cF([this](BArgs a) { _colorSetCb(_colorPresets.preset3); }));
+        bScheme1.attachPush(gCb, cF([this](BArgs a) { _colorSetCb(_colorPresets[0]); }));
+        bScheme2.attachPush(gCb, cF([this](BArgs a) { _colorSetCb(_colorPresets[1]); }));
+        bScheme3.attachPush(gCb, cF([this](BArgs a) { _colorSetCb(_colorPresets[2]); }));
         bSchemeCustom.attachPush(gCb, cF([this](BArgs a) { _colorSetCb(_customPreset); }));
         hCustomFg.attachPop(gCb, cF([this](BArgs a) { this->hCustomFgCb(a); }));
         hCustomBg.attachPop(gCb, cF([this](BArgs a) { this->hCustomBgCb(a); }));
@@ -227,12 +227,12 @@ class WorkingPage : public PageBase {
     /// @brief Specific init
     void init() override {
         auto &ic = _colorPresets;
-        tScheme1Fg.background.set(calcColor(ic.preset1.foregroundColor));
-        tScheme1Bg.background.set(calcColor(ic.preset1.backgroundColor));
-        tScheme2Fg.background.set(calcColor(ic.preset2.foregroundColor));
-        tScheme2Bg.background.set(calcColor(ic.preset2.backgroundColor));
-        tScheme3Fg.background.set(calcColor(ic.preset3.foregroundColor));
-        tScheme3Bg.background.set(calcColor(ic.preset3.backgroundColor));
+        tScheme1Fg.background.set(calcColor(ic[0].foregroundColor));
+        tScheme1Bg.background.set(calcColor(ic[0].backgroundColor));
+        tScheme2Fg.background.set(calcColor(ic[1].foregroundColor));
+        tScheme2Bg.background.set(calcColor(ic[1].backgroundColor));
+        tScheme3Fg.background.set(calcColor(ic[2].foregroundColor));
+        tScheme3Bg.background.set(calcColor(ic[2].backgroundColor));
 
         auto fg = hCustomFg.value.get();
         tCustomFg.background.set(calcColor(Color::fromHue(fg)));

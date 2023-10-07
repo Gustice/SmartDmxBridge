@@ -75,16 +75,16 @@ struct AmbientColorSet {
  */
 struct StageConfig {
     /// @brief Weights for illumination channels
-    std::array<uint8_t, 24> weightsLights;
+    std::array<uint8_t, StageChannelsCount> weightsLights {};
 
     /// @brief Channel indexes for foreground color
-    std::array<uint8_t, 3> channelsForeground;
+    std::array<uint8_t, 3> channelsForeground {};
     
     /// @brief Channel indexes for background color
-    std::array<uint8_t, 3> channelsBackground;
+    std::array<uint8_t, 3> channelsBackground {};
     
-    /// @brief Active ambient color set
-    AmbientColorSet colors;
+    /// @brief Color presets
+    std::array<AmbientColorSet, 3> colorsPresets {};
 
     /// @brief Create descriptive string for terminal output
     /// @return generated string
@@ -100,15 +100,6 @@ struct StageIntensity {
 
     /// @brief Intensity for ambient color set
     uint8_t ambiente = 0;
-};
-
-/**
- * @brief Configured color presets
- */
-struct ColorPresets {
-    AmbientColorSet preset1;
-    AmbientColorSet preset2;
-    AmbientColorSet preset3;
 };
 
 /**
@@ -179,3 +170,12 @@ class DeviceState {
     Mode _current;
     Mode _last;
 };
+
+
+struct FactoryInfo { 
+    char DeviceType[24] = "** DEVICE_TYPE_FIELD **";
+    char SerialNumber[12] = "SN:12345678"; // Something like SN:123ABC
+    char HwVersion[16] = "V ***.***.*****";    // V 1.00.00
+    char SwVersion[12] = "V **.**.***";
+};
+
