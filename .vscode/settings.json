@@ -24,5 +24,14 @@
         "param",
         "return",
     ],
-    "project.deviceIp": "192.168.178.82"
+    "project.deviceIp": "192.168.178.82",
+    "json.schemas": [
+        { // Relativ Path
+            "fileMatch": [
+                "Configuration.json*"
+            ],
+            "url": "./tools/ConfigurationSchema.json"
+        }
+    ],
+
 }

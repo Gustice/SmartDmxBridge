@@ -2,27 +2,30 @@
 #include <gtest/gtest.h>
 
 TEST(DeviceModelTest, TestStageOutput) {
-    StageConfig dut {
-        .weightsLights { 
-            11, 12, 13, 0,0,0, 
-            17, 18, 19, 0,0,0, 
-            23, 24, 25, 0,0,0,
-            29, 30, 31, 0,0,0 
+    StageConfig dut{
+        .weightsLights{
+            11, 12, 13, 0, 0, 0,
+            17, 18, 19, 0, 0, 0,
+            23, 24, 25, 0, 0, 0,
+            29, 30, 31, 0, 0, 0},
+        .channelsForeground{4, 5, 6},
+        .channelsBackground{10, 11, 12},
+        .colorsPresets{
+            AmbientColorSet{
+                .foregroundColor{50, 60, 70},
+                .backgroundColor{80, 90, 100},
             },
-        .channelsForeground { 4,5,6},
-        .channelsBackground { 10,11,12},
-        .colors {
-            .foregroundColor {
-                50,60,70
+            {
+                .foregroundColor{51, 61, 71},
+                .backgroundColor{81, 91, 101},
             },
-            .backgroundColor {
-                80,90,100
-            },
-        }
-    };
+            {
+                .foregroundColor{52, 62, 72},
+                .backgroundColor{82, 92, 102},
+            }}};
 
-    std::string expect {
-        "DMX-Layout:\n" 
+    std::string expect{
+        "DMX-Layout:\n"
         "White-Weights\n"
         "  1: 11\n"
         "  2: 12\n"
@@ -41,20 +44,18 @@ TEST(DeviceModelTest, TestStageOutput) {
         "Ambient-Background-RGB-Channels:\n"
         "  10 , 11 , 12\n"
 
-        };
+    };
 
-    EXPECT_EQ( expect, dut.getStageConfigStr());
+    EXPECT_EQ(expect, dut.getStageConfigStr());
 }
 
 TEST(DeviceModelTest, TestDmxChannels) {
-    DmxChannels dut {
-        .values {
-            1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24
-        }
-    };
+    DmxChannels dut{
+        .values{
+            1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24}};
 
-    std::string expect {
-        "DMX-Values:\n" 
+    std::string expect{
+        "DMX-Values:\n"
         "  Ch 1 = 1\n"
         "  Ch 2 = 2\n"
         "  Ch 3 = 3\n"
@@ -78,12 +79,11 @@ TEST(DeviceModelTest, TestDmxChannels) {
         "  Ch 21 = 21\n"
         "  Ch 22 = 22\n"
         "  Ch 23 = 23\n"
-        "  Ch 24 = 24\n"
-    };
-    
-    EXPECT_EQ( expect, dut.getValuesStr() );
+        "  Ch 24 = 24\n"};
 
-    EXPECT_EQ( "  Ch 1 = 1\n", dut.getValueStr("1") );
-    EXPECT_EQ( "  Ch 12 = 12\n", dut.getValueStr("12") );
-    EXPECT_EQ( "  Ch 24 = 24\n", dut.getValueStr("24") );
+    EXPECT_EQ(expect, dut.getValuesStr());
+
+    EXPECT_EQ("  Ch 1 = 1\n", dut.getValueStr("1"));
+    EXPECT_EQ("  Ch 12 = 12\n", dut.getValueStr("12"));
+    EXPECT_EQ("  Ch 24 = 24\n", dut.getValueStr("24"));
 }

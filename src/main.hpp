@@ -10,6 +10,8 @@
 #pragma once
 
 #include "BinDiff.hpp"
+#include "fileAccess.hpp"
+#include "paramReader.hpp"
 #include "ScaledValue.hpp"
 #include "adc.hpp"
 #include "cliWrapper.hpp"

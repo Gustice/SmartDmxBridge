@@ -32,4 +32,3 @@ CONFIG_ETH_USE_SPI_ETHERNET=y
 # Default sdkconfig parameters to use the OTA
 # partition table layout, with a 4MB flash size
 CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
-CONFIG_PARTITION_TABLE_TWO_OTA=y

@@ -18,8 +18,8 @@ class RatiometricLightControl {
   public:
     /// @brief Constructor
     /// @param config reference to configuration
-    RatiometricLightControl(const StageConfig &config)
-        : _config(config) {}
+    RatiometricLightControl(const StageConfig &config, const AmbientColorSet &active)
+        : _config(config), _activeAmbient(active) {}
 
     /// @brief Update all wights by single intensity value
     /// @details scales all dmx channels by intensity values respect to configured weights
@@ -34,7 +34,7 @@ class RatiometricLightControl {
         }
         { // set values for background
             auto k = intensities.ambiente;
-            auto col = _config.colors.backgroundColor;
+            auto col = _activeAmbient.backgroundColor;
             std::array<uint8_t, 3> cVal{col.red, col.green, col.blue};
 
             for (size_t c = 0; c < _config.channelsBackground.size(); c++) {
@@ -44,7 +44,7 @@ class RatiometricLightControl {
         }
         { // set values for foreground
             auto k = intensities.ambiente;
-            auto col = _config.colors.foregroundColor;
+            auto col = _activeAmbient.foregroundColor;
             std::array<uint8_t, 3> cVal{col.red, col.green, col.blue};
 
             for (size_t c = 0; c < _config.channelsForeground.size(); c++) {
@@ -59,4 +59,5 @@ class RatiometricLightControl {
   private:
     StageValues _channels;
     const StageConfig &_config;
+    const AmbientColorSet _activeAmbient;
 };

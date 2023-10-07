@@ -30,8 +30,7 @@
  * @copyright Copyright (c) 2023
  */
 
-// NOTE: @todo There are stille some beefy ToDos in some underlying components ... 
-
+// NOTE: @todo There are stille some beefy ToDos in some underlying components ...
 
 #include "main.hpp"
 #include "sdkconfig.h"
@@ -40,14 +39,14 @@ extern "C" { // This switch allows the ROS C-implementation to find this main
 void app_main(void);
 }
 
-/****************************************************************************//*
+/****************************************************************************/ /*
  * Configuration of DMX-Bridge
  ******************************************************************************/
 
 /// @brief Station Name for display
 const std::string StationName = "DMX-Bridge";
 /// @brief Station Version for display
-const std::string StationVersion = "T 0.7.0";
+const std::string StationVersion = "V 0.7.0";
 
 constexpr unsigned MinTaskStack = 4096;
 constexpr uint16_t SyslogPort = 514;
@@ -75,36 +74,8 @@ constexpr DeviceIoMap ioMap{
         .port = adc_channel_t::ADC_CHANNEL_6 // => GPIO 14
     }};
 
-static StageConfig stage{.weightsLights{
-        /*AmbienteGrp 1*/    0,   0,   0,
-        /*Empty*/            0,   0,
-        /*AmbienteGrp 2*/    0,   0,   0,
-        /*Front-Colored */   0,   0,   0, 255, 125, 0,
-        /*Empty*/            0,   0,
-        /*Lights*/         255,   0, 255,   0,
-        /*Halogen*/        255, 255, 255, 255,
-    },
-    .channelsForeground{1, 2, 3},
-    .channelsBackground{6, 7, 8},
-    .colors{
-        .foregroundColor{255, 64, 0}, 
-        .backgroundColor{0, 64, 255}
-    }};
-
-ColorPresets stagePresets{
-    .preset1{
-        .foregroundColor{255, 0, 0},
-        .backgroundColor{0, 127, 127},
-    },
-    .preset2{
-        .foregroundColor{0, 255, 0},
-        .backgroundColor{127, 0, 127},
-    },
-    .preset3{
-        .foregroundColor{0, 0, 255},
-        .backgroundColor{127, 127, 0},
-    },
-};
+static StageConfig stage = DefaultStageConfig;
+AmbientColorSet stageAmbient {stage.colorsPresets[0]};
  
 EtherPins_t etherPins = {
     .ethPhyAddr = GPIO_NUM_0,
@@ -126,7 +97,7 @@ static void newColorScheme(AmbientColorSet color);
 static void dmx_RingMonitor(void *arg);
 static void dmx_Monitor(void *arg);
 
-/****************************************************************************//*
+/****************************************************************************/ /*
  * Local instances of Device
  ******************************************************************************/
 
@@ -143,7 +114,6 @@ static Semaphore ipAddressSem{2, 0}; // Counting semaphore
 std::array<uint32_t, 2> dmxUniverses{1, 2};
 BinDiff differ(24);
 
-
 Ui::Config uiConfig{
     .stage = stage,
     .dmx = dmxPort,
@@ -152,8 +122,11 @@ Ui::Config uiConfig{
     .showHealth = showSystemHealth,
     .debugOptions = debugOptions};
 
+std::shared_ptr<FileAccess> _paramFs;
+const std::string configRoot("/spiffs");
+const std::string partitionLabel("dataFs");
 
-/****************************************************************************//*
+/****************************************************************************/ /*
  * Callbacks
  ******************************************************************************/
 
@@ -207,8 +180,8 @@ static void newColorScheme(AmbientColorSet color) {
     auto fg = color.foregroundColor;
     auto bg = color.backgroundColor;
 
-    stage.colors.backgroundColor = color.foregroundColor;
-    stage.colors.foregroundColor = color.backgroundColor;
+    stageAmbient.backgroundColor = color.foregroundColor;
+    stageAmbient.foregroundColor = color.backgroundColor;
 
     if (debugOptions.infos) {
         std::stringstream msg;
@@ -241,8 +214,7 @@ void startDmxMonitor(MonitorType type, std::shared_ptr<TaskControl> token) {
     }
 }
 
-
-/****************************************************************************//*
+/****************************************************************************/ /*
  * Sockets
  ******************************************************************************/
 
@@ -342,8 +314,7 @@ static void sysLogSocket_task(void *pvParameters) {
     vTaskDelete(NULL);
 }
 
-
-/****************************************************************************//*
+/****************************************************************************/ /*
  * Tasks
  ******************************************************************************/
 
@@ -356,7 +327,7 @@ static void displayTask(void *arg) {
     ESP_LOGI(TAG, "Starting Display Task");
     static Uart nxtPort(ioMap.display.port, ioMap.display.rxPin, ioMap.display.txPin,
                         Uart::BaudRate::_38400Bd);
-    static Display display(nxtPort, StationName, StationVersion, stagePresets, newColorScheme);
+    static Display display(nxtPort, StationName, StationVersion, stage.colorsPresets, newColorScheme);
 
     while (true) {
         display.tick();
@@ -452,7 +423,7 @@ void standAloneTask(void *arg) {
 
     ScaledValue<int> intensityScale{{0, 4095}, {0, 255}};
     ScaledValue<int> displayScale{{0, 255}, {0, 100}};
-    RatiometricLightControl lights(stage);
+    RatiometricLightControl lights(stage, stageAmbient);
     StageIntensity intensity;
 
     while (true) {
@@ -482,7 +453,7 @@ void standAloneTask(void *arg) {
     }
 }
 
-/****************************************************************************//*
+/****************************************************************************/ /*
  * Main
  ******************************************************************************/
 /**
@@ -490,7 +461,6 @@ void standAloneTask(void *arg) {
  * @details Setup station, spawns tasks and returns
  * 
  */
-
 void app_main(void) {
     ESP_LOGI("INIT", "###################################");
     ESP_LOGI("INIT", "Loading App %s %s", StationName.c_str(), StationVersion.c_str());
@@ -511,6 +481,27 @@ void app_main(void) {
         err = nvs_flash_init();
     }
     ESP_ERROR_CHECK(err);
+    _paramFs = std::make_shared<FileAccess>(configRoot, partitionLabel);
+
+    try {
+        if (_paramFs->checkIfFileExists("Configuration.json") != ESP_OK) {
+            ESP_LOGW(TAG, "config-file missing");
+        } else {
+            ESP_LOGI(TAG, "config-file found");
+
+            auto config = _paramFs->readFile("Configuration.json");
+            ESP_LOGI(TAG, "read config: %s", config.c_str());
+
+            if (config.size() != 0) {
+                stage = ParamReader::readDeviceConfig(config);
+                stageAmbient = stage.colorsPresets[0];
+            } else {
+                ESP_LOGW(TAG, "Error reading config ...fallback to default values");
+            }
+        }
+    } catch (const std::exception &e) {
+        ESP_LOGW(TAG, "%s ...fallback to default values", e.what());
+    }
 
     ota.get_sha256_of_partitions();
     xTaskCreate(displayTask, "displayTask", MinTaskStack * 4, NULL, 10, NULL);
