@@ -1,9 +1,28 @@
 #include "paramReader.hpp"
-#include "rapidjson/document.h"
+#include "RapidJson.hpp"
+#include <sstream>
 
 static const char *LogTag = "FsReader";
 
 const char *TAG = "JSON";
+
+DeserializeException::DeserializeException(std::string message) {
+    _message = "Deserialize Error: " + message;
+}
+
+DeserializeException::DeserializeException(std::vector<std::string> propertyChain, std::string message) {
+    std::stringstream str;
+    str << "Deserialize Error in: ";
+    str << "'";
+    for (auto &&p : propertyChain) {
+        str << p << ".";
+    }
+    str << "'";
+    str << ":  ";
+    str << message;
+
+    _message = str.str();
+}
 
 void readIlluminationWeights(rapidjson::Document &config, StageConfig &deviceSet) {
     if (!config.HasMember("illuminationWeights")) {

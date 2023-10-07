@@ -13,32 +13,26 @@
 #include "configModel.hpp"
 
 #include <stdexcept>
-#include <sstream>
 
+/**
+ * @brief Exception to notify problems in serialized data
+ */
 class DeserializeException : public std::exception {
   public:
+    /// @brief Overwritten getter for problem
+    /// @return problem as string
     const char *what() const noexcept override {
         return _message.c_str();
     }
 
-  DeserializeException(std::string message) {
-    _message = "Deserialize Error: " + message;
-  }
+  /// @brief Constructor
+  /// @param message Full message
+  DeserializeException(std::string message);
 
-  DeserializeException(std::vector<std::string> propertyChain, std::string message) {
-    std::stringstream str;
-    str << "Deserialize Error in: ";
-    str << "'";
-    for (auto &&p : propertyChain)
-    {
-      str << p << ".";
-    }
-    str << "'";
-    str << ":  ";
-    str << message;
-    
-    _message = str.str();
-  }
+  /// @brief Constructor
+  /// @param propertyChain path / breadcrumbs to problematic property
+  /// @param message Description of problem with named property
+  DeserializeException(std::vector<std::string> propertyChain, std::string message);
 
   private:
   std::string _message;

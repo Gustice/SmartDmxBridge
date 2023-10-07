@@ -46,7 +46,7 @@ void app_main(void);
 /// @brief Station Name for display
 const std::string StationName = "DMX-Bridge";
 /// @brief Station Version for display
-const std::string StationVersion = "T 0.7.0";
+const std::string StationVersion = "V 0.7.0";
 
 constexpr unsigned MinTaskStack = 4096;
 constexpr uint16_t SyslogPort = 514;
@@ -74,37 +74,8 @@ constexpr DeviceIoMap ioMap{
         .port = adc_channel_t::ADC_CHANNEL_6 // => GPIO 14
     }};
 
-static StageConfig stage{.weightsLights{
-        /*AmbienteGrp 1*/    0,   0,   0,
-        /*Empty*/            0,   0,
-        /*AmbienteGrp 2*/    0,   0,   0,
-        /*Front-Colored */   0,   0,   0, 255, 125, 0,
-        /*Empty*/            0,   0,
-        /*Lights*/         255,   0, 255,   0,
-        /*Halogen*/        255, 255, 255, 255,
-    },
-    .channelsForeground{1, 2, 3},
-    .channelsBackground{6, 7, 8},
-    .colorsPresets{ 
-        AmbientColorSet{ 
-            .foregroundColor{255, 0, 0},
-            .backgroundColor{0, 127, 127},
-        },
-        AmbientColorSet{
-            .foregroundColor{0, 255, 0},
-            .backgroundColor{127, 0, 127},
-        },
-        AmbientColorSet{
-            .foregroundColor{0, 0, 255},
-            .backgroundColor{127, 127, 0},
-        }
-        }
-    };
-
-AmbientColorSet stageAmbient {
-    .foregroundColor = stage.colorsPresets[0].foregroundColor,
-    .backgroundColor = stage.colorsPresets[0].backgroundColor
-};
+static StageConfig stage = DefaultStageConfig;
+AmbientColorSet stageAmbient {stage.colorsPresets[0]};
  
 EtherPins_t etherPins = {
     .ethPhyAddr = GPIO_NUM_0,
@@ -150,6 +121,10 @@ Ui::Config uiConfig{
     .startMonitor = startDmxMonitor,
     .showHealth = showSystemHealth,
     .debugOptions = debugOptions};
+
+std::shared_ptr<FileAccess> _paramFs;
+const std::string configRoot("/spiffs");
+const std::string partitionLabel("dataFs");
 
 /****************************************************************************/ /*
  * Callbacks
@@ -506,6 +481,27 @@ void app_main(void) {
         err = nvs_flash_init();
     }
     ESP_ERROR_CHECK(err);
+    _paramFs = std::make_shared<FileAccess>(configRoot, partitionLabel);
+
+    try {
+        if (_paramFs->checkIfFileExists("Configuration.json") != ESP_OK) {
+            ESP_LOGW(TAG, "config-file missing");
+        } else {
+            ESP_LOGI(TAG, "config-file found");
+
+            auto config = _paramFs->readFile("Configuration.json");
+            ESP_LOGI(TAG, "read config: %s", config.c_str());
+
+            if (config.size() != 0) {
+                stage = ParamReader::readDeviceConfig(config);
+                stageAmbient = stage.colorsPresets[0];
+            } else {
+                ESP_LOGW(TAG, "Error reading config ...fallback to default values");
+            }
+        }
+    } catch (const std::exception &e) {
+        ESP_LOGW(TAG, "%s ...fallback to default values", e.what());
+    }
 
     ota.get_sha256_of_partitions();
     xTaskCreate(displayTask, "displayTask", MinTaskStack * 4, NULL, 10, NULL);
