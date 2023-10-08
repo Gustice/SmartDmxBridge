@@ -25,6 +25,22 @@
  * 
  * The ArtNet-Interface was tested with [Q Light Controller+](https://www.qlcplus.org/)
  * 
+ * Partition table
+ * NOTE: The entry prtTbl is not explicitly stated in partition table csv
+ * NOTE: There is no particular partition for factory app. only OTA1 and OTA2
+ * | Name     |  Type |  SubType |   Offset|      Size|              Description |
+ * | -------- | ----- | -------- |  ------ | -------  | ------------------------ |
+ * | nvs      |  data |      nvs |         |    0x4000| system / user data       |
+ * | otadata  |  data |      ota |         |    0x2000| system                   |
+ * | phy_init |  data |      phy |         |    0x1000| system                   |
+ * | prtTbl   |   SYS |    TABLE |  0x8000 |    0x1000| partition table          |
+ * | config   |  data |   spiffs | 0x10000 |   0x10000| user bin config          |
+ * | dataFs   |  data |   spiffs |         |   0xE0000| user file system         |
+ * | ota_0    |   app |    ota_0 |      1M |  0x170000| OTA1 partition (factory) |
+ * | ota_1    |   app |    ota_1 |         |  0x170000| OTA2 partition           |
+ * | coredump |  data | coredump |         |   0x20000| coredump                 |
+ * 
+ * 
  * @date 2023-10-03
  * 
  * @copyright Copyright (c) 2023
