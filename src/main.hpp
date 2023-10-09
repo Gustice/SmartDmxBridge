@@ -11,6 +11,7 @@
 
 #include "BinDiff.hpp"
 #include "fileAccess.hpp"
+#include "webWrapper.hpp"
 #include "paramReader.hpp"
 #include "ScaledValue.hpp"
 #include "adc.hpp"

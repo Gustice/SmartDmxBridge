@@ -152,3 +152,33 @@ esp_err_t FileAccess::deleteFile(const string fileName) {
     return ESP_OK;
 }
 
+std::unique_ptr<ChunkedReader> FileAccess::GetChunkReader(const string fileName) {
+    ThrowIfNotInitiated(fileName);
+    auto path = GetRootedFileName(fileName);
+    std::unique_ptr<ChunkedReader> reader(new ChunkedReader(path));
+    return reader;
+}
+
+
+ChunkedReader::ChunkedReader(const string &path)
+    : _file(path, std::ios::in | std::ios::binary) {
+    std::fstream &file = _file;
+    if (!file.is_open())
+        throw FileSystemException("Failed to open file", path);
+
+    auto fsize = file.tellg();
+    file.seekg(0, std::ios::end);
+    _fileSize = file.tellg() - fsize;
+    if (_fileSize < 0)
+        throw FileSystemException("Invalid stream size", path);
+    file.seekg(0, std::ios::beg);
+}
+
+ChunkedReader::ReadStatus_t ChunkedReader::ReadChunk(char * buffer, int length) {
+    _file.read(buffer, length);
+    size_t count = _file.gcount();
+    return {
+        count, 
+        _file.eof()
+    };
+}

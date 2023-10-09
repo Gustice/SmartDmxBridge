@@ -13,6 +13,7 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <string_view>
 
 /// @brief Number of DMX-Channels
 constexpr int StageChannelsCount = 24;
@@ -200,3 +201,5 @@ constexpr StageConfig DefaultStageConfig{
         }
         }
     };
+
+constexpr std::string_view DeviceConfigFilename{"Configuration.json"};
