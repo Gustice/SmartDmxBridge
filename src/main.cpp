@@ -62,7 +62,7 @@ void app_main(void);
 /// @brief Station Name for display
 const std::string StationName = "DMX-Bridge";
 /// @brief Station Version for display
-const std::string StationVersion = "V 0.7.0";
+const std::string StationVersion = "V 0.8.0";
 
 constexpr unsigned MinTaskStack = 4096;
 constexpr uint16_t SyslogPort = 514;
@@ -90,9 +90,6 @@ constexpr DeviceIoMap ioMap{
         .port = adc_channel_t::ADC_CHANNEL_6 // => GPIO 14
     }};
 
-static StageConfig stage = DefaultStageConfig;
-AmbientColorSet stageAmbient {stage.colorsPresets[0]};
- 
 EtherPins_t etherPins = {
     .ethPhyAddr = GPIO_NUM_0,
     .ethPhyRst = GPIO_NUM_NC,
@@ -129,6 +126,9 @@ IpInfo deviceInfo;
 static Semaphore ipAddressSem{2, 0}; // Counting semaphore
 std::array<uint32_t, 2> dmxUniverses{1, 2};
 BinDiff differ(24);
+static StageConfig stage = DefaultStageConfig;
+AmbientColorSet stageAmbient{stage.colorsPresets[0]};
+StageIntensity intensity;
 
 Ui::Config uiConfig{
     .stage = stage,
@@ -230,6 +230,41 @@ void startDmxMonitor(MonitorType type, std::shared_ptr<TaskControl> token) {
     }
 }
 
+/**
+ * @brief Set ambiente-color callback from web-frontend
+ * 
+ * @param type foreground/background
+ * @param color color
+ */
+void WebColorCallback(AmbientType type, Color color) {
+    if (!deviceState.stateIs(DeviceState::Mode::WebUi)) {
+        deviceState.setNewState(DeviceState::Mode::WebUi);
+        auto msg = std::make_unique<Display::Message>(Display::Message::Type::UpdateInfo, "in web-mode");
+        displayEvents.enqueue(std::move(msg));
+    }
+
+    if (type == AmbientType::Foreground) {
+        stageAmbient.foregroundColor = color;
+    } else {
+        stageAmbient.backgroundColor = color;
+    }
+}
+
+/**
+ * @brief Set intensities callback from web-frontend
+ * 
+ * @param intensities intensities
+ */
+void WebIntensityCallback(StageIntensity intensities) {
+    if (!deviceState.stateIs(DeviceState::Mode::WebUi)) {
+        deviceState.setNewState(DeviceState::Mode::WebUi);
+        auto msg = std::make_unique<Display::Message>(Display::Message::Type::UpdateInfo, "in web-mode");
+        displayEvents.enqueue(std::move(msg));
+    }
+
+    intensities = intensities;
+}
+
 /****************************************************************************/ /*
  * Sockets
  ******************************************************************************/
@@ -249,8 +284,7 @@ static void dmxSocket_task(void *args) {
         artnet.subscribe(dmxUniverses[0], Universe1Callback);
 
         artnet.parse();
-        auto msg =
-            std::make_unique<Display::Message>(Display::Message::Type::UpdateInfo, "DMX-IP-Mode");
+        auto msg = std::make_unique<Display::Message>(Display::Message::Type::UpdateInfo, "DMX-IP-Mode");
         displayEvents.enqueue(std::move(msg));
         deviceState.setNewState(DeviceState::Mode::Remote);
         xTaskCreate(valueRefresherTask, "valueRefresherTask", 4096, nullptr, 5, NULL);
@@ -364,6 +398,9 @@ static void dmx_RingMonitor(void *arg) {
     std::shared_ptr<TaskControl> token(*(std::shared_ptr<TaskControl> *)arg);
 
     deviceState.setNewState(DeviceState::Mode::TestRing);
+    auto msg = std::make_unique<Display::Message>(Display::Message::Type::UpdateInfo, "TEST-MODE");
+    displayEvents.enqueue(std::move(msg));
+
     while (!token->isCanceled()) {
         auto sent = dmxPort.getValues();
         dmxPort.send();
@@ -395,6 +432,9 @@ static void dmx_Monitor(void *arg) {
     std::shared_ptr<TaskControl> token(*(std::shared_ptr<TaskControl> *)arg);
 
     deviceState.setNewState(DeviceState::Mode::Sensing);
+    auto msg = std::make_unique<Display::Message>(Display::Message::Type::UpdateInfo, "SENS-MODE");
+    displayEvents.enqueue(std::move(msg));
+
     auto lastReceived = dmxPort.receive();
     while (!token->isCanceled()) {
 
@@ -440,7 +480,6 @@ void standAloneTask(void *arg) {
     ScaledValue<int> intensityScale{{0, 4095}, {0, 255}};
     ScaledValue<int> displayScale{{0, 255}, {0, 100}};
     RatiometricLightControl lights(stage, stageAmbient);
-    StageIntensity intensity;
 
     while (true) {
         intensity.illumination = intensityScale.scale(adcLight.readValue());
@@ -500,12 +539,12 @@ void app_main(void) {
     _paramFs = std::make_shared<FileAccess>(configRoot, partitionLabel);
 
     try {
-        if (_paramFs->checkIfFileExists("Configuration.json") != ESP_OK) {
+        if (_paramFs->checkIfFileExists(DeviceConfigFilename.begin()) != ESP_OK) {
             ESP_LOGW(TAG, "config-file missing");
         } else {
             ESP_LOGI(TAG, "config-file found");
 
-            auto config = _paramFs->readFile("Configuration.json");
+            auto config = _paramFs->readFile(DeviceConfigFilename.begin());
             ESP_LOGI(TAG, "read config: %s", config.c_str());
 
             if (config.size() != 0) {
@@ -527,6 +566,8 @@ void app_main(void) {
         std::make_unique<Display::Message>(Display::Message::Type::UpdateInfo, "Standalone-Mode");
     displayEvents.enqueue(std::move(msg));
 
+    ESP_LOGI(TAG, "Setting up Web");
+    static WebApi web(*_paramFs, {stageAmbient, intensity, WebColorCallback, WebIntensityCallback});
     ESP_LOGI(TAG, "Waiting for IP(s)");
     ipAddressSem.take(portMAX_DELAY);
 

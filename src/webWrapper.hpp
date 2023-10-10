@@ -8,7 +8,6 @@
 #include "esp_netif.h"
 #include "esp_vfs.h"
 #include "fileAccess.hpp"
-#include "protocol_common.h"
 #include <algorithm>
 #include <array>
 #include <esp_http_server.h>
@@ -57,34 +56,6 @@ class WebException : public std::exception {
     const std::string _path;
 };
 
-struct ColorMsg {
-    uint8_t red;
-    uint8_t green;
-    uint8_t blue;
-
-    ColorMsg(uint8_t r, uint8_t g, uint8_t b) {
-        red = r;
-        green = g;
-        blue = b;
-    }
-    ColorMsg(Color c) {
-        red = c.red;
-        green = c.green;
-        blue = c.blue;
-    }
-
-    Color toColor() {
-        return {
-            red, green, blue
-        };
-    }
-};
-
-struct IntensityMsg {
-    uint8_t illumination;
-    uint8_t ambiente;
-};
-
 struct FileExtensionTag {
     const std::string Extension;
     const std::string HttpTag;
@@ -99,28 +70,32 @@ static const std::vector<FileExtensionTag> HttpFileTags = {
     {".svg", "text/xml"},
 };
 
-
 const char *WebTag = "API";
-
-
-
 
 SemaphoreHandle_t xNewLedWebCommand;
 
 class WebApi {
     struct file_t {
-    const std::string FileName;
-    const std::string FilePath;
-};
-typedef struct httpd_postUri_t {
-    std::string_view uri;
-    std::function<std::string(std::string)> pProcessPost;
-};
-typedef struct httpd_getUri_t {
-    std::string_view uri;
-    std::function<std::string(std::string)> pProcessGet;
-};
+        const std::string FileName;
+        const std::string FilePath;
+    };
+    struct httpd_postUri_t {
+        std::string_view uri;
+        std::function<std::string(std::string)> pProcessPost;
+    };
+    struct httpd_getUri_t {
+        std::string_view uri;
+        std::function<std::string(std::string)> pProcessGet;
+    };
 
+    using ColorCallback = void (*)(AmbientType type, Color color);
+    using IntensityCallback = void (*)(StageIntensity intensities);
+    struct Stage {
+        AmbientColorSet &ambientSet;
+        StageIntensity &intensities;
+        ColorCallback colorCb = nullptr;
+        IntensityCallback intensityCb = nullptr;
+    };
 
     // const httpd_uri_t file_upload = {.uri = "/uploadconfig/*",
     //                             .method = HTTP_POST,
@@ -132,8 +107,8 @@ typedef struct httpd_getUri_t {
     //                                 .user_ctx = server_data};
 
   public:
-    WebApi(FileAccess &webFs)
-        : _webFs(webFs) {
+    WebApi(FileAccess &webFs, Stage stage)
+        : _webFs(webFs), _stage(stage) {
         ESP_LOGI(WebTag, "Initialization of web interface ...");
 
         assert(webFs.MountingPoint.size() <= ESP_VFS_PATH_MAX && "Limit for base path length");
@@ -191,6 +166,8 @@ typedef struct httpd_getUri_t {
         {"/api/setConfig", [this](std::string in) { return this->processSetDeviceConfig(in); }},
     };
 
+    Stage _stage;
+
     const httpd_uri_t setPortReq{
         .uri = "/api/*", .method = HTTP_POST, .handler = data_post_handler, .user_ctx = this};
 
@@ -205,7 +182,7 @@ typedef struct httpd_getUri_t {
         try {
             WebApi &api = *static_cast<WebApi *>(req->user_ctx);
             std::string uri(req->uri);
-            ESP_LOGD(WebTag, "Requested Uri: %s", uri);
+            ESP_LOGD(WebTag, "Requested Uri: %s", uri.c_str());
 
             auto matchUri = [uri](const httpd_getUri_t &h) -> bool {
                 return uri.find(h.uri, 0) != std::string::npos;
@@ -295,7 +272,7 @@ typedef struct httpd_getUri_t {
                 filePath.append(reqUri);
 
             // Check if Route misses .html-Ending -> Append .html
-            ESP_LOGI(WebTag, "Requesting %s", filePath);
+            ESP_LOGI(WebTag, "Requesting %s", filePath.c_str());
             if (filePath.find('.') ==
                 std::string::npos) {
                 filePath.append(".html");
@@ -322,12 +299,12 @@ typedef struct httpd_getUri_t {
             auto type = GetTypeAccordingToExtension(filePath);
             httpd_resp_set_type(req, type.c_str());
 
-            ESP_LOGI(WebTag, "Reding file '%s' in chunks", filePath);
+            ESP_LOGI(WebTag, "Reding file '%s' in chunks", filePath.c_str());
 
             std::array<char, ScratchBufferSize> &scratch = *(api.scratch);
             ChunkedReader::ReadStatus_t res{0, false};
             do {
-                res = reader.ReadChunk(scratch.begin(), ScratchBufferSize);
+                res = reader.readChunk(scratch.begin(), ScratchBufferSize);
                 if (res.ReadBytes > 0) {
                     if (httpd_resp_send_chunk(req, scratch.begin(), res.ReadBytes) != ESP_OK) {
                         httpd_resp_sendstr_chunk(req, NULL); // Abort sending
@@ -351,34 +328,52 @@ typedef struct httpd_getUri_t {
 
     // Payload = {I: 1, A: 2}
     std::string processSetIntensity(const std::string input) {
-        rapidjson::Document value;
-        if (value.Parse(input.c_str()).HasParseError()) {
-            ESP_LOGW(WebTag, "Parsing error with code %d", value.GetParseError());
-            throw WebException("Parsing error of input", "processSetIntensity");
+        rapidjson::Document object;
+        if (object.Parse(input.c_str()).HasParseError()) {
+            ESP_LOGW(WebTag, "Parsing error with code %d", object.GetParseError());
+            throw WebException("Parsing error of input", input);
         }
 
-        uint8_t i = value["I"].GetInt();
-        uint8_t a = value["A"].GetInt();
+        uint8_t i = object["I"].GetInt();
+        uint8_t a = object["A"].GetInt();
 
-        IntensityMsg value{
-            i, a};
+        StageIntensity value{i, a};
+
+        if (_stage.intensityCb == nullptr) {
+            throw WebException("Internal error", input);
+        }
+        _stage.intensityCb(value);
+
         return "";
     }
 
     // Payload = {"T":"FG", "R":2, "G":3, "B":4}
     std::string processSetColor(const std::string input) {
-        rapidjson::Document value;
-        if (value.Parse(input.c_str()).HasParseError()) {
-            ESP_LOGW(WebTag, "Parsing error with code %d", value.GetParseError());
+        rapidjson::Document object;
+        if (object.Parse(input.c_str()).HasParseError()) {
+            ESP_LOGW(WebTag, "Parsing error with code %d", object.GetParseError());
             throw WebException("Parsing error of input", "processSetIntensity");
         }
 
-        std::string type = value["T"].GetString();
-        uint8_t r = value["R"].GetInt();
-        uint8_t g = value["G"].GetInt();
-        uint8_t b = value["B"].GetInt();
+        std::string type = object["T"].GetString();
+        uint8_t r = object["R"].GetInt();
+        uint8_t g = object["G"].GetInt();
+        uint8_t b = object["B"].GetInt();
 
-        ColorMsg value(r, g, b);
+        Color value{r, g, b};
+
+        if (_stage.colorCb != nullptr) {
+            throw WebException("Internal error", input);
+        }
+
+        if (type == "FG") {
+            _stage.colorCb(AmbientType::Foreground, value);
+        } else if (type == "BG") {
+            _stage.colorCb(AmbientType::Background, value);
+        } else {
+            throw WebException("Unknown Ambient set ", type);
+        }
+
         return "";
     }
 
@@ -396,7 +391,8 @@ typedef struct httpd_getUri_t {
 
     // Payload ""
     std::string processGetIntensity(const std::string input) {
-        IntensityMsg value{0, 0};
+        StageIntensity value = _stage.intensities;
+
         rapidjson::StringBuffer s;
         rapidjson::Writer<rapidjson::StringBuffer> writer(s);
 
@@ -412,8 +408,15 @@ typedef struct httpd_getUri_t {
 
     // Payload "foreground" or "background"
     std::string processGetColor(const std::string input) {
-        ColorMsg value{
-            0, 0, 0};
+        Color value;
+        if (input == "foreground") {
+            value = _stage.ambientSet.foregroundColor;
+        } else if (input == "background") {
+            value = _stage.ambientSet.backgroundColor;
+        } else {
+            throw WebException("Unknown Ambient set ", input);
+        }
+
         rapidjson::StringBuffer s;
         rapidjson::Writer<rapidjson::StringBuffer> writer(s);
 
@@ -438,62 +441,58 @@ typedef struct httpd_getUri_t {
         return "";
     }
 
-
     static std::string ReadContentIntoBufferThrowIfSizeToLarge(httpd_req_t *req, size_t maxSize) {
-    std::string content;
-    content.reserve(maxSize);
-    if (req->content_len >= content.capacity())
-        throw("content too long for buffer");
+        std::string content;
+        content.reserve(maxSize);
+        if (req->content_len >= content.capacity())
+            throw("content too long for buffer");
 
-    while (content.size() < req->content_len) {
-        char buf[content.capacity() + 1];
-        auto received = httpd_req_recv(req, buf, req->content_len);
-        if (received <= 0)
-            throw("failed to read input buffer");
+        while (content.size() < req->content_len) {
+            char buf[content.capacity() + 1];
+            auto received = httpd_req_recv(req, buf, req->content_len);
+            if (received <= 0)
+                throw("failed to read input buffer");
 
-        buf[received] = '\0';
-        content.append(buf);
+            buf[received] = '\0';
+            content.append(buf);
+        }
+
+        return content;
     }
 
-    return content;
-}
+    static const file_t get_path_from_uri(const std::string &basePath, const std::string &uri) {
+        std::string fileName = uri.substr(0, uri.find("?"));
+        fileName = fileName.substr(0, uri.find("#"));
 
-static const file_t get_path_from_uri(const std::string &basePath, const std::string &uri) {
-    std::string fileName = uri.substr(0, uri.find("?"));
-    fileName = fileName.substr(0, uri.find("#"));
-
-    return {
-        fileName,
-        std::string(basePath) + fileName,
-    };
-}
-
-static std::vector<std::string> Split(const std::string &s, char delimiter) {
-    std::vector<std::string> tokens;
-    std::string token;
-    std::istringstream tokenStream(s);
-    while (std::getline(tokenStream, token, delimiter)) {
-        tokens.push_back(token);
+        return {
+            fileName,
+            std::string(basePath) + fileName,
+        };
     }
-    return tokens;
-}
 
-static const std::string &GetTypeAccordingToExtension(const std::string &filepath) {
-    static const std::string DefaultTag("text/plain");
-    for (const auto &t : HttpFileTags) {
-        if (filepath.size() <= t.Extension.size())
-            continue;
-
-        auto fE = filepath.substr(filepath.size() - t.Extension.size());
-        if (fE == t.Extension)
-            return t.HttpTag;
+    static std::vector<std::string> Split(const std::string &s, char delimiter) {
+        std::vector<std::string> tokens;
+        std::string token;
+        std::istringstream tokenStream(s);
+        while (std::getline(tokenStream, token, delimiter)) {
+            tokens.push_back(token);
+        }
+        return tokens;
     }
-    return DefaultTag;
-}
 
+    static const std::string &GetTypeAccordingToExtension(const std::string &filepath) {
+        static const std::string DefaultTag("text/plain");
+        for (const auto &t : HttpFileTags) {
+            if (filepath.size() <= t.Extension.size())
+                continue;
+
+            auto fE = filepath.substr(filepath.size() - t.Extension.size());
+            if (fE == t.Extension)
+                return t.HttpTag;
+        }
+        return DefaultTag;
+    }
 };
-
-
 
 // /* Handler to download a file kept on the server */
 // static esp_err_t download_get_handler(httpd_req_t *req) {

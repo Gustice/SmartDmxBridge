@@ -69,6 +69,11 @@ struct AmbientColorSet {
     Color backgroundColor;
 };
 
+enum class AmbientType {
+    Foreground = 0,
+    Background
+};
+
 /// @brief Shortened definition for set of colors as preset
 using ColorPresets = std::array<AmbientColorSet, 3>;
 
@@ -122,6 +127,10 @@ class DeviceState {
         /// @brief Remote mode:
         /// Applies values that are received via ArtNet, potentiometer values are muted
         Remote,
+
+        /// @brief Web controlled mode:
+        /// Convenient web users interface
+        WebUi,
 
         /// @brief Manual mode:
         /// Debugging and testing via Telnet shell

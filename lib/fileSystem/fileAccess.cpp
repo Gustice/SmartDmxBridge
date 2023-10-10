@@ -152,9 +152,9 @@ esp_err_t FileAccess::deleteFile(const string fileName) {
     return ESP_OK;
 }
 
-std::unique_ptr<ChunkedReader> FileAccess::GetChunkReader(const string fileName) {
-    ThrowIfNotInitiated(fileName);
-    auto path = GetRootedFileName(fileName);
+std::unique_ptr<ChunkedReader> FileAccess::getChunkReader(const string fileName) {
+    throwIfNotInitiated(fileName);
+    auto path = getRootedFileName(fileName);
     std::unique_ptr<ChunkedReader> reader(new ChunkedReader(path));
     return reader;
 }
@@ -174,7 +174,7 @@ ChunkedReader::ChunkedReader(const string &path)
     file.seekg(0, std::ios::beg);
 }
 
-ChunkedReader::ReadStatus_t ChunkedReader::ReadChunk(char * buffer, int length) {
+ChunkedReader::ReadStatus_t ChunkedReader::readChunk(char * buffer, int length) {
     _file.read(buffer, length);
     size_t count = _file.gcount();
     return {
@@ -182,3 +182,5 @@ ChunkedReader::ReadStatus_t ChunkedReader::ReadChunk(char * buffer, int length) 
         _file.eof()
     };
 }
+
+size_t ChunkedReader::getFileSize(void) { return _fileSize; }

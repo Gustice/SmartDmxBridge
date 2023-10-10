@@ -60,11 +60,11 @@ class ChunkedReader {
     /// @param buffer pointer to buffer
     /// @param length available buffer length
     /// @return status of read operation
-    ReadStatus_t ReadChunk(char * buffer, int length);
+    ReadStatus_t readChunk(char * buffer, int length);
 
     /// @brief Get file-size
     /// @return size_t File-size in bytes
-    size_t GetFileSize(void);
+    size_t getFileSize(void);
 
     ChunkedReader(const ChunkedReader &rhs) = delete;
     ~ChunkedReader() = default;
