@@ -182,7 +182,7 @@ class WebApi {
         try {
             WebApi &api = *static_cast<WebApi *>(req->user_ctx);
             std::string uri(req->uri);
-            ESP_LOGD(WebTag, "Requested Uri: %s", uri.c_str());
+            ESP_LOGI(WebTag, "Requested Uri: %s", uri.c_str());
 
             auto matchUri = [uri](const httpd_getUri_t &h) -> bool {
                 return uri.find(h.uri, 0) != std::string::npos;
@@ -195,15 +195,15 @@ class WebApi {
             std::string request = uri.substr(ref->uri.length());
             std::string content = ReadContentIntoBufferThrowIfSizeToLarge(req, 256);
 
-            ESP_LOGD(WebTag, "=== RECEIVED DATA ===\n\r Raw: \n\r%s\n\r====================================", request.c_str());
+            ESP_LOGI(WebTag, "=== RECEIVED DATA ===\n\r Raw: \n\r%s\n\r====================================", request.c_str());
             std::string result = ref->pProcessGet(request);
 
             httpd_resp_set_type(req, "application/json");
             httpd_resp_sendstr(req, result.c_str());
 
-            ESP_LOGD(WebTag, "=== SENDING DATA ===\n\r Raw: \n\r%s\n\r====================================", result.c_str());
+            ESP_LOGI(WebTag, "=== SENDING DATA ===\n\r Raw: \n\r%s\n\r====================================", result.c_str());
             return ESP_OK;
-        } catch (const FileSystemException &e) {
+        } catch (const WebException &e) {
             ESP_LOGE(WebTag, "Problem occurred: %s", e.what());
             httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, e.what());
         } catch (const char *msg) {
@@ -219,7 +219,7 @@ class WebApi {
         try {
             WebApi &api = *static_cast<WebApi *>(req->user_ctx);
             std::string uri(req->uri);
-            ESP_LOGD(WebTag, "Posted Uri: %s", uri.c_str());
+            ESP_LOGI(WebTag, "Posted Uri: %s", uri.c_str());
 
             auto matchUri = [uri](const httpd_postUri_t &h) -> bool {
                 return uri.find(h.uri, 0) != std::string::npos;
@@ -232,16 +232,16 @@ class WebApi {
             std::string request = uri.substr(ref->uri.length());
             std::string content = ReadContentIntoBufferThrowIfSizeToLarge(req, 256);
 
-            ESP_LOGD(WebTag, "=== RECEIVED DATA ===\n\r Req: %s\n\r Buf: %s\n\r====================================", request.c_str(), content.c_str());
+            ESP_LOGI(WebTag, "=== RECEIVED DATA ===\n\r Req: %s\n\r Buf: %s\n\r====================================", request.c_str(), content.c_str());
 
             /* Executing registered Handler-Function */
-            (void)ref->pProcessPost(request);
+            (void)ref->pProcessPost(content);
 
             httpd_resp_sendstr(req, "Post control value successfully");
             httpd_resp_send_chunk(req, NULL, 0);
             return ESP_OK;
 
-        } catch (const FileSystemException &e) {
+        } catch (const WebException &e) {
             ESP_LOGE(WebTag, "Problem occurred: %s", e.what());
             httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, e.what());
         } catch (const char *msg) {
@@ -291,7 +291,7 @@ class WebApi {
                 return ESP_FAIL;
             }
 
-            ESP_LOGD(WebTag, "Opening file '%s'", filePath.c_str());
+            ESP_LOGI(WebTag, "Opening file '%s'", filePath.c_str());
 
             auto readerRef = api._webFs.getChunkReader(filePath);
             ChunkedReader &reader = *(readerRef.get());
@@ -326,11 +326,11 @@ class WebApi {
         return ESP_FAIL;
     }
 
-    // Payload = {I: 1, A: 2}
+    // Payload = {"I": 1, "A": 2}
     std::string processSetIntensity(const std::string input) {
         rapidjson::Document object;
         if (object.Parse(input.c_str()).HasParseError()) {
-            ESP_LOGW(WebTag, "Parsing error with code %d", object.GetParseError());
+            ESP_LOGW(WebTag, "Parsing error '%s' with code %d", input.c_str(), object.GetParseError());
             throw WebException("Parsing error of input", input);
         }
 
@@ -344,14 +344,14 @@ class WebApi {
         }
         _stage.intensityCb(value);
 
-        return "";
+        return "{}";
     }
 
     // Payload = {"T":"FG", "R":2, "G":3, "B":4}
     std::string processSetColor(const std::string input) {
         rapidjson::Document object;
         if (object.Parse(input.c_str()).HasParseError()) {
-            ESP_LOGW(WebTag, "Parsing error with code %d", object.GetParseError());
+            ESP_LOGW(WebTag, "Parsing error '%s' with code %d", input.c_str(), object.GetParseError());
             throw WebException("Parsing error of input", "processSetIntensity");
         }
 
@@ -362,7 +362,7 @@ class WebApi {
 
         Color value{r, g, b};
 
-        if (_stage.colorCb != nullptr) {
+        if (_stage.colorCb == nullptr) {
             throw WebException("Internal error", input);
         }
 
@@ -374,7 +374,7 @@ class WebApi {
             throw WebException("Unknown Ambient set ", type);
         }
 
-        return "";
+        return "{}";
     }
 
     std::string processSetDeviceConfig(const std::string input) {
@@ -386,7 +386,7 @@ class WebApi {
 
         ESP_LOGI(WebTag, "Writing Content to File %s: \n%s", DeviceConfigFilename.begin(), input.c_str());
         _webFs.writeFile(DeviceConfigFilename.begin(), input);
-        return "";
+        return "{}";
     }
 
     // Payload ""
