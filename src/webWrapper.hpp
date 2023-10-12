@@ -319,7 +319,9 @@ class WebApi {
         return ESP_FAIL;
     }
 
-    // Payload = {"I": 1, "A": 2}
+    // Demo Data
+    // 127.0.0.1 - - [12/Oct/2023 23:22:56] "POST /api/setIntensity HTTP/1.1" 200 -
+    //    Payload {"I":100,"A":200}
     std::string processSetIntensity(const std::string input) {
         rapidjson::Document object;
         if (object.Parse(input.c_str()).HasParseError()) {
@@ -340,7 +342,11 @@ class WebApi {
         return "{}";
     }
 
-    // Payload = {"T":"FG", "R":2, "G":3, "B":4}
+    // Demo Data
+    // 127.0.0.1 - - [12/Oct/2023 23:22:57] "POST /api/setColor HTTP/1.1" 200 -
+    //         Payload {"T":"foreground","R":0,"G":0,"B":0}
+    // 127.0.0.1 - - [12/Oct/2023 23:22:57] "POST /api/setColor HTTP/1.1" 200 -
+    //         Payload {"T":"background","R":0,"G":0,"B":0}
     std::string processSetColor(const std::string input) {
         rapidjson::Document object;
         if (object.Parse(input.c_str()).HasParseError()) {
@@ -382,7 +388,10 @@ class WebApi {
         return "{}";
     }
 
-    // Payload ""
+    // Demo Data
+    // Evaluation request path '/api/getIntensity'
+    // => Responding: '{"I": 100, "A": 200}'
+    // 127.0.0.1 - - [12/Oct/2023 23:56:30] "GET /api/getIntensity HTTP/1.1" 200 -
     std::string processGetIntensity(const std::string input) {
         StageIntensity value = _stage.intensities;
 
@@ -400,6 +409,13 @@ class WebApi {
     }
 
     // Payload "foreground" or "background"
+    // Demo Data
+    // Evaluation request path '/api/getColor/foreground'
+    // => Responding: '{"R": 210, "G": 220, "B": 230}'
+    // 127.0.0.1 - - [12/Oct/2023 23:22:33] "GET /api/getColor/foreground HTTP/1.1" 200 -
+    // Evaluation request path '/api/getColor/background'
+    // => Responding: '{"R": 110, "G": 120, "B": 130}'
+    // 127.0.0.1 - - [12/Oct/2023 23:22:33] "GET /api/getColor/background HTTP/1.1" 200 -
     std::string processGetColor(const std::string input) {
         Color value;
         if (input == "foreground") {
@@ -425,6 +441,10 @@ class WebApi {
         return s.GetString();
     }
 
+    // Demo Data
+    // Evaluation request path '/api/getConfig'
+    //     => Responding: '{"dmxOutputs": 24, "illuminationWeights": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 127, 0, 0, 0, 255, 0, 255, 0, 255, 255, 255, 255], "ambientChannels": {"foreground": [1, 2, 3], "background": [6, 7, 8]}, "colorPresets": [{"foreground": [255, 0, 0], "background": [0, 255, 0]}, {"foreground": [0, 255, 0], "background": [0, 0, 255]}, {"foreground": [0, 0, 255], "background": [255, 0, 0]}]}'
+    // 127.0.0.1 - - [12/Oct/2023 23:56:30] "GET /api/getConfig HTTP/1.1" 200 -
     std::string processGetDeviceConfig(const std::string input) {
         auto output = _webFs.readFile(DeviceConfigFilename.begin());
         return output;

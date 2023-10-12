@@ -1,13 +1,12 @@
 /// API Routes GET
-const ApiGetIntensity = "/api/getIntensity/";
+const ApiGetIntensity = "/api/getIntensity";
 const ApiSetIntensity = "/api/setIntensity";
-const ApiGetColor = "/api/getColor/";
+const ApiGetColor = "/api/getColor";
 const ApiSetColor = "/api/setColor";
 
 const ApiGetType = "/api/getType";
 const ApiGetConfig = "/api/getConfig";
 const ApiSetConfig = "/api/setConfig";
-
 
 const http = new EasyHttp();
 
@@ -46,6 +45,15 @@ const Ui = (function () {
         await http.get(ApiGetConfig)
             .then(data => evalDeviceConfig(data))
             .catch(err => console.log(err));
+        await http.get(ApiGetIntensity)
+            .then(data => initIntensity(data))
+            .catch(err => console.log(err));
+        await http.get(ApiGetColor + "/foreground")
+            .then(data => initAmbient(data, "fg"))
+            .catch(err => console.log(err));
+        await http.get(ApiGetColor + "/background")
+            .then(data => initAmbient(data, "bg"))
+            .catch(err => console.log(err));
     }
 
     function onSubmitIntensities(form) {
@@ -60,8 +68,29 @@ const Ui = (function () {
 
     function evalDeviceConfig(response) {
         // only log for so far
-        console.log(response); 
+        console.log(response);
     }
+
+    function initIntensity(data) {
+        console.log("got data: ", data);
+        document.getElementById("rIllum").value = data.I;
+        document.getElementById("oIllum").value = data.I;
+        document.getElementById("rAmbient").value = data.A;
+        document.getElementById("oAmbient").value = data.A
+    }
+
+    function initAmbient(data, type) {
+        console.log("got data: ", type, data);
+
+        if (type == "fg") {
+            document.getElementById("fgSelector").value = rgbHex(data.R, data.G, data.B)
+        }
+
+        if (type == "bg") {
+            document.getElementById("bgSelector").value = rgbHex(data.R, data.G, data.B)
+        }
+    }
+
 
     function showFormMessage(anchor, message, type = 'userNote') {
         const basePoint = document.getElementById(anchor.id);
@@ -146,4 +175,3 @@ const Ui = (function () {
 })();
 
 Ui.init();
-
