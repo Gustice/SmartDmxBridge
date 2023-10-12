@@ -1,37 +1,33 @@
-
+/**
+ * @file webWrapper.hpp
+ * @author Gustice
+ * @brief Wrapping Http-client 
+ * @date 2023-10-11
+ * 
+ * @copyright Copyright (c) 2023
+ */
 #pragma once
 
 #include "RapidJson.hpp"
 #include "configModel.hpp"
-#include "esp_eth.h"
 #include "esp_log.h"
-#include "esp_netif.h"
 #include "esp_vfs.h"
 #include "fileAccess.hpp"
 #include <algorithm>
 #include <array>
 #include <esp_http_server.h>
-#include <esp_log.h>
-#include <esp_system.h>
 #include <exception>
 #include <fcntl.h>
 #include <functional>
-#include <map>
 #include <memory>
-#include <nvs_flash.h>
 #include <sstream>
 #include <stdint.h>
-#include <stdio.h>
 #include <string>
-#include <sys/param.h>
-#include <sys/stat.h>
-#include <sys/unistd.h>
+#include <string_view>
 #include <vector>
 
-const char *welcomePageRoute = "mainPage.html"; //
-const int ScratchBufferSize = 10240;
-const int MaxFileSize = (200 * 1024); // 200 KB
-#define MAX_FILE_SIZE_STR "200kB"
+constexpr std::string_view welcomePageRoute{"mainPage.html"};
+constexpr int ScratchBufferSize = 10240;
 
 /**
  * @brief Exceptions while handling data on spiffs
@@ -56,11 +52,20 @@ class WebException : public std::exception {
     const std::string _path;
 };
 
+/**
+ * @brief Key / Value pair for file-extension and http-tag
+ */
 struct FileExtensionTag {
-    const std::string Extension;
-    const std::string HttpTag;
+    /// @brief File-extension
+    const std::string extension;
+
+    /// @brief Http-tag
+    const std::string httpTag;
 };
 
+/**
+ * @brief Table to assign File endings to HTTP-tags
+ */
 static const std::vector<FileExtensionTag> HttpFileTags = {
     {".html", "text/html"},
     {".js", "application/javascript"},
@@ -70,54 +75,78 @@ static const std::vector<FileExtensionTag> HttpFileTags = {
     {".svg", "text/xml"},
 };
 
+/// @brief Tag for log messages
 const char *WebTag = "API";
 
-SemaphoreHandle_t xNewLedWebCommand;
-
+/**
+ * @brief Web-API controller for DMX-values
+ */
 class WebApi {
-    struct file_t {
-        const std::string FileName;
-        const std::string FilePath;
-    };
-    struct httpd_postUri_t {
-        std::string_view uri;
-        std::function<std::string(std::string)> pProcessPost;
-    };
-    struct httpd_getUri_t {
-        std::string_view uri;
-        std::function<std::string(std::string)> pProcessGet;
-    };
-
+  public:
+    /// @brief Callback for color change
     using ColorCallback = void (*)(AmbientType type, Color color);
+    /// @brief Callback for intensity change
     using IntensityCallback = void (*)(StageIntensity intensities);
+
+    /// @brief Configuration object for class
     struct Stage {
+        FileAccess &filesSystem;
         AmbientColorSet &ambientSet;
         StageIntensity &intensities;
         ColorCallback colorCb = nullptr;
         IntensityCallback intensityCb = nullptr;
     };
 
-    // const httpd_uri_t file_upload = {.uri = "/uploadconfig/*",
-    //                             .method = HTTP_POST,
-    //                             .handler = upload_post_handler,
-    //                             .user_ctx = server_data};
-    // const httpd_uri_t file_download = {.uri = "/config/*",
-    //                                 .method = HTTP_GET,
-    //                                 .handler = download_get_handler,
-    //                                 .user_ctx = server_data};
-
-  public:
-    WebApi(FileAccess &webFs, Stage stage)
-        : _webFs(webFs), _stage(stage) {
+    /// @brief Constructor
+    /// @details This instances connects itself to ip-driver no further actions needed
+    /// @param stage Web configuration
+    WebApi(Stage stage)
+        : _stage(stage), _webFs(stage.filesSystem) {
         ESP_LOGI(WebTag, "Initialization of web interface ...");
 
-        assert(webFs.MountingPoint.size() <= ESP_VFS_PATH_MAX && "Limit for base path length");
-        basePath = webFs.MountingPoint.c_str(),
-
+        assert(_webFs.MountingPoint.size() <= ESP_VFS_PATH_MAX && "Limit for base path length");
         server = startWebserver();
     }
-    ~WebApi() {
-    }
+
+    ~WebApi() = default;
+
+  private:
+    struct httpd_postUri_t {
+        std::string_view uri;
+        std::function<std::string(std::string)> pProcessPost;
+    };
+
+    struct httpd_getUri_t {
+        std::string_view uri;
+        std::function<std::string(std::string)> pProcessGet;
+    };
+
+    std::unique_ptr<std::array<char, ScratchBufferSize>> scratch{std::make_unique<std::array<char, ScratchBufferSize>>()};
+    httpd_handle_t server = nullptr;
+    Stage _stage;
+    FileAccess &_webFs;
+
+    std::vector<httpd_getUri_t> getValueHandlers{
+        {"/api/getIntensity/", [this](std::string in) { return this->processGetIntensity(in); }},
+        {"/api/getColor/", [this](std::string in) { return this->processGetColor(in); }},
+        {"/api/getConfig/", [this](std::string in) { return this->processGetDeviceConfig(in); }},
+        {"/api/getType/", [this](std::string in) { return this->processGetDeviceType(in); }},
+    };
+
+    std::vector<httpd_postUri_t> postUriHandlers{
+        {"/api/setIntensity", [this](std::string in) { return this->processSetIntensity(in); }},
+        {"/api/setColor", [this](std::string in) { return this->processSetColor(in); }},
+        {"/api/setConfig", [this](std::string in) { return this->processSetDeviceConfig(in); }},
+    };
+
+    const httpd_uri_t setPortReq{
+        .uri = "/api/*", .method = HTTP_POST, .handler = data_post_handler, .user_ctx = this};
+
+    const httpd_uri_t getPortReq = {
+        .uri = "/api/*", .method = HTTP_GET, .handler = data_get_handler, .user_ctx = this};
+
+    httpd_uri_t pagePart = {
+        .uri = "/*", .method = HTTP_GET, .handler = pagePart_GetHandler, .user_ctx = this};
 
     httpd_handle_t startWebserver() {
         httpd_handle_t server = nullptr;
@@ -133,8 +162,6 @@ class WebApi {
             ESP_LOGI(WebTag, "Registering URI handlers");
             httpd_register_uri_handler(server, &setPortReq);
             httpd_register_uri_handler(server, &getPortReq);
-            // httpd_register_uri_handler(server, &file_upload);
-            // httpd_register_uri_handler(server, &file_download);
             httpd_register_uri_handler(server, &pagePart);
             return server;
         }
@@ -142,40 +169,6 @@ class WebApi {
         ESP_LOGE(WebTag, "Error starting server!");
         return NULL;
     }
-
-  private:
-    /* data */
-
-    std::string basePath;
-    std::unique_ptr<std::array<char, ScratchBufferSize>> scratch{std::make_unique<std::array<char, ScratchBufferSize>>()};
-    httpd_handle_t server = nullptr;
-    FileAccess &_webFs;
-
-    /// @brief Get-Handlers for Get-Data-Requests
-    std::vector<httpd_getUri_t> getValueHandlers{
-        {"/api/getIntensity/", [this](std::string in) { return this->processGetIntensity(in); }},
-        {"/api/getColor/", [this](std::string in) { return this->processGetColor(in); }},
-        {"/api/getConfig/", [this](std::string in) { return this->processGetDeviceConfig(in); }},
-        {"/api/getType/", [this](std::string in) { return this->processGetDeviceType(in); }},
-    };
-
-    /// @brief Set-Handler for Set-Requests from Web-Gui
-    std::vector<httpd_postUri_t> postUriHandlers{
-        {"/api/setIntensity", [this](std::string in) { return this->processSetIntensity(in); }},
-        {"/api/setColor", [this](std::string in) { return this->processSetColor(in); }},
-        {"/api/setConfig", [this](std::string in) { return this->processSetDeviceConfig(in); }},
-    };
-
-    Stage _stage;
-
-    const httpd_uri_t setPortReq{
-        .uri = "/api/*", .method = HTTP_POST, .handler = data_post_handler, .user_ctx = this};
-
-    const httpd_uri_t getPortReq = {
-        .uri = "/api/*", .method = HTTP_GET, .handler = data_get_handler, .user_ctx = this};
-
-    httpd_uri_t pagePart = {
-        .uri = "/*", .method = HTTP_GET, .handler = pagePart_GetHandler, .user_ctx = this};
 
     /// @brief Handler for HTTP-Get-operations to API-Endpoints
     static esp_err_t data_get_handler(httpd_req_t *req) {
@@ -460,159 +453,16 @@ class WebApi {
         return content;
     }
 
-    static const file_t get_path_from_uri(const std::string &basePath, const std::string &uri) {
-        std::string fileName = uri.substr(0, uri.find("?"));
-        fileName = fileName.substr(0, uri.find("#"));
-
-        return {
-            fileName,
-            std::string(basePath) + fileName,
-        };
-    }
-
-    static std::vector<std::string> Split(const std::string &s, char delimiter) {
-        std::vector<std::string> tokens;
-        std::string token;
-        std::istringstream tokenStream(s);
-        while (std::getline(tokenStream, token, delimiter)) {
-            tokens.push_back(token);
-        }
-        return tokens;
-    }
-
     static const std::string &GetTypeAccordingToExtension(const std::string &filepath) {
         static const std::string DefaultTag("text/plain");
         for (const auto &t : HttpFileTags) {
-            if (filepath.size() <= t.Extension.size())
+            if (filepath.size() <= t.extension.size())
                 continue;
 
-            auto fE = filepath.substr(filepath.size() - t.Extension.size());
-            if (fE == t.Extension)
-                return t.HttpTag;
+            auto fE = filepath.substr(filepath.size() - t.extension.size());
+            if (fE == t.extension)
+                return t.httpTag;
         }
         return DefaultTag;
     }
 };
-
-// /* Handler to download a file kept on the server */
-// static esp_err_t download_get_handler(httpd_req_t *req) {
-//     try {
-//         static const std::string basePath(((struct file_server_data *)req->user_ctx)->base_path);
-//         std::string uri(req->uri + sizeof("/config")); // init uri without config-prefix
-
-//         const file_t file = get_path_from_uri(basePath, uri);
-//         if (file.FilePath.back() ==
-//             '/') { /* If name has trailing '/', respond with directory contents */
-//             httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "File does not exist");
-//             return ESP_FAIL;
-//         }
-
-//         auto readerRef = pDataFs->GetChunkReader(file.FilePath);
-//         ChunkedReader &reader = *(readerRef.get());
-
-//         ESP_LOGI(WebTag,"Sending file : " + file.FileName);
-
-//         auto type = GetTypeAccordingToExtension(file.FilePath);
-//         httpd_resp_set_type(req, type.c_str());
-
-//         char *chunk = ((struct file_server_data *)req->user_ctx)->scratch;
-//         ChunkedReader::ReadStatus_t res {0, false};
-//         do {
-//             res = reader.ReadChunk(chunk, ScratchBufferSize);
-//             if (res.ReadBytes > 0) {
-//                 if (httpd_resp_send_chunk(req, chunk, res.ReadBytes) != ESP_OK) {
-//                     httpd_resp_sendstr_chunk(req, NULL); // Abort sending
-//                     throw ("File sending failed!");
-//                 }
-//             }
-//         } while (!res.EndOfFile);
-
-//         ESP_LOGI(WebTag,"File sending complete");
-//         httpd_resp_send_chunk(req, NULL, 0);
-//         return ESP_OK;
-
-//     } catch (const FileSystemException &e) {
-//         ESP_LOGE(WebTag, string("Problem occurred: ") + std::string(e.what()));
-//         httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, e.what());
-//     } catch (const char *msg) {
-//         ESP_LOGE(WebTag, string("Error ocurred: ") + msg);
-//         httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR,
-//                             "Something went wrong during processing");
-//     }
-//     return ESP_FAIL;
-// }
-
-// /* Handler to upload a file onto the server */
-// static esp_err_t upload_post_handler(httpd_req_t *req) {
-//     try {
-//         static const std::string basePath(((struct file_server_data *)req->user_ctx)->base_path);
-//         std::string uri(req->uri + sizeof("/uploadconfig")); // init uri without config-prefix
-
-//         const file_t file = get_path_from_uri(basePath, uri);
-//         if (file.FilePath.back() == '/') {
-//             /* If name has trailing '/', respond with directory contents */
-//             httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "File does not exist");
-//             return ESP_FAIL;
-//         }
-
-//         auto writer = pDataFs->GetChunkWriter(file.FilePath);
-//         ESP_LOGI(WebTag,"Receiving file : " + file.FileName);
-
-//         if (req->content_len > MaxFileSize) {
-//             ESP_LOGE(WebTag, "File too large : Length [bytes] = " + std::to_string(req->content_len));
-//             httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST,
-//                                 "File size must be less than " MAX_FILE_SIZE_STR "!");
-//             return ESP_FAIL;
-//         }
-
-//         /* Retrieve the pointer to scratch buffer for temporary storage */
-//         char *buf = ((struct file_server_data *)req->user_ctx)->scratch;
-//         int received;
-
-//         /* Content length of the request gives
-//          * the size of the file being uploaded */
-//         int remaining = req->content_len;
-
-//         while (remaining > 0) {
-//             std::string chunk;
-//             chunk.reserve(ScratchBufferSize);
-
-//             ESP_LOGI(WebTag,"Remaining size : " + std::to_string(remaining));
-//             if ((received = httpd_req_recv(req, (char *)(*chunk.c_str()),
-//                                            MIN(remaining, ScratchBufferSize))) <= 0) {
-//                 if (received == HTTPD_SOCK_ERR_TIMEOUT) {
-//                     continue; /* Retry if timeout occurred */
-//                 }
-//                 writer.release();
-//                 pDataFs->DeleteFile(file.FilePath);
-
-//                 ESP_LOGE(WebTag, "File reception failed!");
-//                 httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to receive file");
-//                 return ESP_FAIL;
-//             }
-
-//             /* Write buffer content to file on storage */
-
-//             if (received)
-//                 writer->WriteChunk(chunk);
-
-//             remaining -= received;
-//         }
-
-//         ESP_LOGI(WebTag,"File reception complete");
-
-//         // /* Redirect onto root to see the updated file list */
-//         // httpd_resp_set_status(req, "303 See Other");
-//         // httpd_resp_set_hdr(req, "Location", "/");
-//         httpd_resp_sendstr(req, "File uploaded successfully");
-//         return ESP_OK;
-//     } catch (const FileSystemException &e) {
-//         ESP_LOGE(WebTag, string("Problem occurred: ") + std::string(e.what()));
-//         httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, e.what());
-//     } catch (const char *msg) {
-//         ESP_LOGE(WebTag, string("Error ocurred: ") + msg);
-//         httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR,
-//                             "Something went wrong during processing");
-//     }
-//     return ESP_FAIL;
-// }

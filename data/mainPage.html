@@ -2,70 +2,76 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="./skeleton-normalize.css">
-    <link rel="stylesheet" href="./skeleton.css">
-    <link rel="stylesheet" href="./skeleton-dark-tango.css">
-    <link rel="stylesheet" href="./skeleton-custom.css">
-
-    <title>Document</title>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="./skeleton-normalize.css">
+  <link rel="stylesheet" href="./skeleton.css">
+  <link rel="stylesheet" href="./skeleton-dark-tango.css">
+  <link rel="stylesheet" href="./skeleton-custom.css">
+  <title>DMX-Bridge Control</title>
 </head>
 
 <body onresize="Control.RedrawCharts()">
-    <div id=LightSetup>
-        <h3>Light-Setup</h3>
+  <div id=LightSetup>
+    <h3>Light-Setup</h3>
+    <div class="row">
+      <form id="intensity" name="intensities" onsubmit="return Ui.onSubmitIntensities(this)">
         <div class="row">
-            <form id="intensity" name="intensities" onsubmit="return onSubmitIntensities(this)">
-                <div class="row">
-                    <div class="two columns"> </div>
-                    <div class="two columns">
-                        <table>
-                            <tr>
-                                <td> <button type="button" style="background-color: gray;">Illumination</button>
-                                </td>
-                                <td> <button type="button" style="background-color: darkblue;">Ambient/Mood</button>
-                                </td>
-                            </tr> <tr> 
-                                <td> <input type="range" id="rIllum" oninput="oIllum.value = this.value;" min="0" max="255" step="1" value="0"> </td>
-                                <td> <input type="range" id="rAmbient" oninput="oAmbient.value = this.value;" min="0" max="255" step="1" value="0"> </td>
-                            </tr> <tr>
-                                <td> <input type="number" id="oIllum" name="I" oninput="rIllum.value = this.value;" value="0" min="0" max="255"> </td>
-                                <td> <input type="number" id="oAmbient" name="A" oninput="rAmbient.value = this.value; " value="0" min="0" max="255"> </td>
-                            </tr>
-                        </table>
-                        <input class="button-primary u-full-width" type="submit" value="Apply">
-                    </div>
-
-            </form>
-        </div>
+          <div class="two columns"> </div>
+          <div class="two columns">
+            <table>
+              <tr>
+                <td> <button type="button" style="background-color: gray;">Illumination</button> </td>
+                <td> <button type="button" style="background-color: darkblue;">Ambient/Mood</button> </td>
+              </tr>
+              <tr>
+                <td> <input type="range" id="rIllum" oninput="oIllum.value = this.value;" min="0" max="255" step="1"
+                    value="0"> </td>
+                <td> <input type="range" id="rAmbient" oninput="oAmbient.value = this.value;" min="0" max="255" step="1"
+                    value="0"> </td>
+              </tr>
+              <tr>
+                <td> <input type="number" id="oIllum" name="I" oninput="rIllum.value = this.value;" value="0" min="0"
+                    max="255"> </td>
+                <td> <input type="number" id="oAmbient" name="A" oninput="rAmbient.value = this.value; " value="0"
+                    min="0" max="255"> </td>
+              </tr>
+            </table>
+            <input class="button-primary u-full-width" type="submit" value="Apply">
+          </div>
+      </form>
     </div>
+  </div>
 
-    <div id=AmbientSetup>
-        <h3>Ambient-Colors</h3>
+  <div id=AmbientSetup>
+    <h3>Ambient-Colors</h3>
+    <div class="row">
+      <form id="colors" name="ambientColors" onsubmit="return Ui.onSubmitAmbient(this)">
         <div class="row">
-            <form id="colors" name="ambientColors" onsubmit="return onSubmitAmbient(this)">
-                <div class="row">
-                    <div class="two columns"> </div>
-                    <div class="two columns">
-                        <table>
-                            <tr>
-                                <td> <button type="button" style="background-color: darkgreen;">Foreground</button> </td>
-                                <td> <button type="button" style="background-color: darkblue;">Background</button> </td>
-                            </tr> <tr>
-                                <td> <input type="color" id="fgSelector" name="foreground" oninput="updateColor(this);" style="height: 70px;"><br> </td>
-                                <td><input type="color" id="bgSelector" name="background" oninput="updateColor(this);" style="height: 70px;"><br> </td>
-                            </tr>
-                        </table>
-                        <input class="button-primary u-full-width" type="submit" value="Apply">
-                    </div>
-            </form>
-        </div>
+          <div class="two columns"> </div>
+          <div class="two columns">
+            <table>
+              <tr>
+                <td> <button type="button" style="background-color: darkgreen;">Foreground</button>
+                </td>
+                <td> <button type="button" style="background-color: darkblue;">Background</button> </td>
+              </tr>
+              <tr>
+                <td> <input type="color" id="fgSelector" name="foreground" onchange="Ui.updateColor(this);"
+                     style="height: 70px;"><br> </td>
+                <td><input type="color" id="bgSelector" name="background" onchange="Ui.updateColor(this);"
+                    style="height: 70px;"><br> </td>
+              </tr>
+            </table>
+            <input class="button-primary u-full-width" type="submit" value="Apply">
+          </div>
+      </form>
     </div>
+  </div>
 
-    <script src="./easyHttp.js"></script>
-    <script src="./mainApp.js"></script>
+  <script src="./easyHttp.js"></script>
+  <script src="./mainApp.js"></script>
 </body>
 
 </html>

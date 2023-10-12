@@ -567,7 +567,7 @@ void app_main(void) {
     displayEvents.enqueue(std::move(msg));
 
     ESP_LOGI(TAG, "Setting up Web");
-    static WebApi web(*_paramFs, {stageAmbient, intensity, WebColorCallback, WebIntensityCallback});
+    static WebApi web({*_paramFs, stageAmbient, intensity, WebColorCallback, WebIntensityCallback});
     ESP_LOGI(TAG, "Waiting for IP(s)");
     ipAddressSem.take(portMAX_DELAY);
 
