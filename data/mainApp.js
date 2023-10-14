@@ -1,12 +1,9 @@
 /// API Routes GET
-const ApiGetIntensity = "/api/getIntensity";
-const ApiSetIntensity = "/api/setIntensity";
-const ApiGetColor = "/api/getColor";
-const ApiSetColor = "/api/setColor";
+const ApiIntensity = "/api/Intensity";
+const ApiColor = "/api/Color";
 
-const ApiGetType = "/api/getType";
-const ApiGetConfig = "/api/getConfig";
-const ApiSetConfig = "/api/setConfig";
+const ApiGetType = "/api/Type";
+const ApiConfig = "/api/Config";
 
 const http = new EasyHttp();
 
@@ -42,16 +39,16 @@ const Ui = (function () {
     let bgColor = new Color(0, 0, 0);
 
     async function init() {
-        await http.get(ApiGetConfig)
+        await http.get(ApiConfig)
             .then(data => evalDeviceConfig(data))
             .catch(err => console.log(err));
-        await http.get(ApiGetIntensity)
+        await http.get(ApiIntensity)
             .then(data => initIntensity(data))
             .catch(err => console.log(err));
-        await http.get(ApiGetColor + "/foreground")
+        await http.get(ApiColor + "/foreground")
             .then(data => initAmbient(data, "fg"))
             .catch(err => console.log(err));
-        await http.get(ApiGetColor + "/background")
+        await http.get(ApiColor + "/background")
             .then(data => initAmbient(data, "bg"))
             .catch(err => console.log(err));
     }
@@ -145,7 +142,7 @@ const Ui = (function () {
                 jsonObject[key] = value;
         }
         console.log("Update intensities", jsonObject);
-        await http.post(ApiSetIntensity, jsonObject)
+        await http.post(ApiIntensity, jsonObject)
             .catch(err => console.log(err));
 
         showFormMessage(form, "Data sent ...", 'userSuccess');
@@ -155,13 +152,13 @@ const Ui = (function () {
         console.log("posting foreground", fgColor);
         let data = ambientColorToJson("FG", fgColor);
         console.log(data);
-        await http.post(ApiSetColor, data)
+        await http.post(ApiColor, data)
             .catch(err => console.log(err));
 
         console.log("posting background", bgColor);
         data = ambientColorToJson("BG", bgColor);
         console.log(data);
-        await http.post(ApiSetColor, data)
+        await http.post(ApiColor, data)
             .catch(err => console.log(err));
 
         showFormMessage(form, "Data sent ...", 'userSuccess');

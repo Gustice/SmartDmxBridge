@@ -122,16 +122,16 @@ class WebApi {
     FileAccess &_webFs;
 
     std::vector<RequestHandle> getHandlers{
-        {"/api/getIntensity", [this](std::string rt, std::string data) { return this->processGetIntensity(rt, data); }},
-        {"/api/getColor/", [this](std::string rt, std::string data) { return this->processGetColor(rt, data); }},
-        {"/api/getConfig", [this](std::string rt, std::string data) { return this->processGetDeviceConfig(rt, data); }},
-        {"/api/getType", [this](std::string rt, std::string data) { return this->processGetDeviceType(rt, data); }},
+        {"/api/Intensity", [this](std::string rt, std::string data) { return this->processGetIntensity(rt, data); }},
+        {"/api/Color/", [this](std::string rt, std::string data) { return this->processGetColor(rt, data); }},
+        {"/api/Config", [this](std::string rt, std::string data) { return this->processGetDeviceConfig(rt, data); }},
+        {"/api/Type", [this](std::string rt, std::string data) { return this->processGetDeviceType(rt, data); }},
     };
 
     std::vector<RequestHandle> postHandlers{
-        {"/api/setIntensity", [this](std::string rt, std::string data) { return this->processSetIntensity(rt, data); }},
-        {"/api/setColor", [this](std::string rt, std::string data) { return this->processSetColor(rt, data); }},
-        {"/api/setConfig", [this](std::string rt, std::string data) { return this->processSetDeviceConfig(rt, data); }},
+        {"/api/Intensity", [this](std::string rt, std::string data) { return this->processSetIntensity(rt, data); }},
+        {"/api/Color", [this](std::string rt, std::string data) { return this->processSetColor(rt, data); }},
+        {"/api/Config", [this](std::string rt, std::string data) { return this->processSetDeviceConfig(rt, data); }},
     };
 
     const httpd_uri_t setPortReq{
@@ -291,7 +291,7 @@ class WebApi {
     }
 
     // Demo Data
-    // 127.0.0.1 - - [...] "POST /api/setIntensity HTTP/1.1" 200 -
+    // 127.0.0.1 - - [...] "POST /api/Intensity HTTP/1.1" 200 -
     //    Payload {"I":100,"A":200}
     std::string processSetIntensity(const std::string route, const std::string data) {
         rapidjson::Document object;
@@ -314,9 +314,9 @@ class WebApi {
     }
 
     // Demo Data
-    // 127.0.0.1 - - [...] "POST /api/setColor HTTP/1.1" 200 -
+    // 127.0.0.1 - - [...] "POST /api/Color HTTP/1.1" 200 -
     //         Payload {"T":"FG","R":0,"G":0,"B":0}
-    // 127.0.0.1 - - [...] "POST /api/setColor HTTP/1.1" 200 -
+    // 127.0.0.1 - - [...] "POST /api/Color HTTP/1.1" 200 -
     //         Payload {"T":"BG","R":0,"G":0,"B":0}
     std::string processSetColor(const std::string route, const std::string data) {
         rapidjson::Document object;
@@ -360,9 +360,9 @@ class WebApi {
     }
 
     // Demo Data
-    // Evaluation request path '/api/getIntensity'
+    // Evaluation request path '/api/Intensity'
     // => Responding: '{"I": 100, "A": 200}'
-    // 127.0.0.1 - - [...] "GET /api/getIntensity HTTP/1.1" 200 -
+    // 127.0.0.1 - - [...] "GET /api/Intensity HTTP/1.1" 200 -
     std::string processGetIntensity(const std::string route, const std::string data) {
         StageIntensity value = _stage.intensities;
 
@@ -381,12 +381,12 @@ class WebApi {
 
     // Payload "foreground" or "background"
     // Demo Data
-    // Evaluation request path '/api/getColor/foreground'
+    // Evaluation request path '/api/Color/foreground'
     // => Responding: '{"R": 210, "G": 220, "B": 230}'
-    // 127.0.0.1 - - [...] "GET /api/getColor/foreground HTTP/1.1" 200 -
-    // Evaluation request path '/api/getColor/background'
+    // 127.0.0.1 - - [...] "GET /api/Color/foreground HTTP/1.1" 200 -
+    // Evaluation request path '/api/Color/background'
     // => Responding: '{"R": 110, "G": 120, "B": 130}'
-    // 127.0.0.1 - - [...] "GET /api/getColor/background HTTP/1.1" 200 -
+    // 127.0.0.1 - - [...] "GET /api/Color/background HTTP/1.1" 200 -
     std::string processGetColor(const std::string route, const std::string data) {
         Color value;
         if (route == "foreground") {
@@ -413,9 +413,9 @@ class WebApi {
     }
 
     // Demo Data
-    // Evaluation request path '/api/getConfig'
+    // Evaluation request path '/api/Config'
     //     => Responding: '{"dmxOutputs": 24, "illuminationWeights": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 127, 0, 0, 0, 255, 0, 255, 0, 255, 255, 255, 255], "ambientChannels": {"foreground": [1, 2, 3], "background": [6, 7, 8]}, "colorPresets": [{"foreground": [255, 0, 0], "background": [0, 255, 0]}, {"foreground": [0, 255, 0], "background": [0, 0, 255]}, {"foreground": [0, 0, 255], "background": [255, 0, 0]}]}'
-    // 127.0.0.1 - - [...] "GET /api/getConfig HTTP/1.1" 200 -
+    // 127.0.0.1 - - [...] "GET /api/Config HTTP/1.1" 200 -
     std::string processGetDeviceConfig(const std::string route, const std::string data) {
         auto output = _webFs.readFile(DeviceConfigFilename.begin());
         return output;
