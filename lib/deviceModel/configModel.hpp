@@ -58,7 +58,7 @@ struct Color {
 
 /**
  * @brief Color set for ambient theme. 
- * @details Ambiente illumination is to create/support a mood consisting of hopefully harmonious colors
+ * @details Ambiance illumination is to create/support a mood consisting of hopefully harmonious colors
  *   Illumination in turn is just to illuminate the stage
  */
 struct AmbientColorSet {
@@ -108,7 +108,7 @@ struct StageIntensity {
     uint8_t illumination = 0;
 
     /// @brief Intensity for ambient color set
-    uint8_t ambiente = 0;
+    uint8_t ambiance = 0;
 };
 
 /**
@@ -211,4 +211,5 @@ constexpr StageConfig DefaultStageConfig{
         }
     };
 
+/// @brief Filename for device configuration
 constexpr std::string_view DeviceConfigFilename{"Configuration.json"};

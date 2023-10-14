@@ -68,7 +68,7 @@ struct DeviceIoMap {
     /// @brief Configuration of potentiometer for illumination
     AdcMap intensity;
     /// @brief Configuration of potentiometer for ambient color brightness
-    AdcMap ambiente;
+    AdcMap ambiance;
 };
 
 /**

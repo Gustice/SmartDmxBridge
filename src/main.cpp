@@ -40,7 +40,6 @@
  * | ota_1    |   app |    ota_1 |         |  0x170000| OTA2 partition           |
  * | coredump |  data | coredump |         |   0x20000| coredump                 |
  * 
- * 
  * @date 2023-10-03
  * 
  * @copyright Copyright (c) 2023
@@ -85,7 +84,7 @@ constexpr DeviceIoMap ioMap{
         .unit = adc_unit_t::ADC_UNIT_2,
         .port = adc_channel_t::ADC_CHANNEL_3 // => GPIO 15
     },
-    .ambiente{
+    .ambiance{
         .unit = adc_unit_t::ADC_UNIT_2,
         .port = adc_channel_t::ADC_CHANNEL_6 // => GPIO 14
     }};
@@ -107,8 +106,8 @@ static void showSystemHealth();
 static void valueRefresherTask(void *);
 static void sysLogSocket_task(void *pvParameters);
 static void newColorScheme(AmbientColorSet color);
-static void dmx_RingMonitor(void *arg);
-static void dmx_Monitor(void *arg);
+static void dmxRingMonitorTask(void *arg);
+static void dmxMonitorTask(void *arg);
 
 /****************************************************************************/ /*
  * Local instances of Device
@@ -213,25 +212,25 @@ static void newColorScheme(AmbientColorSet color) {
 /**
  * @brief Callback for "start-monitor" command
  * 
- * @param type 
- * @param token 
+ * @param type RinCheck or Sensing-mode
+ * @param token task control token
  */
 void startDmxMonitor(MonitorType type, std::shared_ptr<TaskControl> token) {
     switch (type) {
     case MonitorType::RingCheck:
         ESP_LOGI(TAG, "Ring-Monitor task");
-        xTaskCreate(dmx_RingMonitor, "dmx_RingMonitor", 4096, &token, 5, NULL);
+        xTaskCreate(dmxRingMonitorTask, "dmxRingMonitorTask", 4096, &token, 5, NULL);
         break;
 
     case MonitorType::Sensing:
         ESP_LOGI(TAG, "Sens-Monitor task");
-        xTaskCreate(dmx_Monitor, "dmx_Monitor", 4096, &token, 5, NULL);
+        xTaskCreate(dmxMonitorTask, "dmxMonitorTask", 4096, &token, 5, NULL);
         break;
     }
 }
 
 /**
- * @brief Set ambiente-color callback from web-frontend
+ * @brief Set ambiance-color callback from web-frontend
  * 
  * @param type foreground/background
  * @param color color
@@ -242,6 +241,9 @@ void WebColorCallback(AmbientType type, Color color) {
         auto msg = std::make_unique<Display::Message>(Display::Message::Type::UpdateInfo, "in web-mode");
         displayEvents.enqueue(std::move(msg));
     }
+
+    ESP_LOGI(TAG, "Setting color %s to r=%d g=%d b=%d",
+             type == AmbientType::Foreground ? "foreground" : "background", color.red, color.green, color.blue);
 
     if (type == AmbientType::Foreground) {
         stageAmbient.foregroundColor = color;
@@ -255,14 +257,17 @@ void WebColorCallback(AmbientType type, Color color) {
  * 
  * @param intensities intensities
  */
-void WebIntensityCallback(StageIntensity intensities) {
+void WebIntensityCallback(StageIntensity intens) {
     if (!deviceState.stateIs(DeviceState::Mode::WebUi)) {
         deviceState.setNewState(DeviceState::Mode::WebUi);
         auto msg = std::make_unique<Display::Message>(Display::Message::Type::UpdateInfo, "in web-mode");
         displayEvents.enqueue(std::move(msg));
     }
 
-    intensities = intensities;
+    ESP_LOGI(TAG, "Setting intensities to I=%d A=%d ",
+             intens.illumination, intens.ambiance);
+
+    intensity = intens;
 }
 
 /****************************************************************************/ /*
@@ -275,7 +280,7 @@ void WebIntensityCallback(StageIntensity intensities) {
  * @details Tested with [Q Light Controller+](https://www.qlcplus.org/)
  * @param args ignored task argument
  */
-static void dmxSocket_task(void *args) {
+static void dmxSocketTask(void *args) {
     const sockaddr_in dest_addr = createIpV4Config(INADDR_ANY, ArtNetPort);
     while (true) {
         UdpSocket socket(dest_addr, deviceInfo);
@@ -394,7 +399,7 @@ static void displayTask(void *arg) {
  * 
  * @param arg shared-pointer to Task-Control
  */
-static void dmx_RingMonitor(void *arg) {
+static void dmxRingMonitorTask(void *arg) {
     std::shared_ptr<TaskControl> token(*(std::shared_ptr<TaskControl> *)arg);
 
     deviceState.setNewState(DeviceState::Mode::TestRing);
@@ -428,7 +433,7 @@ static void dmx_RingMonitor(void *arg) {
  * 
  * @param arg shared-pointer to Task-Control
  */
-static void dmx_Monitor(void *arg) {
+static void dmxMonitorTask(void *arg) {
     std::shared_ptr<TaskControl> token(*(std::shared_ptr<TaskControl> *)arg);
 
     deviceState.setNewState(DeviceState::Mode::Sensing);
@@ -470,25 +475,21 @@ static void valueRefresherTask(void *) {
  * @brief Task for standalone mode
  * @details Reads cyclically Potentiometer, sets illumination accordingly 
  *  and propagates values to display
- * 
- * @param arg 
  */
-void standAloneTask(void *arg) {
+void standAloneTask(void *) {
     Adc adcLight{ioMap.intensity.unit, ioMap.intensity.port};
-    Adc adcAmbiente{ioMap.ambiente.unit, ioMap.ambiente.port};
+    Adc adcAmbiance{ioMap.ambiance.unit, ioMap.ambiance.port};
 
     ScaledValue<int> intensityScale{{0, 4095}, {0, 255}};
     ScaledValue<int> displayScale{{0, 255}, {0, 100}};
     RatiometricLightControl lights(stage, stageAmbient);
 
     while (true) {
-        intensity.illumination = intensityScale.scale(adcLight.readValue());
-        intensity.ambiente = intensityScale.scale(adcAmbiente.readValue());
-
-        relativeIntensity[0] = displayScale.scale(intensity.illumination);
-        relativeIntensity[1] = displayScale.scale(intensity.ambiente);
-
         if (deviceState.stateIs(DeviceState::Mode::StandAlone)) {
+
+            intensity.illumination = intensityScale.scale(adcLight.readValue());
+            intensity.ambiance = intensityScale.scale(adcAmbiance.readValue());
+
             auto values = lights.update(intensity);
             dmxPort.set(values.data(), StageChannelsCount);
             dmxPort.send();
@@ -504,6 +505,9 @@ void standAloneTask(void *arg) {
                 logEvents.enqueue(std::move(log));
             }
         }
+        relativeIntensity[0] = displayScale.scale(intensity.illumination);
+        relativeIntensity[1] = displayScale.scale(intensity.ambiance);
+
         vTaskDelay(50 / portTICK_PERIOD_MS);
     }
 }
@@ -583,5 +587,5 @@ void app_main(void) {
         }
     }
     xTaskCreate(telnetSocket_task, "telnetSocket", 4096, nullptr, 5, NULL);
-    xTaskCreate(dmxSocket_task, "dmxSocket", 4096, nullptr, 5, NULL);
+    xTaskCreate(dmxSocketTask, "dmxSocket", 4096, nullptr, 5, NULL);
 }

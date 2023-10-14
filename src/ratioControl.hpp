@@ -33,7 +33,7 @@ class RatiometricLightControl {
             }
         }
         { // set values for background
-            auto k = intensities.ambiente;
+            auto k = intensities.ambiance;
             auto col = _activeAmbient.backgroundColor;
             std::array<uint8_t, 3> cVal{col.red, col.green, col.blue};
 
@@ -43,7 +43,7 @@ class RatiometricLightControl {
             }
         }
         { // set values for foreground
-            auto k = intensities.ambiente;
+            auto k = intensities.ambiance;
             auto col = _activeAmbient.foregroundColor;
             std::array<uint8_t, 3> cVal{col.red, col.green, col.blue};
 

@@ -83,11 +83,13 @@ const Ui = (function () {
         console.log("got data: ", type, data);
 
         if (type == "fg") {
-            document.getElementById("fgSelector").value = rgbHex(data.R, data.G, data.B)
+            document.getElementById("fgSelector").value = rgbHex(data.R, data.G, data.B);
+            fgColor = new Color(data.R, data.G, data.B);
         }
 
         if (type == "bg") {
-            document.getElementById("bgSelector").value = rgbHex(data.R, data.G, data.B)
+            document.getElementById("bgSelector").value = rgbHex(data.R, data.G, data.B);
+            bgColor = new Color(data.R, data.G, data.B);
         }
     }
 
@@ -151,13 +153,13 @@ const Ui = (function () {
 
     async function sendAmbient(form) {
         console.log("posting foreground", fgColor);
-        let data = ambientColorToJson("foreground", fgColor);
+        let data = ambientColorToJson("FG", fgColor);
         console.log(data);
         await http.post(ApiSetColor, data)
             .catch(err => console.log(err));
 
         console.log("posting background", bgColor);
-        data = ambientColorToJson("background", bgColor);
+        data = ambientColorToJson("BG", bgColor);
         console.log(data);
         await http.post(ApiSetColor, data)
             .catch(err => console.log(err));
