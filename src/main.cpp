@@ -104,7 +104,7 @@ static const char *TAG = "dmx-bridge";
 static void startDmxMonitor(MonitorType type, std::shared_ptr<TaskControl> token);
 static void showSystemHealth();
 static void valueRefresherTask(void *);
-static void sysLogSocket_task(void *pvParameters);
+static void sysLogSocketTask(void *pvParameters);
 static void newColorScheme(AmbientColorSet color);
 static void dmxRingMonitorTask(void *arg);
 static void dmxMonitorTask(void *arg);
@@ -219,12 +219,12 @@ void startDmxMonitor(MonitorType type, std::shared_ptr<TaskControl> token) {
     switch (type) {
     case MonitorType::RingCheck:
         ESP_LOGI(TAG, "Ring-Monitor task");
-        xTaskCreate(dmxRingMonitorTask, "dmxRingMonitorTask", 4096, &token, 5, NULL);
+        xTaskCreate(dmxRingMonitorTask, "dmxRingMonitor", 4096, &token, 5, NULL);
         break;
 
     case MonitorType::Sensing:
         ESP_LOGI(TAG, "Sens-Monitor task");
-        xTaskCreate(dmxMonitorTask, "dmxMonitorTask", 4096, &token, 5, NULL);
+        xTaskCreate(dmxMonitorTask, "dmxMonitor", 4096, &token, 5, NULL);
         break;
     }
 }
@@ -292,7 +292,7 @@ static void dmxSocketTask(void *args) {
         auto msg = std::make_unique<Display::Message>(Display::Message::Type::UpdateInfo, "DMX-IP-Mode");
         displayEvents.enqueue(std::move(msg));
         deviceState.setNewState(DeviceState::Mode::Remote);
-        xTaskCreate(valueRefresherTask, "valueRefresherTask", 4096, nullptr, 5, NULL);
+        xTaskCreate(valueRefresherTask, "valueRefresher", 4096, nullptr, 5, NULL);
 
         // parse artnet as long socket is active, then restart socket
         while (socket.isActive()) {
@@ -330,7 +330,7 @@ static void telnetSocketTask(void *arg) {
             TcpSession session(config, socket);
 
             static LogSession logSession{.latestClient = session.getSource(), .terminate = false};
-            xTaskCreate(sysLogSocket_task, "sysLogSocket", 4096, &logSession, 5, NULL);
+            xTaskCreate(sysLogSocketTask, "sysLogSocket", 4096, &logSession, 5, NULL);
 
             Ui ui(session, uiConfig);
             if (!session.isActive())
@@ -350,7 +350,7 @@ static void telnetSocketTask(void *arg) {
  * 
  * @param pvParameters Pointer to LogSession 
  */
-static void sysLogSocket_task(void *pvParameters) {
+static void sysLogSocketTask(void *pvParameters) {
     auto param = static_cast<LogSession *>(pvParameters);
     ESP_LOGI(TAG, "Syslog task started ... client");
 
@@ -417,7 +417,7 @@ static void dmxRingMonitorTask(void *arg) {
         if (received.size() < sent.values.size()) {
             ESP_LOGW(TAG, "DMX-Monitor, incomplete data received (%d received):", received.size());
         }
-        auto res = differ.compareBytes(sent.values, received, {"sent, received"});
+        auto res = differ.compareBytes(sent.values, received, {"sent", "received"});
         if (!res.areSame) {
             auto logD = std::make_unique<LogMessage>(
                 LogMessage::Type::Meas, "DMX-Monitor, error in transmit :\n " + res.diff);
@@ -445,15 +445,18 @@ static void dmxMonitorTask(void *arg) {
 
     auto lastReceived = dmxPort.receive();
     while (!token->isCanceled()) {
-
         auto received = dmxPort.receive();
-        auto res = differ.compareBytes(lastReceived, received, {"last, new"});
-        if (!res.areSame) {
-            auto logD = std::make_unique<LogMessage>(
-                LogMessage::Type::Meas, "DMX-Monitor, error in transmit :\n " + res.diff);
-            logEvents.enqueue(std::move(logD));
-            lastReceived = received;
+        if (received.size() > 0)
+        {
+            auto res = differ.compareBytes(lastReceived, received, {"last", "new"});
+            if (!res.areSame) {
+                auto logD = std::make_unique<LogMessage>(
+                    LogMessage::Type::Meas, "DMX-Monitor, error in transmit :\n " + res.diff);
+                logEvents.enqueue(std::move(logD));
+                lastReceived = received;
+            }
         }
+        vTaskDelay(1);
     }
     deviceState.fallbackToLast();
     vTaskDelete(nullptr);
@@ -494,8 +497,8 @@ void standAloneTask(void *) {
             intensity.ambiance = intensityScale.scale(adcAmbiance.readValue());
         }
 
-        if (deviceState.stateIs(DeviceState::Mode::StandAlone) || deviceState.stateIs(DeviceState::Mode::WebUi)) {
-
+        auto state = deviceState.getState();
+        if (state == DeviceState::Mode::StandAlone || state == DeviceState::Mode::WebUi || state == DeviceState::Mode::Sensing) {
             auto values = lights.update(intensity);
             dmxPort.set(values.data(), StageChannelsCount);
             dmxPort.send();
@@ -569,8 +572,8 @@ void app_main(void) {
     }
 
     ota.get_sha256_of_partitions();
-    xTaskCreate(displayTask, "displayTask", MinTaskStack * 4, NULL, 10, NULL);
-    xTaskCreate(standAloneTask, "standAloneTask", MinTaskStack * 2, nullptr, 5, NULL);
+    xTaskCreate(displayTask, "display", MinTaskStack * 4, NULL, 10, NULL);
+    xTaskCreate(standAloneTask, "standAlone", MinTaskStack * 2, nullptr, 5, NULL);
 
     auto msg =
         std::make_unique<Display::Message>(Display::Message::Type::UpdateInfo, "Standalone-Mode");

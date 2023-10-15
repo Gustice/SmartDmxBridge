@@ -74,7 +74,8 @@ class BinDiff {
               << static_cast<unsigned>(v);
         }
         o << "\n";
-        o << "diff:    ";
+        //    : 0x
+        o<< "    " << std::setfill(' ') << std::setw(lD) << " " ;
         for (size_t i = 0; i < minLen; i++) {
             if (left[i] == right[i]) {
                 o << "  ";

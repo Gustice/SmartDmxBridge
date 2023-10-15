@@ -12,10 +12,10 @@
 
 #include "configModel.hpp"
 #include "dmx_uart.hpp"
-#include <esp_log.h>
 #include "otaUpdate.hpp"
 #include "uart.hpp"
 #include <embedded_cli.h>
+#include <esp_log.h>
 #include <functional>
 #include <list>
 #include <memory>
@@ -85,10 +85,11 @@ class Cli {
         BindCb callback;
     };
 
-    /// @brief Constructor 
+    /// @brief Constructor
     /// @param port Reference to serial port
     /// @param cmd command callback
-    Cli(CharStream &port, CommandCb cmd) : _port(port), _commandCb(cmd) {
+    Cli(CharStream &port, CommandCb cmd)
+        : _port(port), _commandCb(cmd) {
         EmbeddedCliConfig *config = embeddedCliDefaultConfig();
         // NOTE: Note setting cliBuffer allows Cli to allocate needed buffer in correct size
         // config->cliBuffer = cliBuffer;
@@ -208,9 +209,9 @@ class Ui {
     using abortCallback = void (*)();
     /// @brief Type for system callback
     using systemCallback = void (*)();
-    /// @brief Type 
+    /// @brief Type
     using startMonitorCallback = void (*)(MonitorType type, std::shared_ptr<TaskControl> token);
-    
+
     /// @brief Configuration class
     struct Config {
         StageConfig &stage;
@@ -336,8 +337,14 @@ class Ui {
             return;
         }
         DebuggingOptions options;
-        // @todo: finalize options parsing
-        _config.debugOptions = options;
+
+        if (args[0] == "standAloneDiff") {
+            _config.debugOptions.standAloneDiff = true;
+        } else if (args[0] == "standAlone") {
+            _config.debugOptions.standAlone = true;
+        } else if (args[0] == "infos") {
+            _config.debugOptions.infos = true;
+        }
     }
 
     /// @brief Callback for commands that are not directly wired
@@ -359,7 +366,7 @@ class Ui {
             _shell.write("Need URL to application'\n");
             return;
         }
-        
+
         _config.ota.startUpdateService(OtaHandler::OtaParam{args[0]});
     }
 

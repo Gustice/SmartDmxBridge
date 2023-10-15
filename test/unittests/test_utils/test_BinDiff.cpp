@@ -20,7 +20,7 @@ TEST(BinDiffTest, TestStringify) {
     EXPECT_EQ("Blk 0: 0x11, 0x12, 0x13, 0x14, \n", sut.stringify_list(s));
 }
 
-TEST(BinDiffTest, TestWithDifferentValues) {
+TEST(BinDiffTest, TestWithDifferentValuesAtEnd) {
     std::vector<uint8_t> s1{0x11, 0x12, 0x13, 0x14};
     std::vector<uint8_t> s2{0x11, 0x12, 0x13, 0x10};
 
@@ -31,7 +31,7 @@ TEST(BinDiffTest, TestWithDifferentValues) {
 diff found ...\n\
 left:  0x11121314\n\
 right: 0x11121310\n\
-diff:          ##",
+               ##",
               r.diff);
 
     r = sut.compareBytes(s2, s1, {"right", "left"});
@@ -40,7 +40,31 @@ diff:          ##",
 diff found ...\n\
 right: 0x11121310\n\
 left:  0x11121314\n\
-diff:          ##",
+               ##",
+              r.diff);
+}
+
+TEST(BinDiffTest, TestWithDifferentValuesAtStart) {
+    std::vector<uint8_t> s1{0x11, 0x12, 0x13, 0x14};
+    std::vector<uint8_t> s2{0x10, 0x12, 0x13, 0x14};
+
+    BinDiff sut(8);
+    auto r = sut.compareBytes(s1, s2, {"left", "right"});
+    EXPECT_EQ(false, r.areSame);
+    EXPECT_EQ("\
+diff found ...\n\
+left:  0x11121314\n\
+right: 0x10121314\n\
+         ##      ",
+              r.diff);
+
+    r = sut.compareBytes(s2, s1, {"right", "left"});
+    EXPECT_EQ(false, r.areSame);
+    EXPECT_EQ("\
+diff found ...\n\
+right: 0x10121314\n\
+left:  0x11121314\n\
+         ##      ",
               r.diff);
 }
 
@@ -55,7 +79,7 @@ TEST(BinDiffTest, TestWithDifferentValuesAndSmallValues) {
 diff found ...\n\
 left:  0x01020304\n\
 right: 0x01020300\n\
-diff:          ##",
+               ##",
               r.diff);
 
     r = sut.compareBytes(s2, s1, {"right", "left"});
@@ -64,7 +88,7 @@ diff:          ##",
 diff found ...\n\
 right: 0x01020300\n\
 left:  0x01020304\n\
-diff:          ##",
+               ##",
               r.diff);
 }
 
@@ -80,7 +104,7 @@ TEST(BinDiffTest, TestWithDifferentSizes) {
 diff found ...\n\
 left:  0x11121314\n\
 right: 0x1112131415\n\
-diff:            ##",
+                 ##",
               r.diff);
 
     r = sut.compareBytes(s2, s1, {"right", "left"});
@@ -89,7 +113,7 @@ diff:            ##",
 diff found ...\n\
 right: 0x1112131415\n\
 left:  0x11121314\n\
-diff:            ##",
+                 ##",
               r.diff);
 }
 
@@ -104,7 +128,7 @@ TEST(BinDiffTest, TestWithDifferentSizesAndSmallValues) {
 diff found ...\n\
 left:  0x01020304\n\
 right: 0x0102030405\n\
-diff:            ##",
+                 ##",
               r.diff);
 
     r = sut.compareBytes(s2, s1, {"right", "left"});
@@ -113,6 +137,6 @@ diff:            ##",
 diff found ...\n\
 right: 0x0102030405\n\
 left:  0x01020304\n\
-diff:            ##",
+                 ##",
               r.diff);
 }
