@@ -1,0 +1,41 @@
+{
+    "C_Cpp.autoAddFileAssociations": false,
+    "doxdocgen.c.triggerSequence": "/**",
+    "doxdocgen.generic.dateFormat": "YYYY-MM-DD",
+    "doxdocgen.generic.authorEmail": "",
+    "doxdocgen.generic.authorTag": "@author {author}", // used to be "@author {author} ({email})"
+    "doxdocgen.file.copyrightTag": [
+        "@copyright Copyright (c) {year}"
+    ],
+    "doxdocgen.file.customTag": [],
+    "doxdocgen.file.fileOrder": [
+        "file",
+        "author",
+        "brief",
+        "date",
+        "empty",
+        "copyright"
+    ],
+    "doxdocgen.generic.order": [
+        "brief",
+        "empty",
+        "tparam",
+        "param",
+        "return",
+    ],
+    "project.deviceIp": "192.168.178.82",
+    "[html]": {
+        "editor.tabSize": 2,
+        "editor.indentSize": "tabSize",
+        "editor.detectIndentation": false
+    },
+    "json.schemas": [
+        { // Relativ Path
+            "fileMatch": [
+                "Configuration.json*"
+            ],
+            "url": "./tools/ConfigurationSchema.json"
+        }
+    ],
+
+}

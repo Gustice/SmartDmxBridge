@@ -1,0 +1,116 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "title": "StationConfiguration",
+    "description": "Schema to define a device configuration",
+    "$defs": {
+        "byteValue": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+        },
+        "channelIndex": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 24
+        }
+    },
+    "type": "object",
+    "properties": {
+        "dmxOutputs": {
+            "description": "Number of DMX outputs",
+            "type": "number",
+            "minimum": 24,
+            "maximum": 24,
+            "default": 24
+        },
+        "illuminationWeights": {
+            "description": "Weights for illumination channels. Theses are scaled with the intensity values and written to DMX-output. \nMissing elements will be filled with zeros",
+            "type": "array",
+            "maxItems": 24,
+            "items": {
+                "$ref": "#/$defs/byteValue"
+            }
+        },
+        "ambientChannels": {
+            "description": "Channel indexes for ambient colors",
+            "type": "object",
+            "properties": {
+                "foreground": {
+                    "description": "Channel indexes for foreground color. These channels will be superposed with illumination data",
+                    "type": "array",
+                    "minItems": 3,
+                    "maxItems": 3,
+                    "items": {
+                        "$ref": "#/$defs/channelIndex"
+                    }
+                },
+                "background": {
+                    "description": "Channel indexes for background color. These channels will be superposed with illumination data",
+                    "type": "array",
+                    "minItems": 3,
+                    "maxItems": 3,
+                    "items": {
+                        "$ref": "#/$defs/channelIndex"
+                    }
+                }
+            },
+            "required": [
+                "foreground",
+                "background"
+            ],
+            "additionalProperties": false
+        },
+        "constants": {
+            "description": "Constants for illumination channels. Channel is overwritten if value is != 0. Theses are meant for aperture channels that are redundant to intensity",
+            "type": "array",
+            "maxItems": 24,
+            "items": {
+                "$ref": "#/$defs/byteValue"
+            }
+        },
+        "colorPresets": {
+            "description": "Configured color presets, that can be selected by user",
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 3,
+            "items": {
+                "description": "Configured color presets",
+                "type": "object",
+                "properties": {
+                    "foreground": {
+                        "description": "RGB color value for foreground color",
+                        "type": "array",
+                        "minItems": 3,
+                        "maxItems": 3,
+                        "items": {
+                            "$ref": "#/$defs/byteValue"
+                        }
+                    },
+                    "background": {
+                        "description": "RGB color value for background color",
+                        "type": "array",
+                        "minItems": 3,
+                        "maxItems": 3,
+                        "items": {
+                            "$ref": "#/$defs/byteValue"
+                        }
+                    }
+                },
+                "required": [
+                    "foreground",
+                    "background"
+                ],
+                "additionalProperties": false
+            
+            }
+        }
+    },
+    "required": [
+        "dmxOutputs",
+        "illuminationWeights",
+        "ambientChannels",
+        "constants",
+        "colorPresets"
+    ],
+    "additionalProperties": false
+}

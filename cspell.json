@@ -1,0 +1,19 @@
+{
+    "version": "0.2",
+    "ignorePaths": [],
+    "dictionaryDefinitions": [],
+    "dictionaries": [],
+    "words": [
+        "LOGD",
+        "LOGE",
+        "LOGI",
+        "LOGW",
+        "Nextion",
+        "ratiometric",
+        "syslog",
+        "uart",
+        "visualisation"
+    ],
+    "ignoreWords": [],
+    "import": []
+}
