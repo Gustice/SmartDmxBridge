@@ -85,6 +85,9 @@ using ColorPresets = std::array<AmbientColorSet, 3>;
 struct StageConfig {
     /// @brief Weights for illumination channels
     std::array<uint8_t, StageChannelsCount> weightsLights{};
+    
+    /// @brief Constant values for redundant aperture channels
+    std::array<uint8_t, StageChannelsCount> constants{};
 
     /// @brief Channel indexes for foreground color
     std::array<uint8_t, 3> channelsForeground{};

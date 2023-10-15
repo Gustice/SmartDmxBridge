@@ -312,7 +312,7 @@ static void dmxSocketTask(void *args) {
  *   The ini-file for TeraTerm only changes CRReceive and CRSend values both to "=CR"
  * @param arg ignored task argument
  */
-static void telnetSocket_task(void *arg) {
+static void telnetSocketTask(void *arg) {
     TcpSession::Config config{
         .keepAlive = 1,
         .keepIdle = 5,
@@ -410,6 +410,9 @@ static void dmxRingMonitorTask(void *arg) {
         auto sent = dmxPort.getValues();
         dmxPort.send();
         auto received = dmxPort.receive();
+        if (received.size() == (sent.values.size() + 1)) {
+            received.erase(received.begin()); // remove start code
+        }
 
         if (received.size() < sent.values.size()) {
             ESP_LOGW(TAG, "DMX-Monitor, incomplete data received (%d received):", received.size());
@@ -473,7 +476,8 @@ static void valueRefresherTask(void *) {
 
 /**
  * @brief Task for standalone mode
- * @details Reads cyclically Potentiometer, sets illumination accordingly 
+ * @details Reads cyclically Potentiometer, sets illumination accordingly
+ *   also supports web-mode. But in that case potentiometers are ignored
  *  and propagates values to display
  */
 void standAloneTask(void *) {
@@ -486,9 +490,11 @@ void standAloneTask(void *) {
 
     while (true) {
         if (deviceState.stateIs(DeviceState::Mode::StandAlone)) {
-
             intensity.illumination = intensityScale.scale(adcLight.readValue());
             intensity.ambiance = intensityScale.scale(adcAmbiance.readValue());
+        }
+
+        if (deviceState.stateIs(DeviceState::Mode::StandAlone) || deviceState.stateIs(DeviceState::Mode::WebUi)) {
 
             auto values = lights.update(intensity);
             dmxPort.set(values.data(), StageChannelsCount);
@@ -586,6 +592,6 @@ void app_main(void) {
             ESP_LOGI(TAG, "- IPv4 address: " IPSTR, IP2STR(&ip.ip));
         }
     }
-    xTaskCreate(telnetSocket_task, "telnetSocket", 4096, nullptr, 5, NULL);
+    xTaskCreate(telnetSocketTask, "telnetSocket", 4096, nullptr, 5, NULL);
     xTaskCreate(dmxSocketTask, "dmxSocket", 4096, nullptr, 5, NULL);
 }

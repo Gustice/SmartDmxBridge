@@ -29,7 +29,11 @@ class RatiometricLightControl {
         { // set values for illumination
             auto k = intensities.illumination;
             for (size_t i = 0; i < StageChannelsCount; i++) {
-                _channels[i] = k * _config.weightsLights[i] / 0xFF;
+                if (_config.constants[i] > 0) {
+                    _channels[i] = _config.constants[i];
+                } else {
+                    _channels[i] = k * _config.weightsLights[i] / 0xFF;
+                }
             }
         }
         { // set values for background
@@ -59,5 +63,5 @@ class RatiometricLightControl {
   private:
     StageValues _channels;
     const StageConfig &_config;
-    const AmbientColorSet _activeAmbient;
+    const AmbientColorSet & _activeAmbient;
 };
