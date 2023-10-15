@@ -60,6 +60,14 @@
             ],
             "additionalProperties": false
         },
+        "constants": {
+            "description": "Constants for illumination channels. Channel is overwritten if value is != 0. Theses are meant for aperture channels that are redundant to intensity",
+            "type": "array",
+            "maxItems": 24,
+            "items": {
+                "$ref": "#/$defs/byteValue"
+            }
+        },
         "colorPresets": {
             "description": "Configured color presets, that can be selected by user",
             "type": "array",
@@ -101,6 +109,7 @@
         "dmxOutputs",
         "illuminationWeights",
         "ambientChannels",
+        "constants",
         "colorPresets"
     ],
     "additionalProperties": false

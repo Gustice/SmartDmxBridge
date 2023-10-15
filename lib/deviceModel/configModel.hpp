@@ -13,6 +13,7 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <string_view>
 
 /// @brief Number of DMX-Channels
 constexpr int StageChannelsCount = 24;
@@ -57,7 +58,7 @@ struct Color {
 
 /**
  * @brief Color set for ambient theme. 
- * @details Ambiente illumination is to create/support a mood consisting of hopefully harmonious colors
+ * @details Ambiance illumination is to create/support a mood consisting of hopefully harmonious colors
  *   Illumination in turn is just to illuminate the stage
  */
 struct AmbientColorSet {
@@ -66,6 +67,11 @@ struct AmbientColorSet {
 
     /// @brief Color for Background
     Color backgroundColor;
+};
+
+enum class AmbientType {
+    Foreground = 0,
+    Background
 };
 
 /// @brief Shortened definition for set of colors as preset
@@ -79,6 +85,9 @@ using ColorPresets = std::array<AmbientColorSet, 3>;
 struct StageConfig {
     /// @brief Weights for illumination channels
     std::array<uint8_t, StageChannelsCount> weightsLights{};
+    
+    /// @brief Constant values for redundant aperture channels
+    std::array<uint8_t, StageChannelsCount> constants{};
 
     /// @brief Channel indexes for foreground color
     std::array<uint8_t, 3> channelsForeground{};
@@ -102,7 +111,7 @@ struct StageIntensity {
     uint8_t illumination = 0;
 
     /// @brief Intensity for ambient color set
-    uint8_t ambiente = 0;
+    uint8_t ambiance = 0;
 };
 
 /**
@@ -121,6 +130,10 @@ class DeviceState {
         /// @brief Remote mode:
         /// Applies values that are received via ArtNet, potentiometer values are muted
         Remote,
+
+        /// @brief Web controlled mode:
+        /// Convenient web users interface
+        WebUi,
 
         /// @brief Manual mode:
         /// Debugging and testing via Telnet shell
@@ -200,3 +213,6 @@ constexpr StageConfig DefaultStageConfig{
         }
         }
     };
+
+/// @brief Filename for device configuration
+constexpr std::string_view DeviceConfigFilename{"Configuration.json"};

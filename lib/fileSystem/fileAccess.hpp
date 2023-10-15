@@ -40,6 +40,41 @@ class FileSystemException : public std::exception {
 };
 
 /**
+ * @brief Chunk reader, to sequentially read from a file
+ */
+class ChunkedReader {
+  public:
+    /**
+     * @brief Read status
+     */
+    struct ReadStatus_t {
+      size_t ReadBytes;
+      bool EndOfFile;
+    };
+
+    /// @brief Construct a new Chunked Reader object
+    /// @param path Full path to target file
+    ChunkedReader(const std::string &path);
+
+    /// @brief Reads next part from file.
+    /// @param buffer pointer to buffer
+    /// @param length available buffer length
+    /// @return status of read operation
+    ReadStatus_t readChunk(char * buffer, int length);
+
+    /// @brief Get file-size
+    /// @return size_t File-size in bytes
+    size_t getFileSize(void);
+
+    ChunkedReader(const ChunkedReader &rhs) = delete;
+    ~ChunkedReader() = default;
+
+  private:
+    size_t _fileSize;
+    std::fstream _file;
+};
+
+/**
  * @brief Class for accessing files on a given partition
  */
 class FileAccess {
@@ -81,6 +116,12 @@ class FileAccess {
     /// @param fileName Filename (without path)
     /// @return size_t File size in bytes
     size_t getFileSize(const std::string fileName);
+
+    /// @brief Get the Chunk-Reader object for given file in partition
+    /// @param fileName Filename
+    /// @return ChunkedReader Reader object
+    /// @throw FileSystemException error while creating Reader
+    std::unique_ptr<ChunkedReader> getChunkReader(const std::string fileName);
 
   private:
     const std::string _rootPath;

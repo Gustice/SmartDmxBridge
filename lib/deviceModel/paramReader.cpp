@@ -2,10 +2,6 @@
 #include "RapidJson.hpp"
 #include <sstream>
 
-static const char *LogTag = "FsReader";
-
-const char *TAG = "JSON";
-
 DeserializeException::DeserializeException(std::string message) {
     _message = "Deserialize Error: " + message;
 }
@@ -36,6 +32,21 @@ void readIlluminationWeights(rapidjson::Document &config, StageConfig &deviceSet
 
     for (rapidjson::SizeType i = 0; i < wights.Size(); i++) {
         deviceSet.weightsLights[i] = wights[i].GetInt();
+    }
+}
+
+void readIlluminationConstants(rapidjson::Document &config, StageConfig &deviceSet) {
+    if (!config.HasMember("constants")) {
+        throw DeserializeException("missing property 'constants'");
+    }
+
+    const rapidjson::Value &constants = config["constants"];
+    if (!constants.IsArray() || constants.Size() != StageChannelsCount) {
+        throw DeserializeException("'constants' must contain an array of size=" + std::to_string(StageChannelsCount));
+    }
+
+    for (rapidjson::SizeType i = 0; i < constants.Size(); i++) {
+        deviceSet.constants[i] = constants[i].GetInt();
     }
 }
 
@@ -119,6 +130,7 @@ StageConfig ParamReader::readDeviceConfig(const std::string serialized) {
     }
 
     readIlluminationWeights(config, deviceSet);
+    readIlluminationConstants(config, deviceSet);
     readColorChannels(config, deviceSet);
     readColorPresets(config, deviceSet);
 

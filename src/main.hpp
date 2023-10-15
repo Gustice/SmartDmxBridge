@@ -11,6 +11,7 @@
 
 #include "BinDiff.hpp"
 #include "fileAccess.hpp"
+#include "webWrapper.hpp"
 #include "paramReader.hpp"
 #include "ScaledValue.hpp"
 #include "adc.hpp"
@@ -67,7 +68,7 @@ struct DeviceIoMap {
     /// @brief Configuration of potentiometer for illumination
     AdcMap intensity;
     /// @brief Configuration of potentiometer for ambient color brightness
-    AdcMap ambiente;
+    AdcMap ambiance;
 };
 
 /**

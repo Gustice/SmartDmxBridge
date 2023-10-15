@@ -25,6 +25,21 @@
  * 
  * The ArtNet-Interface was tested with [Q Light Controller+](https://www.qlcplus.org/)
  * 
+ * Partition table
+ * NOTE: The entry prtTbl is not explicitly stated in partition table csv
+ * NOTE: There is no particular partition for factory app. only OTA1 and OTA2
+ * | Name     |  Type |  SubType |   Offset|      Size|              Description |
+ * | -------- | ----- | -------- |  ------ | -------  | ------------------------ |
+ * | nvs      |  data |      nvs |         |    0x4000| system / user data       |
+ * | otadata  |  data |      ota |         |    0x2000| system                   |
+ * | phy_init |  data |      phy |         |    0x1000| system                   |
+ * | prtTbl   |   SYS |    TABLE |  0x8000 |    0x1000| partition table          |
+ * | config   |  data |   spiffs | 0x10000 |   0x10000| user bin config          |
+ * | dataFs   |  data |   spiffs |         |   0xE0000| user file system         |
+ * | ota_0    |   app |    ota_0 |      1M |  0x170000| OTA1 partition (factory) |
+ * | ota_1    |   app |    ota_1 |         |  0x170000| OTA2 partition           |
+ * | coredump |  data | coredump |         |   0x20000| coredump                 |
+ * 
  * @date 2023-10-03
  * 
  * @copyright Copyright (c) 2023
@@ -46,7 +61,7 @@ void app_main(void);
 /// @brief Station Name for display
 const std::string StationName = "DMX-Bridge";
 /// @brief Station Version for display
-const std::string StationVersion = "V 0.7.0";
+const std::string StationVersion = "V 0.8.0";
 
 constexpr unsigned MinTaskStack = 4096;
 constexpr uint16_t SyslogPort = 514;
@@ -69,14 +84,11 @@ constexpr DeviceIoMap ioMap{
         .unit = adc_unit_t::ADC_UNIT_2,
         .port = adc_channel_t::ADC_CHANNEL_3 // => GPIO 15
     },
-    .ambiente{
+    .ambiance{
         .unit = adc_unit_t::ADC_UNIT_2,
         .port = adc_channel_t::ADC_CHANNEL_6 // => GPIO 14
     }};
 
-static StageConfig stage = DefaultStageConfig;
-AmbientColorSet stageAmbient {stage.colorsPresets[0]};
- 
 EtherPins_t etherPins = {
     .ethPhyAddr = GPIO_NUM_0,
     .ethPhyRst = GPIO_NUM_NC,
@@ -94,8 +106,8 @@ static void showSystemHealth();
 static void valueRefresherTask(void *);
 static void sysLogSocket_task(void *pvParameters);
 static void newColorScheme(AmbientColorSet color);
-static void dmx_RingMonitor(void *arg);
-static void dmx_Monitor(void *arg);
+static void dmxRingMonitorTask(void *arg);
+static void dmxMonitorTask(void *arg);
 
 /****************************************************************************/ /*
  * Local instances of Device
@@ -113,6 +125,9 @@ IpInfo deviceInfo;
 static Semaphore ipAddressSem{2, 0}; // Counting semaphore
 std::array<uint32_t, 2> dmxUniverses{1, 2};
 BinDiff differ(24);
+static StageConfig stage = DefaultStageConfig;
+AmbientColorSet stageAmbient{stage.colorsPresets[0]};
+StageIntensity intensity;
 
 Ui::Config uiConfig{
     .stage = stage,
@@ -197,21 +212,62 @@ static void newColorScheme(AmbientColorSet color) {
 /**
  * @brief Callback for "start-monitor" command
  * 
- * @param type 
- * @param token 
+ * @param type RinCheck or Sensing-mode
+ * @param token task control token
  */
 void startDmxMonitor(MonitorType type, std::shared_ptr<TaskControl> token) {
     switch (type) {
     case MonitorType::RingCheck:
         ESP_LOGI(TAG, "Ring-Monitor task");
-        xTaskCreate(dmx_RingMonitor, "dmx_RingMonitor", 4096, &token, 5, NULL);
+        xTaskCreate(dmxRingMonitorTask, "dmxRingMonitorTask", 4096, &token, 5, NULL);
         break;
 
     case MonitorType::Sensing:
         ESP_LOGI(TAG, "Sens-Monitor task");
-        xTaskCreate(dmx_Monitor, "dmx_Monitor", 4096, &token, 5, NULL);
+        xTaskCreate(dmxMonitorTask, "dmxMonitorTask", 4096, &token, 5, NULL);
         break;
     }
+}
+
+/**
+ * @brief Set ambiance-color callback from web-frontend
+ * 
+ * @param type foreground/background
+ * @param color color
+ */
+void WebColorCallback(AmbientType type, Color color) {
+    if (!deviceState.stateIs(DeviceState::Mode::WebUi)) {
+        deviceState.setNewState(DeviceState::Mode::WebUi);
+        auto msg = std::make_unique<Display::Message>(Display::Message::Type::UpdateInfo, "in web-mode");
+        displayEvents.enqueue(std::move(msg));
+    }
+
+    ESP_LOGI(TAG, "Setting color %s to r=%d g=%d b=%d",
+             type == AmbientType::Foreground ? "foreground" : "background", color.red, color.green, color.blue);
+
+    if (type == AmbientType::Foreground) {
+        stageAmbient.foregroundColor = color;
+    } else {
+        stageAmbient.backgroundColor = color;
+    }
+}
+
+/**
+ * @brief Set intensities callback from web-frontend
+ * 
+ * @param intensities intensities
+ */
+void WebIntensityCallback(StageIntensity intens) {
+    if (!deviceState.stateIs(DeviceState::Mode::WebUi)) {
+        deviceState.setNewState(DeviceState::Mode::WebUi);
+        auto msg = std::make_unique<Display::Message>(Display::Message::Type::UpdateInfo, "in web-mode");
+        displayEvents.enqueue(std::move(msg));
+    }
+
+    ESP_LOGI(TAG, "Setting intensities to I=%d A=%d ",
+             intens.illumination, intens.ambiance);
+
+    intensity = intens;
 }
 
 /****************************************************************************/ /*
@@ -224,7 +280,7 @@ void startDmxMonitor(MonitorType type, std::shared_ptr<TaskControl> token) {
  * @details Tested with [Q Light Controller+](https://www.qlcplus.org/)
  * @param args ignored task argument
  */
-static void dmxSocket_task(void *args) {
+static void dmxSocketTask(void *args) {
     const sockaddr_in dest_addr = createIpV4Config(INADDR_ANY, ArtNetPort);
     while (true) {
         UdpSocket socket(dest_addr, deviceInfo);
@@ -233,8 +289,7 @@ static void dmxSocket_task(void *args) {
         artnet.subscribe(dmxUniverses[0], Universe1Callback);
 
         artnet.parse();
-        auto msg =
-            std::make_unique<Display::Message>(Display::Message::Type::UpdateInfo, "DMX-IP-Mode");
+        auto msg = std::make_unique<Display::Message>(Display::Message::Type::UpdateInfo, "DMX-IP-Mode");
         displayEvents.enqueue(std::move(msg));
         deviceState.setNewState(DeviceState::Mode::Remote);
         xTaskCreate(valueRefresherTask, "valueRefresherTask", 4096, nullptr, 5, NULL);
@@ -257,7 +312,7 @@ static void dmxSocket_task(void *args) {
  *   The ini-file for TeraTerm only changes CRReceive and CRSend values both to "=CR"
  * @param arg ignored task argument
  */
-static void telnetSocket_task(void *arg) {
+static void telnetSocketTask(void *arg) {
     TcpSession::Config config{
         .keepAlive = 1,
         .keepIdle = 5,
@@ -344,14 +399,20 @@ static void displayTask(void *arg) {
  * 
  * @param arg shared-pointer to Task-Control
  */
-static void dmx_RingMonitor(void *arg) {
+static void dmxRingMonitorTask(void *arg) {
     std::shared_ptr<TaskControl> token(*(std::shared_ptr<TaskControl> *)arg);
 
     deviceState.setNewState(DeviceState::Mode::TestRing);
+    auto msg = std::make_unique<Display::Message>(Display::Message::Type::UpdateInfo, "TEST-MODE");
+    displayEvents.enqueue(std::move(msg));
+
     while (!token->isCanceled()) {
         auto sent = dmxPort.getValues();
         dmxPort.send();
         auto received = dmxPort.receive();
+        if (received.size() == (sent.values.size() + 1)) {
+            received.erase(received.begin()); // remove start code
+        }
 
         if (received.size() < sent.values.size()) {
             ESP_LOGW(TAG, "DMX-Monitor, incomplete data received (%d received):", received.size());
@@ -375,10 +436,13 @@ static void dmx_RingMonitor(void *arg) {
  * 
  * @param arg shared-pointer to Task-Control
  */
-static void dmx_Monitor(void *arg) {
+static void dmxMonitorTask(void *arg) {
     std::shared_ptr<TaskControl> token(*(std::shared_ptr<TaskControl> *)arg);
 
     deviceState.setNewState(DeviceState::Mode::Sensing);
+    auto msg = std::make_unique<Display::Message>(Display::Message::Type::UpdateInfo, "SENS-MODE");
+    displayEvents.enqueue(std::move(msg));
+
     auto lastReceived = dmxPort.receive();
     while (!token->isCanceled()) {
 
@@ -412,28 +476,26 @@ static void valueRefresherTask(void *) {
 
 /**
  * @brief Task for standalone mode
- * @details Reads cyclically Potentiometer, sets illumination accordingly 
+ * @details Reads cyclically Potentiometer, sets illumination accordingly
+ *   also supports web-mode. But in that case potentiometers are ignored
  *  and propagates values to display
- * 
- * @param arg 
  */
-void standAloneTask(void *arg) {
+void standAloneTask(void *) {
     Adc adcLight{ioMap.intensity.unit, ioMap.intensity.port};
-    Adc adcAmbiente{ioMap.ambiente.unit, ioMap.ambiente.port};
+    Adc adcAmbiance{ioMap.ambiance.unit, ioMap.ambiance.port};
 
     ScaledValue<int> intensityScale{{0, 4095}, {0, 255}};
     ScaledValue<int> displayScale{{0, 255}, {0, 100}};
     RatiometricLightControl lights(stage, stageAmbient);
-    StageIntensity intensity;
 
     while (true) {
-        intensity.illumination = intensityScale.scale(adcLight.readValue());
-        intensity.ambiente = intensityScale.scale(adcAmbiente.readValue());
-
-        relativeIntensity[0] = displayScale.scale(intensity.illumination);
-        relativeIntensity[1] = displayScale.scale(intensity.ambiente);
-
         if (deviceState.stateIs(DeviceState::Mode::StandAlone)) {
+            intensity.illumination = intensityScale.scale(adcLight.readValue());
+            intensity.ambiance = intensityScale.scale(adcAmbiance.readValue());
+        }
+
+        if (deviceState.stateIs(DeviceState::Mode::StandAlone) || deviceState.stateIs(DeviceState::Mode::WebUi)) {
+
             auto values = lights.update(intensity);
             dmxPort.set(values.data(), StageChannelsCount);
             dmxPort.send();
@@ -449,6 +511,9 @@ void standAloneTask(void *arg) {
                 logEvents.enqueue(std::move(log));
             }
         }
+        relativeIntensity[0] = displayScale.scale(intensity.illumination);
+        relativeIntensity[1] = displayScale.scale(intensity.ambiance);
+
         vTaskDelay(50 / portTICK_PERIOD_MS);
     }
 }
@@ -484,12 +549,12 @@ void app_main(void) {
     _paramFs = std::make_shared<FileAccess>(configRoot, partitionLabel);
 
     try {
-        if (_paramFs->checkIfFileExists("Configuration.json") != ESP_OK) {
+        if (_paramFs->checkIfFileExists(DeviceConfigFilename.begin()) != ESP_OK) {
             ESP_LOGW(TAG, "config-file missing");
         } else {
             ESP_LOGI(TAG, "config-file found");
 
-            auto config = _paramFs->readFile("Configuration.json");
+            auto config = _paramFs->readFile(DeviceConfigFilename.begin());
             ESP_LOGI(TAG, "read config: %s", config.c_str());
 
             if (config.size() != 0) {
@@ -511,6 +576,8 @@ void app_main(void) {
         std::make_unique<Display::Message>(Display::Message::Type::UpdateInfo, "Standalone-Mode");
     displayEvents.enqueue(std::move(msg));
 
+    ESP_LOGI(TAG, "Setting up Web");
+    static WebApi web({*_paramFs, stageAmbient, intensity, WebColorCallback, WebIntensityCallback});
     ESP_LOGI(TAG, "Waiting for IP(s)");
     ipAddressSem.take(portMAX_DELAY);
 
@@ -525,6 +592,6 @@ void app_main(void) {
             ESP_LOGI(TAG, "- IPv4 address: " IPSTR, IP2STR(&ip.ip));
         }
     }
-    xTaskCreate(telnetSocket_task, "telnetSocket", 4096, nullptr, 5, NULL);
-    xTaskCreate(dmxSocket_task, "dmxSocket", 4096, nullptr, 5, NULL);
+    xTaskCreate(telnetSocketTask, "telnetSocket", 4096, nullptr, 5, NULL);
+    xTaskCreate(dmxSocketTask, "dmxSocket", 4096, nullptr, 5, NULL);
 }
