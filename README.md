@@ -63,7 +63,7 @@ Following hardware is used
 
 Note: Currently i am planning to develop an actual box with an dedicated PCB. Schematics will be included in this project.
 
-The Firmware is based on Espressif IOT-Dev-Framework.
+The Firmware is based on Espressif IOT-Dev-Framework. The project is generated with [PlatformIO](https://platformio.org/).
 Sorry no Arduino here because of the RMII-connected phy (I wanted a reliable solution).
 
 ## Issues and open Tasks
@@ -77,3 +77,4 @@ Sorry no Arduino here because of the RMII-connected phy (I wanted a reliable sol
   * Telnet shell is open
 * Syslog is no real syslog ... it only uses the correct port
 * Coredump-feature should be enabled
+* Nextion Driver has still some unpleasant spots that need finalization
