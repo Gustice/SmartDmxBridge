@@ -72,9 +72,13 @@ Sorry no Arduino here because of the RMII-connected phy (I wanted a reliable sol
   * The Display must provide clear info when the device is not in standalone mode
   * If an Firmware update is triggered there is no feedback what is currently going on and if the update is successful
   * To much logging is happening via internal serial interface. It should be more piped through telnet shell or web interface
+* Simplified stream abstraction is rather inconvenient
 * Security issues
   * OTA-Update should verify the request by certificate
   * Telnet shell is open
 * Syslog is no real syslog ... it only uses the correct port
 * Coredump-feature should be enabled
 * Nextion Driver has still some unpleasant spots that need finalization
+* Sensing interface seems not to work always properly
+* There is too much logging output in different modules that slows the controller down
+* Websockets missing to trigger updates on webpage if it is used concurrently by multiple users
